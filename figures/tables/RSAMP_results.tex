@@ -1,0 +1,13 @@
+\begin{table*}[t]
+    \centering
+    \begin{tabular}{l|llll|ll|}
+    \cline{2-7}
+    & \multicolumn{4}{c||}{Basic Planners} & \multicolumn{2}{c|}{Asymptotically Optimal Planners} \\ \cline{2-7} 
+        & \multicolumn{1}{c|}{RRT} & \multicolumn{1}{c|}{RandUp-RRT} & \multicolumn{1}{c|}{SARRT} & \multicolumn{1}{c||}{R-SARRT} & \multicolumn{1}{c|}{RRT$^{*}$} & \multicolumn{1}{c|}{R-SARRT$^*$} \\ \hline
+    \multicolumn{1}{|c|}{Success (\%)} & \multicolumn{1}{c|}{61.8}   & \multicolumn{1}{c|}{99.2} & \multicolumn{1}{c|}{\textbf{100.0}}  &   \multicolumn{1}{c||}{\textbf{100.0}}   & \multicolumn{1}{c|}{56.5}   &  \multicolumn{1}{c|}{\textbf{100.0}}   \\ \hline
+    \multicolumn{1}{|c|}{Plan time (s)} & \multicolumn{1}{c|}{\textbf{7.1} $\pm$ 7.6}   & \multicolumn{1}{c|}{45.6 $\pm$ 33.4} & \multicolumn{1}{c|}{57.8 $\pm$ 49.1}  &   \multicolumn{1}{c||}{ 22.3 $\pm$ 15.8}  & \multicolumn{1}{c|}{\textbf{308.7} $\pm$ 235.7}   &  \multicolumn{1}{c|}{584.3 $\pm$ 394.7}    \\ \hline
+    \end{tabular}
+    \caption{
+    \label{tab:Robust window}
+    Average planning time and success rate (no crash) of the simulated motions planned by RRT, RandUP-RRT, our former planner SARRT and our R-SARRT, as well as RRT$^{*}$ and our  R-SARRT$^{*}$ variants optimizing time, over 20 plans and 30 simulations per plan.}
+\end{table*}

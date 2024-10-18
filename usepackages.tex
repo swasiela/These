@@ -1,0 +1,133 @@
+% This file contains all the included packages, in order to statisfy ordering and similar contraints.
+\usepackage{shellesc} % Solve some issues with shell escaping and luatex
+\usepackage{transparent}
+
+\usepackage[dvipsnames]{xcolor}  % Colors for text, and new color definitions
+
+\usepackage[french]{babel} % French as second language, used if main language is not this one
+\usepackage{csquotes}
+
+\usepackage{datetime}
+\usepackage{subcaption}
+\usepackage{graphicx}
+
+\usepackage{tikz}
+
+\usepackage[edges]{forest} % Nice & easy tree structures using tikz
+
+\usepackage[figuresright]{rotating} % Sideways for figures & tables
+\usepackage{placeins}
+
+
+\usepackage{standalone} % Useful for working on specific tikz pictures
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region ALGORITHM RELATED PACKAGES %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\usepackage{minted}
+\usepackage[chapter]{algorithm}
+\usepackage[indLines=true,commentColor=black]{algpseudocodex}
+
+
+
+
+% #endregion
+
+\usepackage{fontspec} % For specific font setup
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region THEOREM-LIKE ENVIRONMENTS %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{amsthm}
+\usepackage[breakable,skins,theorems]{tcolorbox}
+
+% #endregion
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region TABLES & RULES %
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{afterpage}
+
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{tablefootnote}
+
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{multirow}
+
+\usepackage{hhline}
+
+
+% #endregion
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region HYPERLINK & PDF SETTINGS %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{pdflscape}
+\usepackage[hyperindex=true]{hyperref}
+\usepackage{eso-pic}
+
+\ifdefined\annotateprint% Used to have easy make rules to build the file
+  \usepackage[left=2in,right=2in,top=1.5in,bottom=1.5in,includehead,headheight=26pt]{geometry}
+\else
+  \ifdefined\finalprint
+    \usepackage[inner=1.1in,right=0.9in,top=1.3in,bottom=1in,headheight=26pt]{geometry}
+  \else
+    \usepackage[left=1in,right=1in,top=1.3in,bottom=1in,headheight=26pt]{geometry}
+  \fi
+\fi
+
+
+% #endregion
+
+\usepackage{etoc} % Mini toc
+
+\usepackage[style=ext-alphabetic,backref=true,sortcites=true,
+  doi=false,isbn=false,url=false,eprint=false]{biblatex} %Bib formatting
+
+\usepackage{fancyhdr} % Fancy Header and Footer
+
+\ifdefined\notodo
+  \usepackage[disable]{todonotes}
+\else
+  \usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
+\fi
+\usepackage{xargs}   % Use more than one optional parameter in a new commands
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region Maths/Symbols %
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{pifont}
+\usepackage{mathtools}
+\usepackage{blkarray, bigstrut}
+\usepackage{amssymb}
+\usepackage{accents}
+\usepackage{scalerel}
+\usepackage{delarray}
+
+% #endregion
+
+\usepackage[bottom,perpage]{footmisc}
+
+\usepackage{listings}
+\usepackage[normalem]{ulem}
+
+\ifdefined\noxindy% Used to have easy make rules to build the file
+  \usepackage[acronyms,sort=standard,toc]{glossaries} % Do not use xindy to limite dependencies
+\else
+  \usepackage[acronyms,xindy,sort=standard,toc]{glossaries}
+\fi
+
+% Need to be loaded after many other packages
+\usepackage{cleveref} % For nice multiple refs in a single command

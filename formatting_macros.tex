@@ -1,0 +1,507 @@
+% This file contains different settings pertianing to formatting, as well as the newcommand definitions
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region COLOR DEFINITIONS %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\definecolor{IBMBlue}{HTML}{648FFF}
+\definecolor{IBMPurple}{HTML}{785EF0}
+\definecolor{IBMMagenta}{HTML}{DC267F}
+\definecolor{IBMOrange}{HTML}{FE6100}
+\definecolor{IBMYellow}{HTML}{FFB000}
+\colorlet{Accent5}{IBMYellow}
+\colorlet{Accent2}{IBMBlue}
+\colorlet{Accent3}{IBMMagenta}
+\colorlet{Accent4}{IBMPurple}
+\colorlet{Accent1}{IBMOrange}
+
+\definecolor{ThreeRed}{HTML}{D41159}
+\definecolor{ThreeOrange}{HTML}{FFB000}
+\definecolor{ThreeGreen}{HTML}{77AB02}
+
+% #endregion
+
+%%%%%%%%%%%%%%%%%%%%%
+% #region Algorithm %
+%%%%%%%%%%%%%%%%%%%%%
+
+\algrenewcommand\algorithmicrequire{\textbf{Input:}}
+\algrenewcommand\algorithmicensure{\textbf{Output:}}
+
+% Define new blocks, see https://github.com/chrmatt/algpseudocodex/issues/3
+\algnewcommand\algorithmicsoptional{\textbf{optional}}%
+
+\makeatletter
+\algdef{SE}[OPTIONAL]{Optional}{EndOptional}[1]{\algpx@startIndent\algpx@startCodeCommand\algorithmicsoptional}{\algpx@endIndent\algpx@startCodeCommand\algorithmicend\ \algorithmicsoptional}%
+
+\ifbool{algpx@noEnd}{%
+  \algtext*{EndOptional}%
+  %
+  % end indent line after (not before), to get correct y position for multiline text in last command
+  \apptocmd{\EndOptional}{\algpx@endIndent}{}{}%
+}{}%
+
+\pretocmd{\Optional}{\algpx@endCodeCommand}{}{}
+
+    % for end commands that may not be printed, tell endCodeCommand whether we are using noEnd
+    \ifbool{algpx@noEnd}{%
+    \pretocmd{\EndOptional}{\algpx@endCodeCommand[1]}{}{}%
+}{%
+\pretocmd{\EndOptional}{\algpx@endCodeCommand[0]}{}{}%
+}%
+\makeatother
+
+% #endregion
+
+%%%%%%%%%%%%%%%%%
+% #region Fonts %
+%%%%%%%%%%%%%%%%%
+
+% Find a way to define a new family and use it twice
+% \newfontfamily{\lmodernsc}{Latin Modern Roman}[
+%   SmallCapsFont = Latin Modern Roman Caps,
+%   UprightFeatures = {SmallCapsFeatures = {}}, % Suppresses warning about missing smcp feature.
+%   BoldFeatures = {SmallCapsFont = {CMU Serif Bold}},
+%   ItalicFeatures = {SmallCapsFont = {CMU Serif Roman Slanted}},
+%   BoldItalicFeatures = {SmallCapsFont = {CMU Serif Bold Slanted}},
+%   SmallCapsFeatures={Letters=SmallCaps}]
+\setmainfont{Latin Modern Roman}[
+  SmallCapsFont = Latin Modern Roman Caps,
+  UprightFeatures = {SmallCapsFeatures = {}}, % Suppresses warning about missing smcp feature.
+  BoldFeatures = {SmallCapsFont = {CMU Serif Bold}},
+  ItalicFeatures = {SmallCapsFont = {CMU Serif Roman Slanted}},
+  BoldItalicFeatures = {SmallCapsFont = {CMU Serif Bold Slanted}},
+  SmallCapsFeatures={Letters=SmallCaps}]
+% Loading font and renaming for template compat
+\newfontfamily{\pbkcompat}{TeX Gyre Bonum}[NFSSFamily=pbk]
+\newfontfamily{\cmrcompat}{Latin Modern Roman}[
+  NFSSFamily=cmr,
+  SmallCapsFont = Latin Modern Roman Caps,
+  UprightFeatures = {SmallCapsFeatures = {}}, % Suppresses warning about missing smcp feature.
+  BoldFeatures = {SmallCapsFont = {CMU Serif Bold}},
+  ItalicFeatures = {SmallCapsFont = {CMU Serif Roman Slanted}},
+  BoldItalicFeatures = {SmallCapsFont = {CMU Serif Bold Slanted}},
+  SmallCapsFeatures={Letters=SmallCaps}]
+\newfontfamily{\pcrcompat}{TeX Gyre Cursor}[NFSSFamily=pcr]
+\setmonofont{Latin Modern Mono}
+
+\newfontfamily\ttprop{Latin Modern Mono Prop}
+\DeclareTextFontCommand{\textttpit}{\ttprop\itshape}
+\DeclareTextFontCommand{\textttp}{\ttprop}
+
+% #endregion
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region Theorem-like environments %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% 'Plain' theorems
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+% 'Boxed' Theorems
+
+% Styling for examples
+\newtheoremstyle{example}% Name
+{}% space above
+{}% space below
+{\normalfont}% body font
+{}% indent
+{\bfseries}% head font
+{}% punctuation after head
+{\newline}% space after head (has to be space or dimension!)
+{\thmname{#1}\thmnumber{ #2} \thmnote{{\normalfont\itshape #3}}}% head spec
+
+% 
+\newtheoremstyle{bground}% Name
+{}% space above
+{}% space below
+{\normalfont}% body font
+{}% indent
+{\bfseries}% head font
+{}% punctuation after head
+{\newline}% space after head (has to be space or dimension!)
+{\thmname{#1}\thmnumber{ #2}\thmnote{: {\normalfont\itshape\bfseries #3}}}% head spec
+
+
+\theoremstyle{example}
+\newtheorem{example}{Example}[chapter]
+
+\theoremstyle{bground}
+\newtheorem{bground}{Background}
+\renewcommand{\thebground}{\Alph{bground}}
+
+\usetikzlibrary{decorations.pathmorphing}
+\pgfdeclaredecoration{complete zigzag}{initial}{
+  \state{initial}[
+    width=+0pt,
+    next state=half up,
+    persistent precomputation={\pgfmathsetmacro\matchinglength{
+          \pgfdecoratedinputsegmentlength / int(\pgfdecoratedinputsegmentlength/\pgfdecorationsegmentlength)}
+        \setlength{\pgfdecorationsegmentlength}{\matchinglength pt}
+      }] {}
+  \state{half up}[
+    width=+.25\pgfdecorationsegmentlength,
+    next state=big down]
+  {\pgfpathlineto{\pgfqpoint{.25\pgfdecorationsegmentlength}{\pgfdecorationsegmentamplitude}}
+  }
+  \state{big down}[switch if less than=+.5\pgfdecorationsegmentlength to center finish,
+    width=+.5\pgfdecorationsegmentlength,
+    next state=big up]
+  {
+    \pgfpathlineto{\pgfqpoint{.5\pgfdecorationsegmentlength}{-\pgfdecorationsegmentamplitude}}
+  }
+  \state{big up}[switch if less than=+.5\pgfdecorationsegmentlength to center finish,
+    width=+.5\pgfdecorationsegmentlength,
+    next state=big down]
+  {
+    \pgfpathlineto{\pgfqpoint{.5\pgfdecorationsegmentlength}{\pgfdecorationsegmentamplitude}}
+  }
+  \state{center finish}[width=0pt, next state=final]{
+  }
+  \state{final}
+  {
+    \pgfpathlineto{\pgfpointdecoratedpathlast}
+  }
+}
+
+\tcolorboxenvironment{example}{
+  enhanced,
+  breakable,
+  height fixed for=middle,
+  % overlay first={%
+  %     \path[font=\small\itshape] (frame.south) node (cont) {(continued)};
+  %     \begin{scope}[decoration={complete zigzag,amplitude=0.5mm}]
+  %       \path[fill=Gray!10]  decorate {([xshift=1.2pt]frame.south west) -- (cont.west)} --++
+  %       (0,0.5ex) -| cycle
+  %       decorate {([xshift=-1.2pt]frame.south east) -- (cont.east)} --++
+  %       (0,0.5ex) -| cycle;
+  %       \path[fill=white]
+  %       decorate {([xshift=1.2pt]frame.south west) -- (cont.west)} --++
+  %       (0,-0.5ex) -| cycle
+  %       decorate {([xshift=-1.2pt]frame.south east) -- (cont.east)} --++
+  %       (0,-0.5ex) -| cycle;
+  %       \draw[thick,Black,decorate] ([xshift=1.2pt]frame.south west) -- (cont.west);
+  %       \draw[thick,Black,decorate] ([xshift=-1.2pt]frame.south east) -- (cont.east);
+  %     \end{scope}
+  %   },
+  % overlay middle={%
+  %     \path[font=\small\itshape] (frame.south) node (cont) {(continued)};
+  %     \begin{scope}[decoration={complete zigzag,amplitude=0.5mm}]
+  %       \path[fill=Gray!10]  decorate {([xshift=1.2pt]frame.south west) -- (cont.west)} --++
+  %       (0,0.5ex) -| cycle
+  %       decorate {([xshift=-1.2pt]frame.south east) -- (cont.east)} --++
+  %       (0,0.5ex) -| cycle;
+  %       \path[fill=white]
+  %       decorate {([xshift=1.2pt]frame.south west) -- (cont.west)} --++
+  %       (0,-0.5ex) -| cycle
+  %       decorate {([xshift=-1.2pt]frame.south east) -- (cont.east)} --++
+  %       (0,-0.5ex) -| cycle;
+  %       \draw[thick,Black,decorate] ([xshift=1.2pt]frame.south west) -- (cont.west);
+  %       \draw[thick,Black,decorate] ([xshift=-1.2pt]frame.south east) -- (cont.east);
+  %     \end{scope}
+  %     \path[font=\small\itshape] (frame.north) node (thm) {Example \theexample\ continued};
+  %     \begin{scope}[decoration={complete zigzag,amplitude=0.5mm}]
+  %       \path[fill=Gray!10]  decorate {([xshift=1.2pt]frame.north west) -- (thm.west)} --++
+  %       (0,-0.5ex) -| cycle
+  %       decorate {([xshift=-1.2pt]frame.north east) -- (thm.east)} --++
+  %       (0,-0.5ex) -| cycle;
+  %       \path[fill=white]
+  %       decorate {([xshift=1.2pt]frame.north west) -- (thm.west)} --++
+  %       (0,0.5ex) -| cycle
+  %       decorate {([xshift=-1.2pt]frame.north east) -- (thm.east)} --++
+  %       (0,0.5ex) -| cycle;
+  %       \draw[thick,Black,decorate] ([xshift=1.2pt]frame.north west) -- (thm.west);
+  %       \draw[thick,Black,decorate] ([xshift=-1.2pt]frame.north east) -- (thm.east);
+  %     \end{scope}
+  %   },
+  % overlay last={%
+  %     \path[font=\small\itshape] (frame.north) node (thm) {Example \theexample\ continued};
+  %     \begin{scope}[decoration={complete zigzag,amplitude=0.5mm}]
+  %       \path[fill=Gray!10]  decorate {([xshift=1.2pt]frame.north west) -- (thm.west)} --++
+  %       (0,-0.5ex) -| cycle
+  %       decorate {([xshift=-1.2pt]frame.north east) -- (thm.east)} --++
+  %       (0,-0.5ex) -| cycle;
+  %       \path[fill=white]
+  %       decorate {([xshift=1.2pt]frame.north west) -- (thm.west)} --++
+  %       (0,0.5ex) -| cycle
+  %       decorate {([xshift=-1.2pt]frame.north east) -- (thm.east)} --++
+  %       (0,0.5ex) -| cycle;
+  %       \draw[thick,Black,decorate] ([xshift=1.2pt]frame.north west) -- (thm.west);
+  %       \draw[thick,Black,decorate] ([xshift=-1.2pt]frame.north east) -- (thm.east);
+  %     \end{scope}
+  %   },
+  colback=Gray!10,
+  colframe={Black},
+}
+
+\tcolorboxenvironment{bground}{
+  enhanced,
+  breakable,
+  % opacityback=0,
+  colback=Gray!5,
+  colframe={Gray},
+}
+
+% To have tikz nodes with the same color as the box background
+\AtBeginEnvironment{example}{
+  \tikzset{
+    action/.append style = {fill=Gray!10},
+    task/.append style = {fill=Gray!10},
+  }
+}
+\AtBeginEnvironment{bground}{
+  \tikzset{
+    action/.append style = {fill=Gray!5},
+    task/.append style = {fill=Gray!5},
+  }
+}
+
+
+
+% #endregion
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region PDF/Links settings %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Links in pdf
+\definecolor{linkcol}{rgb}{0,0,0.4}
+\definecolor{citecol}{rgb}{0.5,0,0}
+\definecolor{linkcol}{rgb}{0,0,0}
+\definecolor{citecol}{rgb}{0,0,0}
+% Change this to change the informations included in the pdf file
+\hypersetup
+{
+  bookmarksopen=true,
+  pdftitle="Learning by Interaction for Deliberate Acting in Robotics",
+  pdfauthor="Philippe Herail", %auteur du document
+  pdfsubject="These", %sujet du document
+  %pdftoolbar=false, %barre d'outils non visible
+  pdfmenubar=true, %barre de menu visible
+  pdfhighlight=/O, %effet d'un clic sur un lien hypertexte
+  colorlinks=true, %couleurs sur les liens hypertextes
+  pdfpagemode=UseOutlines, %aucun mode de page
+  pdfpagelayout=SinglePage, %ouverture en simple page
+  pdffitwindow=true, %pages ouvertes entierement dans toute la fenetre
+  linkcolor=linkcol, %couleur des liens hypertextes internes
+  citecolor=citecol, %couleur des liens pour les citations
+  urlcolor=linkcol %couleur des liens pour les url
+}
+
+% #endregion
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region Header/Footer %
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%% Fancy Header %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Fancy Header Style Options
+
+\fancypagestyle{fancy}{
+  % Sets fancy header and footer
+  \fancyfoot{}                            % Delete current footer settings
+
+  %\renewcommand{\chaptermark}[1]{         % Lower Case Chapter marker style
+  %  \markboth{\chaptername\ \thechapter.\ #1}}{}} %
+
+  %\renewcommand{\sectionmark}[1]{         % Lower case Section marker style
+  %  \markright{\thesection.\ #1}}         %
+
+  \fancyhead[LE,RO]{\bfseries\thepage}    % Page number (boldface) in left on even
+  % pages and right on odd pages
+  \fancyhead[RE]{\bfseries\nouppercase{\leftmark}}      % Chapter in the right on even pages
+  \fancyhead[LO]{\bfseries\nouppercase{\rightmark}}     % Section in the left on odd pages
+
+  \let\headruleORIG\headrule
+  \renewcommand{\headrule}{\color{black} \headruleORIG}
+  \renewcommand{\headrulewidth}{1.0pt}
+}
+
+\fancypagestyle{plain}{
+  \fancyhead{}
+  % \fancyfoot[CO,CE]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
+%%% Clear Header %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Clear Header Style on the Last Empty Odd pages
+\makeatletter
+
+\def\cleardoublepage{\clearpage\if@twoside \ifodd\c@page\else%
+      \hbox{}%
+      \thispagestyle{empty}%              % Empty header styles
+      \newpage%
+      \if@twocolumn\hbox{}\newpage\fi\fi\fi}
+
+\makeatother
+
+% #endregion
+
+\renewcommand{\baselinestretch}{1.05}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region MISC FORMATTING COMMANDS %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+% Prints your review date and 'Draft Version' (From Josullvn, CS, CMU)
+\newcommand{\reviewtimetoday}[2]{\special{!userdict begin
+/bop-hook{gsave 20 710 translate 45 rotate 0.8 setgray
+/Times-Roman findfont 12 scalefont setfont 0 0   moveto (#1) show
+0 -12 moveto (#2) show grestore}def end}}
+% You can turn on or off this option.
+% \reviewtimetoday{\today}{Draft Version}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+
+
+% #endregion
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region TOC/MINITOC Formatting %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\etocbookstyle
+% \etocstandardlines
+\newlength\tocrulewidth
+\setlength{\tocrulewidth}{1.5pt}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+\etocsetnexttocdepth{2}
+
+% #endregion
+
+% Commands to format MAX-SMT constants representing top or bottom args
+\newcommand{\argtop}[1]{{\ensuremath{\bar{#1}}}}
+\newcommand{\argbot}[1]{{\ensuremath{\ubar{#1}}}}
+
+\newcommand{\ptype}[1]{\textttpit{#1}} % for planing params types
+\newcommand{\pvar}[1]{\ensuremath{\operatorname{?\mathit{#1}}}} % for planning params vars (add subscript outside)
+\newcommand{\pconst}[1]{\ensuremath{\operatorname{\mathit{#1}}}} % for planning params constants (add subscript outside)
+\newcommand{\poper}[1]{{\textttp{#1}}} % for planning params operators (action, tasks)
+\newcommand{\psf}[1]{{\textttp{#1}}} % for planning state variables
+
+\newcommand{\htnmaker}{\textsc{HTN-Maker}}
+\newcommand{\htnlearn}{\textsc{HTNLearn}}
+\newcommand{\wordhtn}{\textsc{Word2HTN}}
+\newcommand{\wordvec}{\textsc{Word2Vec}}
+\newcommand{\bnfsym}[1]{\ensuremath{\langle\texttt{#1}\rangle}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%	  TODO commands    %
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ifdefined\notodo
+  \newcommand{\todomarker}[2][]{}
+  \newcommand{\arthur}[1]{}
+  \newcommand{\philippe}[1]{}
+  \newcommand{\pcomment}[2][]{}
+  \newcommand{\pinline}[1]{}
+  \newcommand{\acomment}[1]{}
+\else
+  \setlength{\marginparwidth}{0.85in}
+  \newcommand{\todomarker}[2][]{\todo[inline,size=\normalsize,#1]{TODO #2}}
+  \newcommand{\arthur}[1]{{\color{blue} \textbf{#1}}}
+  \newcommand{\philippe}[1]{{\color{ForestGreen} \textbf{#1}}}
+  \newcommand{\pcomment}[2][]{\todo[backgroundcolor=ForestGreen!25,linecolor=ForestGreen,caption={P},prepend,size=\tiny,#1]{#2}}
+  \newcommand{\pinline}[1]{\todo[backgroundcolor=ForestGreen!25,author={Philippe},inline,size=\normalsize]{#1}}
+  \newcommand{\acomment}[1]{\todo[linecolor=blue,backgroundcolor=blue!25,bordercolor=blue,caption={A},prepend,size=\tiny]{#1}}
+\fi
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region CUSTOM SYMBOLS %
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\DeclareMathSymbol{\mlq}{\mathord}{operators}{``}
+\DeclareMathSymbol{\mrq}{\mathord}{operators}{`'}
+
+\renewcommand{\epsilon}{\varepsilon}
+
+\newcommand{\red}[1]{{\color{red}#1}} 
+\newcommand{\blue}[1]{{\color{blue}#1}}
+\newcommand{\magen}[1]{{\color{magenta}#1}}
+\newcommand{\bxi}{\boldsymbol{\xi}}
+\newcommand{\x}{\boldsymbol{x}}
+\newcommand{\X}{\boldsymbol{X}}
+\newcommand{\q}{\boldsymbol{q}}
+\newcommand{\e}{\boldsymbol{e}}
+\newcommand{\f}{\boldsymbol{f}}
+\newcommand{\g}{\boldsymbol{g}}
+\renewcommand{\k}{\boldsymbol{k}}
+\newcommand{\h}{\boldsymbol{h}}
+\renewcommand{\r}{\boldsymbol{r}}
+\renewcommand{\u}{\boldsymbol{u}}
+\renewcommand{\a}{\boldsymbol{a}}
+\newcommand{\p}{\boldsymbol{p}}
+\newcommand{\bPhi}{\boldsymbol{\Phi}}
+\newcommand{\bPi}{\boldsymbol{\Pi}}
+\newcommand{\bPixi}{\boldsymbol{\Pi_{\xi}}}
+\newcommand{\bTheta}{\boldsymbol{\Theta}}
+\newcommand{\W}{\boldsymbol{W}}
+\newcommand{\Rq}{\boldsymbol{r_q}}
+\newcommand{\Ru}{\boldsymbol{r_u}}
+\newcommand{\U}{\boldsymbol{U}}
+\newcommand{\bW}{\boldsymbol{W}}
+\newcommand{\boldeta}{\boldsymbol{\eta}}
+\newcommand{\boldmu}{\boldsymbol{\mu}}
+
+% #endregion
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% #region CUSTOM MATH OPERATORS %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\DeclareMathOperator*{\argmax}{arg\,max}%
+\DeclareMathOperator*{\argmin}{arg\,min}%
+\DeclareMathOperator{\cost}{cost}%
+\DeclareMathOperator{\head}{head}
+\DeclareMathOperator{\name}{name}
+\DeclareMathOperator{\pre}{pre}
+\DeclareMathOperator{\post}{post}
+\DeclareMathOperator{\eff}{eff}
+
+\DeclareMathOperator{\decs}{Decs}
+\DeclareMathOperator{\vdecs}{{VDecs}}
+
+\DeclareMathOperator*{\args}{args}%
+\DeclareMathOperator{\argt}{arg}%
+\DeclareMathOperator{\subs}{subtasks}
+\DeclareMathOperator*{\tsym}{sym}%
+\DeclareMathOperator{\prims}{Prims}%
+\DeclareMathOperator{\win}{win}%
+\DeclareMathOperator{\gnd}{gnd}%
+\DeclareMathOperator{\inst}{inst}%
+\DeclareMathOperator*{\soft}{\textit{\textsc{Soft}}}%
+\DeclareMathOperator*{\hard}{\textit{\textsc{Hard}}}%
+
+\DeclareMathOperator{\zip}{zip}
+
+% Functions used in MAX-SMT formulations
+\DeclareMathOperator*{\pgroup}{\textsc{PGroup}}%
+\DeclareMathOperator*{\isgroupcount}{\textsc{IsGroupCount}}%
+\DeclareMathOperator*{\grounding}{\textsc{Gnd}}%
+
+\DeclareMathOperator*{\gndparam}{\textsc{GndParam}}%
+\DeclareMathOperator*{\gndgroup}{\textsc{GndGroup}}%
+
+% Two dots instead of three
+\newcommand{\slice}{\mathinner{{\ldotp}{\ldotp}}}
+% Two dots instead of three
+\newcommand{\sliceeq}{\mathinner{{\ldotp}{\ldotp}{=}}}
+
+% Big eq symbol, like bigcup
+\DeclareMathOperator*{\bigeq}{\scalerel*[15pt]{=}{\sum}}
+
+
+% #endregion
+

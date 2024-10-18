@@ -1,0 +1,144 @@
+% Choose the language of your thesis passing 'french' or 'english' as
+% \documentclass option.
+% Note1: The 'page de garde' will always be written in French.
+% Note2: You will have an error if you change the language of the document and
+%        compile it without cleaning the auxiliary files. Compiling it again
+%        should solve the problem.
+\PassOptionsToPackage{main=UKenglish}{babel}
+\documentclass[UKenglish,a4paper,12pt,twoside]{StyleThese}
+
+\ifdefined\isfinal
+  \def\noexternal{}
+  \def\notodo{}
+\else
+\fi
+
+\ifdefined\watermark
+  \def\notodo{}
+\else
+\fi
+
+\input{usepackages.tex}
+\input{formatting_macros.tex}
+
+\ifdefined\watermark
+\AddToShipoutPictureFG{%
+\AtPageCenter{
+% \rotatebox[origin=c]{90}{% Angle
+  \scalebox{10}{% Size (scaled 10x)
+      \makebox[0pt]{% Centered horizontally
+            \color{Gray!50}% Colour
+            \transparent{0.4}%
+            \vphantom{j}DRAFT%
+      }%
+    }%
+  % }%}
+}
+}
+
+\else
+\fi
+
+
+
+\input{glossary}
+\bibliography{references}
+
+
+\input{cover}
+\sloppy
+
+\begin{document}
+
+
+\begin{otherlanguage}{french}
+  \makeflyleaf
+\end{otherlanguage}
+\cleardoublepage
+
+
+
+
+
+
+\frontmatter
+\pagestyle{plain}
+% \begin{abstract}
+%     TODO
+% \end{abstract}
+
+\include{chap_abstract}
+
+\include{chap_acknowledgements}
+
+\cleardoublepage
+
+\pagestyle{fancy}
+\tableofcontents
+\cleardoublepage
+
+% Need to be set here to have the right formatting for the main toc and the local tocs
+\etocsetlevel{chapter}{-1}
+\etocsetlevel{section}{0}
+\etocsetlevel{subsection}{1}
+\etocsetlevel{subsubsection}{2}
+
+\etocsettocstyle{{\large \textbf{Contents}}\vspace{-0.5\baselineskip}\\\rule{\linewidth}{\tocrulewidth}\vskip0.5\baselineskip}{{\parindent=0em\rule{\linewidth}{\tocrulewidth}}}
+
+% Here you can see an example of how to create text conditioned by the language
+% variable. The \iftoggle command:
+%
+%   \iftoggle{ThesisInEnglish}{%
+%   <your-text-in-english>
+%   }{%
+%   <your-text-in-french>
+%   }
+%
+% will compile only one of the two blocks, depending on the variable you set at
+% the beginning of this document. Language selection is managed this way in the
+% formatAndDefs.tex file. You too can create sections of your thesis that is
+% language dependend this way, although you probably won't need it.
+
+
+\printacronyms
+% \printglossaries
+\cleardoublepage
+
+\include{fr-summary}
+\cleardoublepage
+\include{en-summary}
+\cleardoublepage
+
+\addcontentsline{toc}{chapter}{\listfigurename}
+\listoffigures
+\cleardoublepage
+\addcontentsline{toc}{chapter}{\listtablename}
+\listoftables
+\cleardoublepage
+\addcontentsline{toc}{chapter}{\listalgorithmname}
+\listofalgorithms
+\cleardoublepage
+
+% \todototoc
+% \listoftodos
+% \cleardoublepage
+
+\mainmatter
+\glsresetall
+\include{chap-introduction}
+\include{chap-literature_review}
+\include{chap-preliminaries}
+\include{chap-sensitivity_aware_mp}
+\include{chap-learning_sensitivity}
+\include{chap-robust_mp_via_learning}
+\include{chap-robust_local_opt}
+\include{chap-conclusion}
+\appendix
+
+\backmatter
+
+\printbibliography[heading=bibintoc,title={References}]
+\cleardoublepage
+
+
+\end{document}

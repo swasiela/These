@@ -1,0 +1,12 @@
+\newcommand*\myglsentry[1]{%
+  \protect\ifglsused{#1}{%
+    \glsentryshort{#1}%
+  }{%
+    \glsentrylong{#1}%
+  }%
+}
+
+\makeglossaries
+
+\newacronym{rrt}{RRT}{Rapidly-exploring Random Trees}
+\newacronym{odes}{Ordinary differential equations}{ODEs}
