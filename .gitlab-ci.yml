@@ -1,0 +1,36 @@
+stages:
+  - build
+
+image: "${CI_REGISTRY_IMAGE}/texbuild:2024-03-24"
+
+
+build-workdocs:     
+    stage: build
+    variables:
+      TERM: xterm
+    script:
+        - make clean
+        - make all
+    artifacts:
+      when: always
+      paths:
+          - main.log
+          - thesis-workdoc.pdf
+          - thesis-workdoc-print-annotate.pdf
+      expire_in: 10 mins
+
+build-finals:     
+    stage: build
+    variables:
+      TERM: xterm
+    script:
+        - make clean
+        - make all-final
+    artifacts:
+      when: always
+      paths:
+          - main.log
+          - thesis-digital.pdf
+          - thesis-print.pdf
+      expire_in: 10 mins
+
