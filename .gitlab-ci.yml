@@ -1,7 +1,7 @@
 stages:
   - build
 
-image: "${CI_REGISTRY_IMAGE}/texbuild:2024-03-24"
+# image: "${CI_REGISTRY_IMAGE}/texbuild:2024-03-24"
 
 
 build-workdocs:     
