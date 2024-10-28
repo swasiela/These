@@ -33,7 +33,7 @@ Fig.~\ref{fig: Missed and succes} illustrates the application to a quadrotor mod
 % Sect.~\ref{sec:RASAMP} provides an overview of our planning framework to generate robust and accurate trajectories.
 % Sect.~\ref{sec:RSAMP} shows how to integrate the sensitivity learning method within a sampling-based motion planner, while Sect.~\ref{sec:AOptim} explains the accuracy optimization stage.
 
-\subsection{Robust and accurate planning framework}\label{sec:RASAMP}
+\section{Robust and accurate planning framework}\label{sec:RASAMP}
 
 The method consists of two stages: $(i)$ first, it generates a robust trajectory based on a Robust Sensitivity-Aware Motion Planner (R-SAMP) -- explained in Sect.~\ref{sec:RSAMP} -- that utilizes the GRU-based computation of the uncertainty tubes; $(ii)$ second, it optimizes the accuracy at some given states along this trajectory by minimizing the size of the uncertainty tubes at these locations.
 The motivation behind the second stage is to improve the accuracy of the planned robust trajectory for tasks -- e.g., pick-and-place or insertion tasks -- where minimizing the deviation from the nominal trajectory is important only at specific designed locations, as for picking the ring in Fig.~\ref{fig: Missed and succes}.
