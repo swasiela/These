@@ -14,7 +14,7 @@ Moreover, SAMP and the aforementioned methods focus on computing robust trajecto
     \caption{
     Two scenarios considered for the experimental validation of the proposed method:
     (a) Robust navigation of a drone through a narrow window. (b) Precision in-flight `ring catching' task, where the uncertainty on the position of the perch end-effector is minimized to successfully accomplish the task.
-    A video of the experiments is available at: \href{https://laas.hal.science/hal-04642257}{https://laas.hal.science/hal-04642257} \vspace{-0.4cm}}%
+    A video of the experiments is available at: \href{https://laas.hal.science/hal-04642257}{https://laas.hal.science/hal-04642257}}%
     \label{fig: Missed and succes}%
 \end{figure}
 
@@ -116,7 +116,14 @@ The variance is considered in this cost function so that the minimization of a r
 This function is neither additive (i.e., considering two trajectories ($\pi_{1}, \pi_{2}$), the cost of their concatenation $c(\pi_{1}|\pi_{2}) \neq c(\pi_{1}) + c(\pi_{2})$), nor monotonic. Therefore, it is unsuitable for global optimization using sampling-based motion planners like \cite{cRRT,cRRTstar}, since they require additive and monotonic objective functions.
 Given that we do not have the analytic expression of the cost function derivatives, the accuracy optimization of A-Optim has to be performed by a derivative-free method. In this work, we simply used a robust version of the random shortcut algorithm~\cite{cShortcut} that performs robust collision checks (as in Alg.~\ref{alg:ExtensionExample}) to maintain the robustness of the initial trajectory computed by the R-SAMP planner.
 
-\subsubsection{Robust local }
+\subsubsection{Methods}
+
+\begin{enumerate}
+    \item Shortcut
+    \item ExtendedShortcut
+    \item STOMP
+    \item NL COBYLA
+\end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Simulation results} \label{sec:Simu Results}
@@ -126,7 +133,7 @@ Then, we show the ability of the proposed R-SAMP\footnote{Code available at: \hr
 and accurate trajectories for the two experimental scenarios illustrated in Fig.~\ref{fig: Missed and succes}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Learning-based tube computation} \label{results:NNresult}
+\subsection{Learning-based tube computation} \label{sec:NNresult}
 
 The performance of the method presented in Chap.~\ref{chap:NN} and apply to a sampling based algorithm is illustrated in Fig.~\ref{fig: NN pred} that depicts the norm of predicted vector components for a 300-state trajectory part of the tree.
 \todo{POlish: Note that the predictions are only valid for the parameter maximum range $\delta\p$ chosen during the generation of the training set, and that the model is trained for given values of the controller gains.
@@ -158,7 +165,7 @@ Therefore, much more time is saved when using the learning method.
 The gain on the planning time can reach more than one order of magnitude for problems requiring a significant amount of iterations.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Robust planning} \label{results:RobustEval}
+\subsection{Robust planning} \label{sec:RobustPlanSimu}
 
 We first demonstrate good efficiency and robustness of the R-SARRT planner (see Sect.~\ref{sec:RSAMP}) from comparative simulation results with a standard (non-robust) RRT, a RandUp-RRT \cite{cRandUpRRT} and SARRT standing for a RRT implementation of our former framework SAMP \cite{cSAMP}.
 The robust collision checking of R-SARRT and SARRT is achieved by enlarging the robot shape to account for uncertainty. 
@@ -221,7 +228,7 @@ The figure shows the recorded executions within a virtual environment to detect 
 The experimental results confirm the simulation observations, providing an overall success rate of 100\% in the case of the robust trajectory computed with R-SARRT$^*$, against 40\% for the classic RRT$^*$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Accuracy optimization} \label{results:AccEval}
+\subsection{Accuracy optimization} \label{sec:AccOptSimu}
 
 \begin{figure} [t]
     \centering
@@ -230,22 +237,27 @@ The experimental results confirm the simulation observations, providing an overa
     \label{fig: Acc opti}%
 \end{figure}
 
-\begin{figure} [t]
-  \begin{subfigure}{0.63\linewidth}
-    \includegraphics[width=\linewidth]{figures/robust_accurate/ring_opti_v1.png}
-  \end{subfigure}\hfill
-  \begin{subfigure}{0.37\linewidth}
-      \includegraphics[width=\linewidth]{figures/robust_accurate/Exp_ring_no_opti_full_zoom.png}
-      \includegraphics[width=\linewidth]{figures/robust_accurate/Exp_ring_opti_full_zoom.png}
-    \end{subfigure}\hfill
-    
-  \caption{Experimental validation of the ``ring catching'' scenario with a perch-equipped drone (left) with the position of the perch end-effector at the second ring location over 10 trajectories non accuracy optimized (top right) and accuracy optimized (bottom right).}
-  \label{fig: exp ring}
-\end{figure}
-
 We implemented the A-Optim method of Sect.\ref{sec:AOptim} by using a robust version of the random shortcut algorithm \cite{cShortcut} and \eqref{eq: cost} as cost function to be optimized, where the radii of interest are the ones along the $\boldsymbol{x}$, $\boldsymbol{\rho}$ and $\boldsymbol{\omega}$ components of $\boldsymbol{q}$.
 At each iteration of this method, a shortcut is attempted between two states of the input trajectory that are randomly sampled together with the controller gain values, sampled between 50\% and 150\% of their nominal values.
 Fig.\ref{fig: Acc opti} motivates why we optimized both the trajectory and the controller gains at the same time in the A-Optim function in order to minimize uncertainty for a given point, as mentioned in Sec.\ref{sec:RASAMP}. In fact, these results corroborate the findings of \cite{AliIROS}, but this time by employing a sampling-based motion planner that considers obstacles in the environment.
+
+\section{Experimental validation} \label{sec:Experimental}
+\subsection{Robust planning} \label{sec:RobustPlanExp}
+
+\subsection{Accuracy optimization} \label{sec:AccOptExp}
+
+\begin{figure} [t]
+    \begin{subfigure}{0.63\linewidth}
+      \includegraphics[width=\linewidth]{figures/robust_accurate/ring_opti_v1.png}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.37\linewidth}
+        \includegraphics[width=\linewidth]{figures/robust_accurate/Exp_ring_no_opti_full_zoom.png}
+        \includegraphics[width=\linewidth]{figures/robust_accurate/Exp_ring_opti_full_zoom.png}
+      \end{subfigure}\hfill
+      
+    \caption{Experimental validation of the ``ring catching'' scenario with a perch-equipped drone (left) with the position of the perch end-effector at the second ring location over 10 trajectories non accuracy optimized (top right) and accuracy optimized (bottom right).}
+    \label{fig: exp ring}
+  \end{figure}
 
 We evaluated our complete framework with the accuracy optimization in a scenario that involves the in-flight retrieval of two 2cm radius rings in a cluttered environment using a drone equipped with a perch (see Fig.\ref{fig: drone_perch}) in a (near) time optimal way.
 The experimental setup is shown in Fig.\ref{fig: exp ring}.
@@ -260,8 +272,6 @@ In the latter case, the perch tip is closer to the reference point in the middle
 However, given the chosen system and controller parameters, there is no guarantee that the computed tube will be enclosed in within the ring.
 This explains why we still encounter one failure in the optimized case.
 Overall, the experimental results show a success rate of 90\% for RA-SARRT$^*$ against only 30\% for RRT$^*$.
-
-\section{Experimental validation} \label{sec:Experimental}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion} \label{sec:Conclusion}
