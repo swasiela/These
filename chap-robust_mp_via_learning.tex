@@ -1,8 +1,6 @@
-\chapter{Robust motion planning with accuracy optimization based on learned sensitivity metrics}[TOTO]
-\markboth{Robust motion planning with accuracy optimization based on learned sensitivity metrics}{TITI}% To set left/right header
+\chapter{Robust motion planning with accuracy optimization based on learned sensitivity metrics}[]
+\markboth{Robust MP with accuracy optimization based on learned sensitivity metrics}{}% To set left/right header
 % \localtableofcontents
-
-\section{Introduction} \label{sec:introduction}
 
 To overcome some of the aforementioned problems, the sensitivity-aware motion planner (SAMP) proposed in~\cite{cSAMP} exploits the derivation of uncertainty tubes of \cite{cTube}, based on the so-called \emph{closed-loop sensitivity}~\cite{cPi,cTh}.
 This approach is applicable to any controller and robot model, taking into account parametric uncertainties. 
@@ -104,7 +102,9 @@ Finally, the algorithm returns a global trajectory connecting ${q}^{init}$ and $
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Accuracy optimization \emph{(A-Optim)} }\label{sec:AOptim}
+\subsection{Robust local accuracy optimization \emph{(A-Optim)} }\label{sec:AOptim}
+
+\subsubsection{Cost function}
 
 The application of a local optimization method at this level is justified by the cost function considered in order to optimize the accuracy at desired states. 
 Indeed, the cost of a trajectory $\pi$ is defined as:
@@ -116,6 +116,7 @@ The variance is considered in this cost function so that the minimization of a r
 This function is neither additive (i.e., considering two trajectories ($\pi_{1}, \pi_{2}$), the cost of their concatenation $c(\pi_{1}|\pi_{2}) \neq c(\pi_{1}) + c(\pi_{2})$), nor monotonic. Therefore, it is unsuitable for global optimization using sampling-based motion planners like \cite{cRRT,cRRTstar}, since they require additive and monotonic objective functions.
 Given that we do not have the analytic expression of the cost function derivatives, the accuracy optimization of A-Optim has to be performed by a derivative-free method. In this work, we simply used a robust version of the random shortcut algorithm~\cite{cShortcut} that performs robust collision checks (as in Alg.~\ref{alg:ExtensionExample}) to maintain the robustness of the initial trajectory computed by the R-SAMP planner.
 
+\subsubsection{Robust local }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Simulation results} \label{sec:Simu Results}
