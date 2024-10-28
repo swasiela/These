@@ -1,7 +1,7 @@
 stages:
   - build
 
-image: "${CI_REGISTRY_IMAGE}/thesis"
+image: "${CI_REGISTRY_IMAGE}"
 
 
 build-workdocs:     
