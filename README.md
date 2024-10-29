@@ -23,4 +23,4 @@ The main ones are:
 # Required Environment
 
 The [Dockerfile](./utils/Dockerfile) can be used to obtain a suitable environment for building the document.
-This image can also be found in the repository container: `gitlab.laas.fr:4567/swasiela/thesis/texbuild:2024-03-05`
+This image can also be found in the repository container: `gitlab.laas.fr:4567/swasiela/thesis`
