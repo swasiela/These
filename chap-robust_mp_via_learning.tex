@@ -25,7 +25,7 @@ We present a general way of incorporating this type of network into a sampling-b
 (ii) On the basis of this new planner, 
 we propose a comprehensive framework that not only plans robust trajectories but also locally optimizes them together with the controller gains to maximize accuracy at some desired states of the planned trajectory for any system/controller.
 
-Fig.~\ref{fig: Missed and succes} illustrates the application to a quadrotor model in two different experimental scenarios involving uncertain parameters affecting the robot model (see Sect.\ref{sec:Simu Results}): (i) a robust navigation through a narrow window;
+Fig.~\ref{fig: Missed and succes} illustrates the application to a quadrotor model in two different experimental scenarios involving uncertain parameters affecting the robot model (see Sect.~\ref{sec:SimuResults}): (i) a robust navigation through a narrow window;
 (ii) an in-flight ring-catching task demonstrating the robustness and accuracy of the proposed framework. 
 
 % Sect.~\ref{sec:RASAMP} provides an overview of our planning framework to generate robust and accurate trajectories.
@@ -70,7 +70,7 @@ An interesting feature of the algorithm is to leverage this latent state to embe
 Note that a hidden state $h$ is unique according to its parent.
 Therefore, its use is only applicable to tree-based planners, where each node has a single parent.
 We show in Alg.~\ref{alg:ExtensionExample} how to incorporate this hidden state and tube predictions for the case of a standard RRT planner \cite{cRRT} with the pseudocode of the R-SARRT algorithm, as a particular instance of an R-SAMP planner. 
-Note that the use of this hidden state and tube predictions can be similarly applied to other tree-based planners. For instance, in the results presented in Sect.~\ref{results:RobustEval}, we used a robust RRT$^*$ implementation denoted R-SARRT$^*$.
+Note that the use of this hidden state and tube predictions can be similarly applied to other tree-based planners. For instance, in the results presented in Sect.~\ref{sec:RobustPlanSimu}, we used a robust RRT$^*$ implementation denoted R-SARRT$^*$.
 
 First, R-SARRT performs the standard RRT procedure (lines 1-5) that produces a local desired trajectory $\pi_d$ between a sampled state (${q}^{rand}$) and its nearest state (${q}^{near}$) in the tree. 
 Then, as the tubes are only valid around the nominal trajectories, which may differ from the desired ones depending on the controller performance, the nominal trajectory ($\pi_{n}$) is computed by the SimulateExecution function (line 6).
@@ -126,7 +126,7 @@ Given that we do not have the analytic expression of the cost function derivativ
 \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Simulation results} \label{sec:Simu Results}
+\section{Simulation results} \label{sec:SimuResults}
 
 This section first presents results showing the quality of the learning-based uncertainty tubes prediction and its high efficiency when used for robust motion planning. 
 Then, we show the ability of the proposed R-SAMP\footnote{Code available at: \href{https://gitlab.laas.fr/CAMP}{https://gitlab.laas.fr/CAMP}} planning approach to generate robust 

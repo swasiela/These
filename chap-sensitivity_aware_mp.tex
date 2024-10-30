@@ -1,20 +1,30 @@
-\chapter{Sensitivity-aware motion planner to generate intrinsically-robust trajectories}
-\markboth{Sensitivity-aware motion planner to generate intrinsically-robust trajectories}{}% To set left/right header
+\chapter{Sensitivity-aware motion planner}
+\markboth{Sensitivity-aware motion planner}{}% To set left/right header
 % \localtableofcontents
 
-\section{Sensitivity-based metrics}
+Now that the sensitivity matrices are defined, one can compute and minimize a chosen norm of $\bPi(t)$ and $\bTheta(t)$ w.r.t. the desired trajectory $\q_d(t)$. 
+This optimization generates a desired trajectory with minimal sensitivity, ensuring that the closed-loop evolution of $\q(t)$/$\u(t)$ closely follows its evolution in the nominal case $\q_n(t)$/$\u_n(t)$.
 
-\todo{Mentionned that it can't be multithread because it's time dependant, and the controller time steps must be used for the tube computation. But for CC one can relax this time step as needed, performing a lighter CC.}
-\subsection{Robust collision checking}
-\subsection{Cost function}
+\section{Unified approach}
+\subsection{Algorithm}
+\subsubsection{Robust collision checking}
+The tubes can leverage to perform robust collision check with the environments but also in the control inputs space to avoid actuators saturation. 
+Collision checks with the environments are only performed by considering uncertainty in the x y z subspace.
+Several strategies to perform robust collision with the environments:
+\begin{enumerate}
+    \item One can simply considered a convex bounding shape of the robot and enlarge it by the maximum radius (i.e. the maximum of the worst case deviations). See appendinx for proof.
+    \item Compute the bonding box that contains the ellipsoid. Note that even if in this thesis this is the method employed to perform robust collision check, by mean of smooth visualization we depicted the tubes using ellipsoid representation in the various figures.
+    \item Compute the ellipsoid semi-axes, and it's orientation w.r.t. the canonical basis of the subspace. However, such orinetation and semi-axis lenght can be obtain by decomposing the kernel into eigenvalues and eigenvectors representation that leads to higher computation times that solely computing the worst deviations. For the quadrotor case, 200 ellipsoids where computed and the time ratio for the bounding box method over the true ellipsoid computation shows 18\% times and the volume shows 172\%, meaning that bounding box faster but a bit conservative as it's approx 1.72 times bigger. Faster because computing the semi axes lenght requires to pseudo invert K.
+\end{enumerate}
+\subsection{Simulation results}
+\subsubsection{Differential drive robot}
+\subsubsection{Quadrotor robot}
 
-\section{Algorithms}
-\subsection{Unified approaches}
-\subsection{Decoupled approaches}
-
-\section{Simulation results}
-\subsection{Differential drive robot}
-\subsection{Quadrotor robot}
+\section{Decoupled approach}
+\subsection{Algorithm}
+\subsection{Simulation results}
+\subsubsection{Differential drive robot}
+\subsubsection{Quadrotor robot}
 
 \section{Conclusion}
 
