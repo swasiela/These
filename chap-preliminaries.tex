@@ -7,7 +7,7 @@ Then, it is presented how this sensitivity notion can be leveraged to derive \em
 Finally, the quadrotor robot and differential drive robot models used in this manuscript are introduced.
 
 \section{Closed-loop sensitivity}
-\subsection{Definition}
+\subsection{Definition}\label{sec:sensi}
 
 Consider an arbitrary dynamic system with a set of uncertain parameters $\p \in \mathbb{R}^{n_p}$ (i.e. model parameters that are difficult to evaluate or likely to vary during a motion).
 The system dynamics can be described using the following set of ordinary differential equations (\myglsentry{odes}):
@@ -52,7 +52,7 @@ However, as shown in~\cite{cPi,cTh}, their evolution in time can be computed by 
 \end{equation}
 where $\bPixi(t)\in \mathbb{R}^{n_{\xi} \times n_p}$ represents the \emph{internal state sensitivity} matrix.
 
-\subsection{Tube computation}
+\subsection{Tube computation}\label{sec:tubes}
 
 \begin{figure} [t]
   \centering
@@ -64,7 +64,7 @@ where $\bPixi(t)\in \mathbb{R}^{n_{\xi} \times n_p}$ represents the \emph{intern
 \begin{figure} [t]
   \centering
   \includegraphics[width=0.8\linewidth]{figures/models/radius.png} 
-  \caption{2D representation of an uncertainty ellipse (green) in the X-Y state space centered at $\q_n$, along with the tube radius (red) that illustrates the worst-case deviations along each canonical axis.}%
+  \caption{2D representation of an uncertainty ellipse (green) in the X-Y state space centered at $\q_n$, along with the tube radius (red) that illustrates the worst-case deviations along each state space components.}%
   \label{fig:ellips_radius}%
 \end{figure}
 
@@ -119,7 +119,7 @@ Additionally, note how, in general, the tube radius does not necessarily increas
 
 \section{Models considered in this thesis}
 
-To offer a general approach applicable to various robots and controllers, this thesis considers a quadrotor and a differential drive robot, along with two distinct controllers and interpolation methods, which are detailed in the following sections.
+To demonstrate the versatility of the approaches proposed in this thesis across various robots and controllers, a quadrotor and a differential drive robot are both considered in this manuscript, along with two distinct controllers and interpolation methods, which are detailed in the following sections.
 
 \subsection{Quadrotor robot} \label{sec:quad_model}
 
@@ -133,13 +133,22 @@ To offer a general approach applicable to various robots and controllers, this t
 \end{figure}
 
 Let the ENU (East North Up) world frame be defined as $F_W \allowbreak = \allowbreak \{O_W, \allowbreak X_W, \allowbreak Y_W, \allowbreak Z_W\}$ and $F_B = \allowbreak\{O_B, \allowbreak X_B, \allowbreak Y_B, \allowbreak Z_B\}$ be the quadrotor body frame attached to its geometric center ($O_B$).
-The state of the quadrotor is defined as $\boldsymbol{q} = [\boldsymbol{x}  \, \boldsymbol{v} \, \boldsymbol{\rho} \, \boldsymbol{\omega}]$ where $\boldsymbol{x} = [x \, y \,z] \in \mathbb{R}^{3}$ and $\boldsymbol{v} = [v_x \, v_y \,v_z] \in \mathbb{R}^{3}$ are respectively the position and velocity vector of $O_B$ expressed in $F_W$. The body orientation w.r.t. $F_W$ is represented by the unitary quaternion  $\boldsymbol{\rho}$ and its angular velocity as $\boldsymbol{\omega} = [\omega_x \, \omega_y \, \omega_z] \in \mathbb{R}^{3}$. 
+The state of the quadrotor is defined as $\boldsymbol{q} = [\boldsymbol{x}  \, \boldsymbol{v} \, \boldsymbol{\rho} \, \boldsymbol{\omega}]$ where $\boldsymbol{x} = [x \, y \,z] \in \mathbb{R}^{3}$ and $\boldsymbol{v} = [v_x \, v_y \,v_z] \in \mathbb{R}^{3}$ are respectively the linear position and linear velocity vector of $O_B$ expressed in $F_W$. The body orientation w.r.t. $F_W$ is represented by the unitary quaternion  $\boldsymbol{\rho}$ and its angular velocity as $\boldsymbol{\omega} = [\omega_x \, \omega_y \, \omega_z] \in \mathbb{R}^{3}$. 
 Finally, let $\boldsymbol{R(\rho)}$ be the rotation matrix associated to $\boldsymbol{\rho}$.
 
-We consider that the center of mass (\myglsentry{com}) is displaced from the robot geometric center of an offset $\boldsymbol{x_{c}} = [x_{cx}, x_{cy}, x_{cz}]$ expressed in $F_B$ as depicted in Figure.~\ref{fig:quad}. 
+Let the control input vector $\u = [\omega_{1}^2 \, \omega_{2}^2 \, \omega_{3}^2 \, \omega_{4}^2]^T$ represent the squared rotor speeds. 
+The vector $\u$ is related to the total propeller thrust $f$ and torques $\boldsymbol{\tau}$ by mean of a standard allocation matrix $\boldsymbol{T}$ s.t.
+\begin{equation}\label{eq:alloc_mat}
+  \begin{bmatrix}
+    f \\
+    \boldsymbol{\tau}
+    \end{bmatrix} = \boldsymbol{T}(l, k_f, k_{\tau}) \u,
+\end{equation}
+where $k_f$ and $k_{\tau}$ refer to the thrust and drag coefficients of the propellers respectively, and $l$ stands for the quadrotor arms length.
+Also, consider that the center of mass (\myglsentry{com}) is displaced from the robot geometric center of an offset $\boldsymbol{x_{c}} = [x_{cx} \, x_{cy} \, x_{cz}]$ expressed in $F_B$ as depicted in Figure.~\ref{fig:quad}. 
 This displacement can occur due to onboard sensors, the presence of a payload, or other factors.
 Under this consideration, the total force ($\boldsymbol{f_{tot}}$) and torque ($\boldsymbol{\tau_{tot}}$) acting on the quadrotor can be expressed by taking an additional fictitious force due to the displaced CoM in $F_B$ s.t. 
-\[
+\begin{equation}\label{eq:quad_newton}
     \begin{array}{@{}l@{}l@{}}
         \boldsymbol{f_{tot}} &= f Z_W - mg\boldsymbol{R(\rho)}^TZ_W-m[\boldsymbol{\omega}]_{\times}[\boldsymbol{\omega}]_{\times}\boldsymbol{x_c} 
           
@@ -147,8 +156,9 @@ Under this consideration, the total force ($\boldsymbol{f_{tot}}$) and torque ($
       
        \boldsymbol{\tau_{tot}} &= \boldsymbol{\tau}-mg[\boldsymbol{x_c}]_{\times}\boldsymbol{R(\rho)}^{T}Z_W - [\boldsymbol{\omega}]_{\times}\boldsymbol{J}\boldsymbol{\omega}
   \end{array}
-\]
-where $f$ and $\boldsymbol{\tau}$ are the propeller total thrust and torques, $m$ is the mass and $\boldsymbol{J}$ is the inertia matrix of the system. 
+\end{equation}
+where $m$ is the mass and $\boldsymbol{J}$ is the inertia matrix of the system. 
+
 By considering the spatial inertia matrix
 \[
 \boldsymbol{S} =   \left( {\begin{array}{cc}
@@ -167,7 +177,7 @@ $
     \boldsymbol{\tau_{tot}}^T \right)^T. 
 $
 The dynamic model is then defined as follows:
-\begin{equation}\label{eq:dynamic}
+\begin{equation}\label{eq:quad_dynamic}
     \Dot{\q}
     =
      \left \{
@@ -186,21 +196,59 @@ The dynamic model is then defined as follows:
    \end{array}
    \right .
 \end{equation}
+In line with Section~\ref{sec:sensi}, let the vector $\p = [m \, x_{cx} \, x_{cy} \, x_{cz} \, J_{x} \, J_{y} \,J_{z} \, k_f \, k_{\tau}] \in \mathbb{R}^{9}$ represent all the parameters used in the robot model outlined above that are subject to uncertainty. 
+Note that this vector can be reduced according to the different scenarios proposed in this thesis.
 
-As tracking controller, we consider the so-called Lee (or geometric) controller~\cite{cLee} where the control inputs are the squared rotor speeds $\u = [\omega_{1}^2 \, \omega_{2}^2 \, \omega_{3}^2 \, \omega_{4}^2]^T$ that are related to $f$ and $\boldsymbol{\tau}$ by mean of a standard allocation matrix $\boldsymbol{T}$ s.t.
-\begin{equation}
-  \begin{bmatrix}
-    f \\
-    \boldsymbol{\tau}
-    \end{bmatrix} = \boldsymbol{T}(l, k_f, k_{\tau}) \u,
+Finally, as tracking controller, we consider the widely used Lee (or geometric) controller~\cite{cLee} to computes the control input vector $\u$.
+This controller takes advantage of the well-known quadrotor flat outputs ~\cite{cFlat} to track a desired trajectory defined as $\q_d(t) = [\boldsymbol{x}_d(t) \, \boldsymbol{v}_d(t) \, \boldsymbol{a}_d(t) \, \psi_d(t) \, \Dot{\psi}_d(t)] \in \mathbb{R}^{11}$ respectively composed of the desired positions, velocities, accelerations, yaw orientation angle, and yaw angular velocity.
+Let the linear position error and linear velocity error
+\begin{equation}\label{eq:pos_error}
+  \boldsymbol{e_x}(t) = \boldsymbol{x}(t) - \boldsymbol{x}_d(a, t) \in \mathbb{R}^3, \,
+  \boldsymbol{e_v}(t) = \boldsymbol{v}(t) - \boldsymbol{v}_d(a, t) \in \mathbb{R}^3,
 \end{equation}
-where $k_f$ and $k_{\tau}$ refer to the thrust and drag coefficients of the propellers respectively, and $l$ stands for the quadrotor arms length.
+and the controller gains vector \(\boldsymbol{k}_c = [\boldsymbol{k}_{x,y,z}^T \, \boldsymbol{k}_{v_x,v_y,v_z}^T \, \boldsymbol{k}_{\phi,\theta,\psi}^T \, \boldsymbol{k}_{\omega_x,\omega_y,\omega_z}^T]^T \in \mathbb{R}^{12}\) with their associated diagonal representation $(\boldsymbol{K_x}, \boldsymbol{K_v}, \boldsymbol{K_R}, \boldsymbol{K_\omega}) \in (\mathbb{R}^{3\times3})^4$.
+This control strategy begins by computing the desired basis vector for the third body-fixed frame
+\begin{equation}
+  \boldsymbol{r}_{3d} = \frac{-\boldsymbol{K_x} \cdot \boldsymbol{e_x} - \boldsymbol{K_v} \cdot \boldsymbol{e_v} + m(g Z_W + \boldsymbol{a}_d) }{\left\| -\boldsymbol{K_x} \cdot \boldsymbol{e_x} - \boldsymbol{K_v} \cdot \boldsymbol{e_v} + m(g Z_W + \boldsymbol{a}_d) \right\|} \in \mathbb{R}^3.
+\end{equation}
+Then, using the desired yaw angle $\psi_d$, the desired heading vector can be defined as $\boldsymbol{\Omega_{\psi_d}} = [cos(\psi_d) \, sin(\psi_d) \, 0]^T$.
+This vector is then used to compute the second and first body-fixed frame basis vector:
+\begin{equation}
+  \boldsymbol{r}_{2d} = \frac{\left[\boldsymbol{r}_{3d}\right]_{\times} \cdot \boldsymbol{\Omega}_{\psi_d}}{\left\|\left[\boldsymbol{r}_{3d}\right]_{\times} \cdot \boldsymbol{\Omega}_{\psi_d}\right\|} \in \mathbb{R}^3, \, \boldsymbol{r}_{1d} = \left[\boldsymbol{r}_{2d}\right]_{\times} \cdot \boldsymbol{r}_{3d} \in \mathbb{R}^3.
+\end{equation}
+From the three body-fixed frame basis vector it is then possible to define the desired rotation matrix $\boldsymbol{R}_d(\psi_d, t) = [\boldsymbol{r}_{1d} \, \boldsymbol{r}_{2d} \, \boldsymbol{r}_{3d}]$, and to compute the following attitude error:
+\begin{equation}\label{eq:att_error}
+  \boldsymbol{e_R}(t) = \frac{1}{2}[\boldsymbol{R}_d(\psi_d, t)^T \cdot \boldsymbol{R}(\boldsymbol{\rho}, t) - \boldsymbol{R}(\boldsymbol{\rho}, t)^T \cdot \boldsymbol{R}_d(\psi_d, t)^T]^\vee \in \mathbb{R}^3.
+\end{equation}
+Finally, to simplify the overall controller design, the desired yaw rate $\Dot{\psi}_d$ is always set to 0 in this thesis, allowing the angular velocity error to be expressed as:
+\begin{equation}\label{eq:rate_error}
+  \boldsymbol{e_\omega}(t) = \omega(t) \in \mathbb{R}^3.
+\end{equation}
 
-The uncertain parameters vector is defined as
-$\p$ = $[m, \, x_{cx}, \, x_{cy}, \, J_{x}, \, J_{y}, \,J_{z}]^T \in \mathbb{R}^{6}$, which represents parameters that are difficult to evaluate or likely to vary during execution. 
-We chose as nominal parameters $\p_{c}$ = $[1.113, 0.0, 0.0, 0.015, 0.015, 0.007]^T$ and their associated uncertainty range $\delta\p = [7\%, 3cm, 3cm, 10\%, 10\%, 10\%]^T$, which represents the percentage variation of the parameters w.r.t. their associated nominal value, except for $x_{cx}$ and $x_{cy}$ whose nominal values are zeros.
+According to the aforementioned errors, this control strategy computes the desired thrust $f_d(t)$ and desired torques $\boldsymbol{\tau}_d(t)$ that allow the tracking of the desired trajectory $\q_d(t)$:
+\begin{equation}\label{eq:desftau}
+  \left \{
+    \begin{array}{l l}
+      f_d(t) &= \left( -\boldsymbol{K_x} \cdot \boldsymbol{e_x} - \boldsymbol{K_v} \cdot \boldsymbol{e_v} + m(g Z_W + \boldsymbol{a}_d) \right)^T \cdot (R(\rho) \cdot Z_W) \\
+      \boldsymbol{\tau}_d(t) &= -\boldsymbol{K_R} \cdot \boldsymbol{e_R} - \boldsymbol{K_\omega} \cdot \boldsymbol{e_\omega}
+    \end{array}
+  \right .
+\end{equation}
+Note that the choice of setting the desired yaw rate to zero cancels terms in the expression of $\boldsymbol{\tau}_d$ compared to the original expression in ~\cite{cLee}.
+
+Finally, one can compute the control input vector $\u$ by mean of the same standard allocation matrix $\boldsymbol{T}$ of Equation~\ref{eq:alloc_mat} under nominal parameters denoted $\boldsymbol{T}_n$ s.t.:
+\begin{equation}\label{eq:control_lee}
+  \u = \boldsymbol{T}_n^{-1}\begin{bmatrix}
+        f_d \\
+        \boldsymbol{\tau}_d
+      \end{bmatrix}.
+\end{equation}
+Note that under nominal case, $\boldsymbol{T} = \boldsymbol{T}_n$; thus, the propeller thrust and torques applied to the real system, as for $f$ and $\boldsymbol{\tau}$ in Equation~\ref{eq:quad_newton}, perfectly match the desired thrust and torques computed by the control law.
 
 \subsubsection{State interpolation}
+
+With the quadrotor model and controller now defined, this section presents the method (hereafter referred to as the \emph{steering} method) for computing a desired trajectory that the geometric controller will track.
+Given a quadrotor initial desired state and a goal desired state
 
 \subsection{Differential drive robot}
 
