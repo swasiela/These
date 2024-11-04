@@ -196,7 +196,7 @@ The dynamic model is then defined as follows:
    \end{array}
    \right .
 \end{equation}
-In line with Section~\ref{sec:sensi}, let the vector $\p = [m \, x_{cx} \, x_{cy} \, x_{cz} \, J_{x} \, J_{y} \,J_{z} \, k_f \, k_{\tau}] \in \mathbb{R}^{9}$ represent all the parameters used in the robot model outlined above that are subject to uncertainty. 
+In line with Section~\ref{sec:sensi}, let the vector $\p = [m \, x_{cx} \, x_{cy} \, x_{cz} \, J_{x} \, J_{y} \,J_{z} \, k_f \, k_{\tau}]^T \in \mathbb{R}^{9}$ represent all the parameters used in the robot model outlined above that are subject to uncertainty. 
 This vector can be adjusted based on the various scenarios presented in this thesis.
 
 Finally, as tracking controller, we consider the widely used Lee (or geometric) controller~\cite{cLee} to computes the control input vector $\u$.
@@ -277,7 +277,7 @@ The principle of this trajectory generation is illustrated by Figure~\ref{fig:ki
 
 \begin{figure} [t]
   \centering
-  \includegraphics[width=0.8\linewidth]{figures/models/unicycle.png} 
+  \includegraphics[width=0.6\linewidth]{figures/models/unicycle.png} 
   \caption{Illustration of the main quantities characterizing the differential drive robot.}%
   \label{fig:unicycle}%
 \end{figure}
@@ -285,9 +285,37 @@ The principle of this trajectory generation is illustrated by Figure~\ref{fig:ki
 Let the world frame be defined as $F_W \allowbreak = \allowbreak \{O_W, \allowbreak X_W, \allowbreak Y_W\}$ and $F_B = \allowbreak\{O_B, \allowbreak X_B, \allowbreak Y_B\}$ be the differential drive robot body frame attached to its geometric center ($O_B$).
 The robot state is defined as $\boldsymbol{q} = [x  \, y \, \theta]$ where $(x \, y)$ are the planar position in $F_W$ and $\theta$ is the body heading (see Figure~\ref{fig:unicycle}).
 
-Define the control input vector $\u = [\omega_r \, \omega_l] \in \mathbb{R}^2$, where $(\omega_r, \, \omega_l)$ are respectively the right and left wheel angular velocity.
+Define the control input vector $\u = [\omega_r \, \omega_l]^T \in \mathbb{R}^2$, where $(\omega_r, \, \omega_l)$ are respectively the right and left wheel angular velocity.
 Let also the robot linear and angular velocities be denoted by $v$ and $\omega$, respectively.
+The aforementioned linear and angular velocities are related to the control input vector by the following equation:
+\begin{equation}\label{eq:unic_alloc}
+  \begin{bmatrix}
+    v \\
+    \omega
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+    \frac{r}{2} & \frac{r}{2}\\
+    \frac{r}{2d} & \frac{-r}{2d}
+  \end{bmatrix}
+  \begin{bmatrix}
+    \omega_r \\
+    \omega_l
+  \end{bmatrix}
+  =
+  \boldsymbol{T} \u,
+\end{equation}
+where $d$ stands for the length between the two wheels, and $r$ for wheel radius.
+
+The differential drive robot dynamic is then expressed as:
+\begin{equation}\label{eq:unic_dyna}
+  \Dot{\q} = 
+  \begin{bmatrix}
+    cos(\theta) & 0 \\
+    sin(\theta) & 0 \\
+    0 & 1
+  \end{bmatrix} \boldsymbol{T} \u.
+\end{equation}
+In line with Section~\ref{sec:sensi}, the vector of parameters used in the robot model outlined above that are subject to uncertainty is defined as $\p = [r \, d]^T \in \mathbb{R}^{2}$.
 
 \subsubsection{State interpolation}
-
-\todomarker{}
