@@ -4,6 +4,10 @@
 
 \section{Decoupled approaches}
 \subsection{Motion planning}
+In motion planning a distinction is usually made between the local planner and the global planner. 
+The former is in charge of producing a valid trajectory between two configurations (or states) of the system without necessarily taking collisions into account. 
+The later is the overall algorithmic process that is in charge of solving the motion planning problem by exploring the configuration space (or the state space) of the system. 
+It relies on multiple calls to the local planner.
 \subsubsection{Path finding}
 \subsubsection{Trajectory generation}
 \subsubsection{Kinodynamic motion planning}
