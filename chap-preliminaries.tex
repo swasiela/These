@@ -40,7 +40,7 @@ It is possible to quantify how the presence of uncertain parameters (i.e. when t
 \end{equation}
 where $\bPi(t)\in \mathbb{R}^{n_q \times n_p}$ and $\bTheta(t)\in \mathbb{R}^{n_u \times n_p}$ are respectively defined in~\cite{cPi,cTh} as the \emph{state-sensitivity matrix} and the \emph{input-sensitivity matrix}.
 A closed-form expression for Equation~(\ref{eq:sensi}) is, in general, not available. 
-However, as shown in~\cite{cPi,cTh}, their evolution in time can be computed by differentiating Equation~(\ref{eq:sensi}) according to the following set of ODEs:
+However, as shown in~\cite{cPi,cTh}, their evolution in time can be computed by differentiating Equation~(\ref{eq:sensi}) according to the following set of \myglsentry{odes}:
 \begin{equation}\label{eq:dyna_sensi}
   \left \{
   \begin{array}{l l l}
@@ -147,7 +147,7 @@ The vector $\u$ is related to the total propeller thrust $f$ and torques $\bolds
 where $k_f$ and $k_{\tau}$ refer to the thrust and drag coefficients of the propellers respectively, and $l$ stands for the quadrotor arms length.
 Also, consider that the center of mass (\myglsentry{com}) is displaced from the robot geometric center of an offset $\boldsymbol{x_{c}} = [x_{cx} \, x_{cy} \, x_{cz}]$ expressed in $F_B$ as depicted in Figure~\ref{fig:quad}. 
 This displacement can occur due to onboard sensors, the presence of a payload, or other factors.
-Under this consideration and according to Newton's second law, the total force ($\boldsymbol{f_{tot}}$) and torque ($\boldsymbol{\tau_{tot}}$) acting on the quadrotor can be expressed by taking an additional fictitious force due to the displaced CoM in $F_B$ s.t. 
+Under this consideration and according to Newton's second law, the total force ($\boldsymbol{f_{tot}}$) and torque ($\boldsymbol{\tau_{tot}}$) acting on the quadrotor can be expressed by taking an additional fictitious force due to the displaced \myglsentry{com} in $F_B$ s.t. 
 \begin{equation}\label{eq:quad_newton}
     \begin{array}{@{}l@{}l@{}}
         \boldsymbol{f_{tot}} &= f Z_W - mg\boldsymbol{R(\rho)}^TZ_W-m[\boldsymbol{\omega}]_{\times}[\boldsymbol{\omega}]_{\times}\boldsymbol{x_c} 
@@ -194,13 +194,15 @@ The dynamic model is then defined as follows:
            
            \dot{\boldsymbol{\omega}}=\boldsymbol{\eta}
    \end{array}
-   \right .
+   \right . 
 \end{equation}
 In line with Section~\ref{sec:sensi}, let the vector $\p = [m \, x_{cx} \, x_{cy} \, x_{cz} \, J_{x} \, J_{y} \,J_{z} \, k_f \, k_{\tau}]^T \in \mathbb{R}^{9}$ represent all the parameters used in the robot model outlined above that are subject to uncertainty. 
 This vector can be adjusted based on the various scenarios presented in this thesis.
 
 Finally, as tracking controller, we consider the widely used Lee (or geometric) controller~\cite{cLee} to computes the control input vector $\u$.
-This controller takes advantage of the well-known quadrotor flat outputs ~\cite{cFlat} to track a desired trajectory defined as $\q_d(t) = [\boldsymbol{x}_d(t) \, \boldsymbol{v}_d(t) \, \boldsymbol{a}_d(t) \, \psi_d(t) \, \Dot{\psi}_d(t)] \in \mathbb{R}^{11}$ respectively composed of the desired linear positions, velocities, accelerations, yaw orientation angle, and yaw angular velocity.
+This controller takes advantage of the well-known quadrotor flat outputs ~\cite{cFlat} to track a desired trajectory defined as $\q_d(t) = [\boldsymbol{x}_d(t) \, \boldsymbol{v}_d(t) \, \boldsymbol{a}_d(t) \, \psi_d(t) \, \Dot{\psi}_d(t)]^T \in \mathbb{R}^{11}$ respectively composed of the desired linear positions, velocities, accelerations, yaw orientation angle, and yaw angular velocity.
+Note that, since the quadrotor is an under-actuated system, not all states can be controlled. This is why only the desired yaw angle is incorporated into the desired trajectory.
+
 Let the linear position error and linear velocity error be defined as follows:
 \begin{equation}\label{eq:pos_error}
   \boldsymbol{e_x}(t) = \boldsymbol{x}(t) - \boldsymbol{x}_d(t) \in \mathbb{R}^3, \,
@@ -236,7 +238,7 @@ According to the aforementioned errors, this control strategy computes the desir
 \end{equation}
 Note that the choice of setting the desired yaw rate to zero cancels terms in the expression of $\boldsymbol{\tau}_d(t)$ compared to the original expression in ~\cite{cLee}.
 
-Finally, one can compute the control input vector $\u$ by mean of the same standard allocation matrix $\boldsymbol{T}$ of Equation~\ref{eq:alloc_mat} using nominal parameters denoted $\boldsymbol{T}_n$ s.t.:
+Finally, the control input vector $\u$ can be computed using the same standard allocation matrix $\boldsymbol{T}$ from Equation~\ref{eq:alloc_mat} using nominal parameters denoted $\boldsymbol{T}_n$ s.t.:
 \begin{equation}\label{eq:control_lee}
   \u = \boldsymbol{T}_n^{-1}\begin{bmatrix}
         f_d \\
@@ -244,28 +246,39 @@ Finally, one can compute the control input vector $\u$ by mean of the same stand
       \end{bmatrix}.
 \end{equation}
 Note that under nominal case (i.e. when $\p = \p_n$), $\boldsymbol{T} = \boldsymbol{T}_n$; thus, the propeller thrust and torques applied to the real system, as for $f$ and $\boldsymbol{\tau}$ in Equation~\ref{eq:quad_newton}, perfectly match the desired thrust and torques computed by the control law.
+Note also that no internal controller states are considered in this controller; therefore, Equation~\ref{eq:dyna_sensi} simplifies to:
+\begin{equation}\label{eq:dyna_sensi_simp}
+  \left \{
+  \begin{array}{l l}
+       \dot{\bPi}(t) = \boldsymbol{\frac{\partial{f}}{\partial{q}}}\bPi+ \boldsymbol{\frac{\partial{f}}{\partial{u}}}\bTheta+ \boldsymbol{\frac{\partial{f}}{\partial{p}}}, \quad \bPi(t_0)=\bPi_0, \\\\
+       \bTheta(t) = \boldsymbol{\frac{\partial{\eta}}{\partial{q}}}\bPi 
+\end{array}
+\right .
+\end{equation}
 
 \subsubsection{State interpolation}
 
 With the quadrotor model and controller now defined, this section presents the interpolation method (hereafter referred to as the \emph{local} planner) for computing a desired trajectory that the geometric controller will track.
 
 Given an initial desired state $\q_d^0 = [\boldsymbol{\gamma}^0 \, \boldsymbol{\Dot{\gamma}}^0 \, \boldsymbol{\Ddot{\gamma}}^0] \in \mathbb{R}^{12}$ and a goal state $\q_d^F = [\boldsymbol{\gamma}^F \, \boldsymbol{\Dot{\gamma}}^F \, \boldsymbol{\Ddot{\gamma}}^F] \in \mathbb{R}^{12}$ for the quadrotor, where $\boldsymbol{\gamma} = [x_{d} \, y_{d} \, z_{d} \, \Psi_{d}]^T \in \mathbb{R}^{4}$ represents the desired position along the x, y, and z axes and the desired yaw angle, the \emph{kino-spline} method from~\cite{cKino} is employed to plan a time optimal and continuous desired trajectory $\q_d(t)$ connecting $\q_d^0$ and $\q_d^F$. 
-The trajectory generation problem is solved independently for each component of $\boldsymbol{\gamma}$, and, in order to generate smooth trajectories in a global context, ensure the continuity of their derivatives up to the jerk (acceleration derivative). 
-Note that even if the yaw angular acceleration is not required by the control law of Section~\ref{sec:quad_model}, it is used to ensure the smoothness of the trajectory. 
-As for both initial and goal jerk, they are set to zero to facilitate a smooth transition between trajectories.
+
+The trajectory generation problem is solved independently for each component of $\boldsymbol{\gamma}$.
+Furthermore, in order to generate smooth trajectories in a global context, the local planner ensures the continuity of their derivatives up to the jerk (acceleration derivative). 
+Note that even if the yaw angular acceleration is not required by the control law of Section~\ref{sec:quad_model}, the initial and goal yaw angular accelerations are used to ensure the smoothness of the generated trajectory. 
+As for both initial and goal jerk, they are set to zero to facilitate a smooth transition between trajectories, and are therefore not considered in $\boldsymbol{\gamma}$.
 Finally, the kino-spline method also consider bounds on the several derivatives up to the snap (i.e. $v_{max}, a_{max}$, etc.) and plan the trajectory accordingly.
 
 As previously mentioned, this local planner focuses on generating local trajectories that are time optimal, i.e. that minimize the total time needed to reach $\q_d^F$.
 This is achieved by reaching the full speed as soon as possible and by maintaining it as long as possible for each component of $\boldsymbol{\gamma}$.
-This also implied that the time spend to reach such velocity as to be minimized, meaning that the time spent at maximum accelerations during transient phases as to be maximized.
-The same apply to the jerk and snap derivatives, i.e. during acceleration variations the maximum achievable jerk must be maintained as long as possible, and the duration of jerk variation phases must be minimized.
+This also implies that the time spend reaching this velocity must be minimized, which means that the time spent at maximum acceleration during transient phases must be maximized.
+The same principles apply to jerk and snap; during variations in acceleration, the maximum achievable jerk should be maintained for as long as possible, while the duration of jerk variation phases must be minimized.
 This is achieved through a straightforward bang-bang snap method, which aims to maximize the time spent at maximum snap during the jerk transient phases. 
-By doing so, the duration of these phases is minimized, and gradually the maximum speed phase is maximized.
+By doing so, the duration of transient phases is minimized, and gradually the duration of the maximum speed phase is maximized.
 The principle of this trajectory generation is illustrated by Figure~\ref{fig:kino}.
 
 \begin{figure} [t]
   \centering
-  \includegraphics[width=0.9\linewidth]{figures/models/kino.png} 
+  \includegraphics[width=0.99\linewidth]{figures/models/kino.png} 
   \caption{Example of a trajectory generated by the local planner for a single coordinate. The pink dashed lines indicate the bounds for each derivative, while the red and green dashed lines represent the initial and final values, respectively. 
   The letters A, B, C, D, E, G, and H represent the different phases that need to be minimized or maximized during the trajectory planning process.}%
   \label{fig:kino}%
@@ -283,11 +296,11 @@ The principle of this trajectory generation is illustrated by Figure~\ref{fig:ki
 \end{figure}
 
 Let the world frame be defined as $F_W \allowbreak = \allowbreak \{O_W, \allowbreak X_W, \allowbreak Y_W\}$ and $F_B = \allowbreak\{O_B, \allowbreak X_B, \allowbreak Y_B\}$ be the differential drive robot body frame attached to its geometric center ($O_B$).
-The robot state is defined as $\boldsymbol{q} = [x  \, y \, \theta]$ where $(x \, y)$ are the planar position in $F_W$ and $\theta$ is the body heading (see Figure~\ref{fig:unicycle}).
+The robot state is defined as $\boldsymbol{q} = [\boldsymbol{x} \, \theta] \in \mathbb{R}^3$ where $\boldsymbol{x} = [x, \, y] \in \mathbb{R}^2$ are the linear positions of $O_B$ in $F_W$ and $\theta$ is the body heading (see Figure~\ref{fig:unicycle}).
 
 Define the control input vector $\u = [\omega_r \, \omega_l]^T \in \mathbb{R}^2$, where $(\omega_r, \, \omega_l)$ are respectively the right and left wheel angular velocity.
 Let also the robot linear and angular velocities be denoted by $v$ and $\omega$, respectively.
-The aforementioned linear and angular velocities are related to the control input vector by the following equation:
+The aforementioned linear and angular velocities are related to the control input vector by mean of an allocation matrix $\boldsymbol{T}$ s.t.:
 \begin{equation}\label{eq:unic_alloc}
   \begin{bmatrix}
     v \\
@@ -318,4 +331,80 @@ The differential drive robot dynamic is then expressed as:
 \end{equation}
 In line with Section~\ref{sec:sensi}, the vector of parameters used in the robot model outlined above that are subject to uncertainty is defined as $\p = [r \, d]^T \in \mathbb{R}^{2}$.
 
+The control task is to let the robot positions $\boldsymbol{x}$ track desired positions $\boldsymbol{x}_d = [x_d, \, y_d] \in \mathbb{R}^2$.
+The differential drive robot is an under-actuated system, which is why the heading is excluded from the tracking process; it is induced by the robot dynamic instead.
+
+To perform the tracking task, a dynamic feedback linearization (\myglsentry{dfl}) controller is used (e.g. see~\cite{cDFL}).
+This control strategy considers an extended desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$, where $\Dot{\boldsymbol{x}}_d(t) \in \mathbb{R}^2$ denote the desired linear velocities, and $\ddot{\boldsymbol{x}}_d(t) \in \mathbb{R}^2$ are the desired linear accelerations.
+This trajectory is tracked by mean of the following controller internal states $\boldsymbol{\xi} = [\xi_v \, \xi_x \, \xi_y]^T \in \mathbb{R}^3$, where $\xi_v$ stands for the dynamic extension of the differential drive robot linear velocity $v$ (see Figure~\ref{fig:unicycle}), and $(\xi_x, \, \xi_y)$ are integral actions. 
+
+By differentiating the robot positions twice, one obtains the following equations for the robot linear accelerations:
+\begin{equation*}
+  \ddot{\boldsymbol{x}}
+  = 
+  \begin{bmatrix}
+    cos(\theta) & -\xi_v sin(\theta) \\
+    sin(\theta) & \xi_v cos(\theta) 
+  \end{bmatrix} 
+  \begin{bmatrix}
+    \dot{v} \\
+    \omega
+  \end{bmatrix}
+  = \boldsymbol{A} \begin{bmatrix}
+    \dot{v} \\
+    \omega
+  \end{bmatrix}
+\end{equation*}
+This differentiation is essential for formulating the kinematic relationships that enable efficient tracking of the desired positions.
+
+Let the following vectors:
+\begin{equation}\label{eq:unic_control_law}
+  \left \{
+  \begin{array}{l l l}
+       \dot{\boldsymbol{x}}_{\xi} = [cos(\theta)\xi_v \, sin(\theta)\xi_v]^T \\
+       \boldsymbol{\xi}_{xy} = [\xi_x \, \xi_y]^T \\
+       \boldsymbol{\varrho} = \boldsymbol{\ddot{x}}_d + k_v(\boldsymbol{\dot{x}}_d - \dot{\boldsymbol{x}}_{\xi}) + k_p(\boldsymbol{x}_{d} - \boldsymbol{x}) + k_i\boldsymbol{\xi}_{xy}
+  \end{array}
+  \right .
+\end{equation}
+where $k_v$, $k_p$ and $k_i$ are the controller gains.
+
+Without loss of generality, the dynamics of the internal control states can be expressed (refer to~\cite{cDFL} for further details) as follows:
+\begin{equation}
+  \dot{\boldsymbol{\xi}} = 
+  \begin{bmatrix}
+    \begin{bmatrix}1 & 0\end{bmatrix}\boldsymbol{A}^{-1}\boldsymbol{\varrho} \\
+    \boldsymbol{x}_d - \boldsymbol{x}
+  \end{bmatrix}, 
+\end{equation}
+and the control inputs as:
+\begin{equation}
+  \u = \boldsymbol{T}_n^{-1} 
+  \begin{bmatrix}
+    \xi_v \\
+    \begin{bmatrix}0 & 1\end{bmatrix}\boldsymbol{A}^{-1}\boldsymbol{\varrho}
+  \end{bmatrix},
+\end{equation}
+where $\boldsymbol{T}_n$ represent the same allocation as in Equation~\ref{eq:unic_dyna} but evaluated on the nominal parameters $\p_n$.
+
 \subsubsection{State interpolation}
+
+Now that the dynamic of the differential drive robot and its controller are defined, this section presents the local planner used to generate the desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$ that is tracked by the \myglsentry{dfl} controller.
+The trajectory generation problem is addressed using Dubins curves~\cite{cDubins}, which are differentiated twice. 
+
+This approach ensures smooth and continuous trajectories between two position $(x^0, y^0)$ and $(x^F, y^F)$ in the x-y plane for systems with constraints on turning radius $\beta$ and forward motion such as the differential drive robot.
+The method takes advantage of specified initial and final tangents to the curve (e.g. the differential drive robot heading angle $\theta$, in this case) to create smooth curves that respect the turning constraints.
+A Dubins curve is composed of three possible segment types: left turn, right turn, and straight line as depicted in Figure~\ref{fig:dubins}. 
+Each segment is designed with an optimal distance, arranged to create the shortest path between the two points $(x^0, y^0)$ and $(x^F, y^F)$. 
+This configuration results in one of six possible combinations of segments (e.g., left-straight-right), producing a smooth, continuous path that meets the system turning and heading requirements.
+
+In this thesis, the robot state used to compute such path is defined as $\boldsymbol{\gamma} = [x \, y \, \theta] \in \mathbb{R}^3$.
+Once the path is computed, the x and y components are discretized using a given time step, and then differentiate to access the corresponding desired velocities and accelerations.
+Note that, although the heading is not directly controlled, a desired heading is specified to satisfy the tangent constraints along the path.
+
+\begin{figure} [t]
+  \centering
+  \includegraphics[width=0.4\linewidth]{figures/models/dubins.png} 
+  \caption{Illustration of two possible Dubins paths: (top) a right turn, followed by a straight segment, then a left turn; (bottom) a right turn, followed by a left turn, then another right turn.}%
+  \label{fig:dubins}%
+\end{figure}
