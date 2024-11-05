@@ -1,11 +1,12 @@
 stages:
-  - build
+  - build_work
+  - build_final
 
 image: "${CI_REGISTRY_IMAGE}"
 
 
 build-workdocs:     
-    stage: build
+    stage: build_work
     variables:
       TERM: xterm
     script:
@@ -20,7 +21,7 @@ build-workdocs:
       expire_in: 10 mins
 
 build-finals:     
-    stage: build
+    stage: build_final
     variables:
       TERM: xterm
     script:
