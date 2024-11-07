@@ -1,15 +1,22 @@
-\chapter{Sensitivity-aware global motion planning}
-\markboth{Sensitivity-aware global motion planning}{}% To set left/right header
+\chapter{Sensitivity-aware motion planner}
+\markboth{Sensitivity-aware motion planner}{}% To set left/right header
 % \localtableofcontents
 
-This chapter introduces the first contribution of the thesis, by leveraging the sensitivity concept discussed in Chapter~\ref{chap:models}.
-It presents both unified and decoupled approaches for robust global motion planning and for planning a sensitivity-optimal trajectory. 
-This optimization generates a desired trajectory with minimal sensitivity, ensuring that the closed-loop evolution of $\q(t)$/$\u(t)$ closely follows its evolution in the nominal case $\q_n(t)$/$\u_n(t)$.
+This chapter introduces the first contribution of this thesis, by leveraging the sensitivity concept discussed in Chapter~\ref{chap:models}.
+It presents a unified and a decoupled strategies designed to plan trajectories that are both robust and sensitivity-optimal at the same time.
+This contribution emphasizes the generation of a desired trajectory with minimal sensitivity, ensuring that the closed-loop evolution of $\q(t)$/$\u(t)$ closely follows its evolution in the nominal case $\q_n(t)$/$\u_n(t)$.
+While sensitivity optimization has previously been explored for generating locally sensitivity-optimal trajectories \cite{cPi, cTh}, it has not been applied within a global planning framework that accounts for obstacles.
+Furthermore, this contribution introduces the first time the use of the sensitivity-based tubes to enforce constraints in both the state and input spaces.
+This enables robust collision checking w.r.t. the environment, but also to check for actuators saturation.
 
+% This chapter first present a unified approach that allow planning a robust trajectory with an optimal sensitivity by directly incorporating the sensitivity computation in an optimal tree building process (e.g. \myglsentry{rrtstar}). 
+% The method is applied both on the differential drive robot and the quadrotor, showing some limitations in the latter case.
+
+% Then, the second section present a decoupled approach that shows better efficiency for more complex systems as the quadrotor.
 
 \section{Unified approach}
 
-This section presents a unified approach for integrating sensitivity-based metrics directly into the global planning process. 
+This section first present a unified approach that allow planning a robust trajectory with an optimal sensitivity by directly incorporating the sensitivity computation in an optimal planning process (e.g. \myglsentry{rrtstar}).
 
 \subsection{Algorithm}
 \subsubsection{Robust collision checking}
@@ -19,7 +26,7 @@ Several strategies to perform robust collision with the environments:
 \begin{enumerate}
     \item One can simply considered a convex bounding shape of the robot and enlarge it by the maximum radius (i.e. the maximum of the worst case deviations). See appendinx for proof.
     \item Compute the bonding box that contains the ellipsoid. Note that even if in this thesis this is the method employed to perform robust collision check, by mean of smooth visualization we depicted the tubes using ellipsoid representation in the various figures.
-    \item Compute the ellipsoid semi-axes, and it's orientation w.r.t. the canonical basis of the subspace. However, such orinetation and semi-axis lenght can be obtain by decomposing the kernel into eigenvalues and eigenvectors representation that leads to higher computation times that solely computing the worst deviations. For the quadrotor case, 200 ellipsoids where computed and the time ratio for the bounding box method over the true ellipsoid computation shows 0.18 times (i.e. bounding box of the true ellipsoid is 5.5 faster to compute instead of true ellipsoid) and the volume shows 172\%, meaning that bounding box faster but a bit conservative as it's approx 1.72 times bigger. Faster because computing the semi axes length requires to pseudo invert K.
+    \item Compute the ellipsoid semi-axes, and it's orientation w.r.t. the canonical basis of the subspace. However, such orinetation and semi-axis lenght can be obtain by decomposing the kernel into eigenvalues and eigenvectors representation that leads to higher computation times that solely computing the worst deviations. For the quadrotor case, 2000 ellipsoids where computed and the time ratio for the bounding box method over the true ellipsoid computation shows 0.18 times (i.e. bounding box of the true ellipsoid is 5.5 faster to compute instead of true ellipsoid) and the volume shows 172\%, meaning that bounding box faster but a bit conservative as it's approx 1.72 times bigger. Faster because computing the semi axes length requires to pseudo invert K.
 \end{enumerate}
 
 \subsubsection{Sensitivity-based cost}

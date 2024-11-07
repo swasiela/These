@@ -399,7 +399,7 @@ Each segment is designed with an optimal distance, arranged to create the shorte
 This configuration results in one of six possible combinations of segments (e.g., left-straight-right), producing a smooth, continuous path that meets the system turning and heading requirements.
 
 In this thesis, the robot state used to compute such path is defined as $\boldsymbol{\gamma} = [x \, y \, \theta] \in \mathbb{R}^3$.
-Once the path is computed, the x and y components are discretized using a given time step, and then differentiate to access the corresponding desired velocities and accelerations.
+Once the path is computed, the x and y components are discretized using a given time step, and then differentiated to access the corresponding desired velocities and accelerations.
 Note that, although the heading is not directly controlled, a desired heading is specified to satisfy the tangent constraints along the path.
 
 \begin{figure} [t]
