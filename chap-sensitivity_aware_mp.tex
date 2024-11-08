@@ -53,6 +53,10 @@ Explain roles of init and final conditions, therefore we focus on tree-based app
 
 Remarque complétude.
 
+Additionally, one may compute the ODEs for unbounded local trajectories. 
+Leading to high computation times for most of the time unfeasible local trajectories. 
+Based on OMPL implementation we chose to use maximum local trajectories length.
+
 \subsection{Algorithms}
 \subsubsection{Robust Sensitivity Aware RRT*}
 Pseudo code and explain that it is costly because many calls are required to the ODEs (rewiring, optimal connection within radius, etc.).
@@ -83,7 +87,5 @@ Keep the lazy collision check with tubes.
 \section{Conclusion}
 Approach more efficient when we reduce the number of call. 
 However, we still need to improve the computation time.
-Additionally, in the previous implementation one may compute the ODEs for unbounded local trajectories. 
-Leading to high computation times for most of the time unfeasible local trajectories. Based on OMPL implementation we chose to use maximum local trajectories length.
 
 \todomarker{}
