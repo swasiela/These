@@ -2,15 +2,18 @@
 \markboth{Definitions and Systems Overview}{}% To set left/right header
 % \localtableofcontents
 
-This chapter first introduces the notion of \emph{closed-loop sensitivity} that quantify how variations of some models parameters (supposed to be uncertain) affect the evolution of the system in closed-loop, i.e., by also taking into account any controller chosen for executing the task.
+This chapter first introduces the notion of \emph{closed-loop sensitivity}, which forms a key foundation of this thesis.
+This concept quantifies how variations of some models parameters (supposed to be uncertain) affect the evolution of the system in closed-loop, i.e., by also taking into account any controller chosen for executing the task.
 Then, it is presented how this sensitivity notion can be leveraged to derive \emph{uncertainty tubes} that bounds the system states evolution both in the \emph{input} and \emph{state} spaces.
+These tubes are subsequently used to enforce robust constraints within the several motion planning algorithms presented in this thesis.
 Finally, the quadrotor robot and differential drive robot models used in this manuscript are introduced.
 
 \section{Closed-loop sensitivity}
+
 \subsection{Definition}\label{sec:sensi}
 
 Consider an arbitrary dynamic system with a set of uncertain parameters $\p \in \mathbb{R}^{n_p}$ (i.e. model parameters that are difficult to evaluate or likely to vary during a motion).
-The system dynamic can be described using the following set of ordinary differential equations (\myglsentry{odes}):
+The system dynamic can be described using the following set of \myglsentry{odes}:
 \begin{equation}\label{eq:dyna}
     \dot{\q}=\f(\q,\,\u,\,\p), \quad \q(t_0)=\q_{0},
 \end{equation}
@@ -52,6 +55,9 @@ However, as shown in~\cite{cPi,cTh}, their evolution in time can be computed by 
 \end{equation}
 where $\bPixi(t)\in \mathbb{R}^{n_{\xi} \times n_p}$ represents the \emph{internal state sensitivity} matrix.
 
+Now that the sensitivity matrices are defined, one can optimize the desired trajectory s.t. a norm of these matrices is minimized (see~\cite{cPi,cTh}). 
+This optimization produces a trajectory s.t. the closed-loop evolution of $\q(t)$/$\u(t)$ closely matches its evolution in the nominal case $\q_n(t)$/$\u_n(t)$.
+
 \subsection{Tube computation}\label{sec:tubes}
 
 \begin{figure} [t]
@@ -63,12 +69,12 @@ where $\bPixi(t)\in \mathbb{R}^{n_{\xi} \times n_p}$ represents the \emph{intern
 
 \begin{figure} [t]
   \centering
-  \includegraphics[width=0.6\linewidth]{figures/models/radius.png} 
+  \includegraphics[width=0.7\linewidth]{figures/models/radius.png} 
   \caption{2D representation of an uncertainty ellipse (green) in the X-Y state space centered at $\q_n$, along with the tube radius (red) that illustrates the worst-case deviations along each state space components.}%
   \label{fig:ellips_radius}%
 \end{figure}
 
-A key feature of these matrices is their utility in deriving \emph{uncertainty tubes}, that bounds the closed-loop system trajectory $\q(t)$/$\u(t)$ around its nominal trajectory $\q_n(t)$/$\u_n(t)$ as shown in~\cite{cTube} and illustrated in Figure~\ref{fig:tubes}.
+Another important feature of these matrices is their utility in deriving \emph{uncertainty tubes}, that bounds the closed-loop system trajectory $\q(t)$/$\u(t)$ around its nominal trajectory $\q_n(t)$/$\u_n(t)$ as shown in~\cite{cTube} and illustrated in Figure~\ref{fig:tubes}.
 The following remind how to establish such bounds around the nominal state trajectory $\q_n(t)$ by focusing solely on the state-sensitivity matrix $\bPi(t)$ for clarity. 
 However, it is important to note that this same procedure can also be applied to compute bounds around the nominal input trajectory $\u_n(t)$ by leveraging the input-sensitivity matrix $\bTheta(t)$.
 
@@ -106,6 +112,7 @@ Without loss of generality, for a well-chosen $\delta \p$ s.t. Equation~(\ref{eq
   \Delta\q(t)^T (\bPi(t) \bW \bPi(t)^T)^\dag \Delta\q(t) \leq 1.
 \end{equation}
 However, it is important to note that the ellipsoid axes are in general not aligned with the canonical basis of the state space.
+This implies that computing the deviation of each state component $q_i(t)$ is not straightforward, as direct use of the ellipsoid semi-axes length is not possible and the direction of interest may not belong to the range of the ellipsoid.
 
 Nevertheless, it has been shown in ~\cite{cTube} how to obtain the tube radius along the $i$-th component of the state $q_i(t)$ by mean of the following projection:
 \begin{equation}\label{eq:radius}
@@ -145,7 +152,7 @@ The vector $\u$ is related to the total propeller thrust $f$ and torques $\bolds
     \end{bmatrix} = \boldsymbol{T}(l, k_f, k_{\tau}) \u,
 \end{equation}
 where $k_f$ and $k_{\tau}$ refer to the thrust and drag coefficients of the propellers respectively, and $l$ stands for the quadrotor arms length.
-Also, consider that the center of mass (\myglsentry{com}) is displaced from the robot geometric center of an offset $\boldsymbol{x_{c}} = [x_{cx} \, x_{cy} \, x_{cz}]$ expressed in $F_B$ as depicted in Figure~\ref{fig:quad}. 
+Also, consider that the \myglsentry{com} is displaced from the robot geometric center of an offset $\boldsymbol{x_{c}} = [x_{cx} \, x_{cy} \, x_{cz}]$ expressed in $F_B$ as depicted in Figure~\ref{fig:quad}. 
 This displacement can occur due to onboard sensors, the presence of a payload, or other factors.
 Under this consideration and according to Newton's second law, the total force ($\boldsymbol{f_{tot}}$) and torque ($\boldsymbol{\tau_{tot}}$) acting on the quadrotor can be expressed by taking an additional fictitious force due to the displaced \myglsentry{com} in $F_B$ s.t. 
 \begin{equation}\label{eq:quad_newton}
@@ -334,7 +341,7 @@ In line with Section~\ref{sec:sensi}, the vector of parameters used in the robot
 The control task is to let the robot positions $\boldsymbol{x}$ track desired positions $\boldsymbol{x}_d = [x_d, \, y_d] \in \mathbb{R}^2$.
 The differential drive robot is an under-actuated system, which is why the heading is excluded from the tracking process; it is induced by the robot dynamic instead.
 
-To perform the tracking task, a dynamic feedback linearization (\myglsentry{dfl}) controller is used (e.g. see~\cite{cDFL}).
+To perform the tracking task, a \myglsentry{dfl} controller is used (e.g. see~\cite{cDFL}).
 This control strategy considers an extended desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$, where $\Dot{\boldsymbol{x}}_d(t) \in \mathbb{R}^2$ denote the desired linear velocities, and $\ddot{\boldsymbol{x}}_d(t) \in \mathbb{R}^2$ are the desired linear accelerations.
 This trajectory is tracked by mean of the following controller internal states $\boldsymbol{\xi} = [\xi_v \, \xi_x \, \xi_y]^T \in \mathbb{R}^3$, where $\xi_v$ stands for the dynamic extension of the differential drive robot linear velocity $v$ (see Figure~\ref{fig:unicycle}), and $(\xi_x, \, \xi_y)$ are integral actions. 
 
@@ -385,7 +392,7 @@ and the control inputs as:
     \begin{bmatrix}0 & 1\end{bmatrix}\boldsymbol{A}^{-1}\boldsymbol{\varrho}
   \end{bmatrix},
 \end{equation}
-where $\boldsymbol{T}_n$ represent the same allocation as in Equation~\ref{eq:unic_dyna} but evaluated on the nominal parameters $\p_n$.
+where $\boldsymbol{T}_n$ represent the same allocation matrix as in Equation~\ref{eq:unic_dyna} but evaluated on the nominal parameters $\p_n$.
 
 \subsubsection{State interpolation}
 
@@ -399,7 +406,7 @@ Each segment is designed with an optimal distance, arranged to create the shorte
 This configuration results in one of six possible combinations of segments (e.g., left-straight-right), producing a smooth, continuous path that meets the system turning and heading requirements.
 
 In this thesis, the robot state used to compute such path is defined as $\boldsymbol{\gamma} = [x \, y \, \theta] \in \mathbb{R}^3$.
-Once the path is computed, the x and y components are discretized using a given time step, and then differentiated to access the corresponding desired velocities and accelerations.
+Once the path is computed, the x and y components are discretized using a given time step, and then differentiated to access the corresponding desired velocities and accelerations required by Equation~\ref{eq:unic_control_law}.
 Note that, although the heading is not directly controlled, a desired heading is specified to satisfy the tangent constraints along the path.
 
 \begin{figure} [t]

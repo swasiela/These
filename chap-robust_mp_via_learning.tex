@@ -139,7 +139,7 @@ and accurate trajectories for the two experimental scenarios illustrated in Fig.
 \subsection{Learning-based tube computation} \label{sec:NNresult}
 
 The performance of the method presented in Chap.~\ref{chap:NN} and apply to a sampling based algorithm is illustrated in Fig.~\ref{fig: NN pred} that depicts the norm of predicted vector components for a 300-state trajectory part of the tree.
-\todo{POlish: Note that the predictions are only valid for the parameter maximum range $\delta\p$ chosen during the generation of the training set, and that the model is trained for given values of the controller gains.
+\todomarker[]{POlish: Note that the predictions are only valid for the parameter maximum range $\delta\p$ chosen during the generation of the training set, and that the model is trained for given values of the controller gains.
 Also, learning optimal controller gains is left to future work, as it would require additional work on database generation and data annotation, the A-Optim method cannot benefit from it.}
 
 
@@ -158,7 +158,7 @@ Also, learning optimal controller gains is left to future work, as it would requ
     \label{fig: NNTime}%
 \end{figure}
 
-\todo{Ajouter figure qui représente les pourcentage de temps passer avec le learning comparé à Sect ICRA}
+\todomarker[]{ADD profiling ODEs vs learning}
 
 Fig.~\ref{fig: NNTime} shows the significant performance improvement of using this learning-based prediction within a sampling-based tree planner for checking the robustness of the local tree expansions (see Alg.~\ref{alg:ExtensionExample}), against the previous version \cite{cSAMP} that directly integrates the $\bPi$ dynamics.  
 Results provided for RRT and its RRT$^*$ near time-optimal variant compare the number of iterations of the main loop of the algorithm as a function of computing time in an obstacle-free environment, showing in both cases a significant time gain thanks to the proposed learning method compared with the method that integrates the dynamics of $\bPi$.
@@ -197,7 +197,7 @@ Uncertainties are added to the system by randomly attaching a mass of up to 80g 
 
 \input{figures/tables/RSAMP_results.tex}
 
-\todo{ADD RRTstar ODEs in the table}
+\todomarker[]{ADD RRTstar ODEs in the table}
 
 \begin{figure} [h]
     \centering
@@ -285,6 +285,3 @@ We have presented a motion planner able to generate trajectories that are both r
 The results on a quadrotor robot confirm the efficiency of the proposed learning method and highlight the benefit of its integration within a motion planner, resulting in a significant reduction of the planning times. 
 Moreover, we showed that our framework is able to locally optimize the planned trajectory in order to minimize the size of the uncertainty tubes of the state at some desired locations, allowing the system to accurately perform a precision task. An experimental demonstration involving a quadrotor UAV in a ring-catching task allowed to validate the approach in real conditions. Future works will focus on considering uncertainties not only in the dynamic model, by extending the computation of the tubes for state estimation uncertainties. 
 Furthermore, we aim to expand the capabilities of the neural network to learn the optimal controller gains.
-
-
-\todomarker{}

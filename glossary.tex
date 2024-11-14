@@ -2,14 +2,15 @@
   \protect\ifglsused{#1}{%
     \glsentryshort{#1}%
   }{%
-    \glsentrylong{#1}%
+    \glsentrylong{#1} (\glsentryshort{#1})%
   }%
 }
 
 \makeglossaries
 
-\newacronym{rrt}{Rapidly-exploring Random Trees}{RRT}
-\newacronym{rrtstar}{Assymptotically Optimal Rapidly-exploring Random Trees}{RRT*}
-\newacronym{odes}{Ordinary differential equations}{ODEs}
-\newacronym{com}{Center of mass}{CoM}
-\newacronym{dfl}{Dynamic feedback linearization}{DFL}
+\newacronym{rrt}{RRT}{Rapidly-exploring Random Trees}
+\newacronym{rrtstar}{RRT*}{Assymptotically Optimal Rapidly-exploring Random Trees}
+\newacronym{odes}{ODEs}{Ordinary differential equations}
+\newacronym{com}{CoM}{Center of mass}
+\newacronym{dfl}{DFL}{Dynamic feedback linearization}
+\newacronym{AABBs}{AABBs}{Axis-Aligned Bounding Boxes}
