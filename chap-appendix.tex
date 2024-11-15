@@ -12,7 +12,6 @@ Given a current robot AABB, this proof aims to show that the closest point on th
 
 Let $A$ and $B$ be two convex sets. 
 This assumption holds for the collision test presented in Section~\ref{sec:robust_CC} as the robot AABB is a convex shape, and the environment is decomposed into convex shapes.
-
 Let \( p_1 \in A \) such that \( p_1 = \arg \min_{a \in A} \|a - b\| \, \forall b \in B \), and \( p_2 \in B \) such that \( p_2 = \arg \min_{b \in B} \|a - b\| \, \forall a \in A \).
 Also let $\lambda A, \lambda \geq 1$ be a uniform scaling of $A$.
 
@@ -30,11 +29,28 @@ One want to show that:
     \right.
 \]
 
-\paragraph{}
-$\|\lambda a-b\| = \lambda \|a-\frac{b}{\lambda}\|$, or $\frac{b}{\lambda} \in B$ car B est convex, donc $\argmin_{a \in A}\|a-\frac{b}{\lambda}\| = \argmin_{a \in A}\|a-b\| = p_1$, donc $\argmin_{a \in A}\|\lambda a-b\| = \lambda p_1$
+\paragraph{1.}
+Let \( a \in A \) and \( b \in B \).
+One can express the following relationship:
+\[
+\|\lambda a - b\| = \lambda \left\|a - \frac{b}{\lambda}\right\|,
+\]
+where \(\frac{b}{\lambda} \in B\) because \(B\) is convex. 
+Therefore, one gets:
+\[
+\arg \min_{a \in A} \left\|a - \frac{b}{\lambda}\right\| = \arg \min_{a \in A} \|a - b\| = p_1,
+\]
+which implies:
+\[
+\arg \min_{a \in A} \|\lambda a - b\| = \lambda p_1.
+\]
 
-\paragraph{}
-Soit $b \in B, b \neq p_2$.
+\paragraph{2.}
+Let \( b \in B \), \( b \neq p_2 \) such that:
 
-$\|\lambda p_1-b\|^2 = \|\lambda p_1-p_2\|^2 + \|p_2-b\|^2$, or $p_2 \neq b$ donc $\|p_2-b\|^2 > 0$.
-Donc $\|\lambda p_1-b\| > \|\lambda p_1-p_2\|$ i.e $\argmin_{b \in B}\|\lambda p_1-b\| = p_2 $
+\[
+\|\lambda p_1 - b\|^2 = \|\lambda p_1 - p_2\|^2 + \|p_2 - b\|^2,
+\]
+and since \( p_2 \neq b \), one gets \( \|p_2 - b\|^2 > 0 \). 
+Therefore, \( \|\lambda p_1 - b\| > \|\lambda p_1 - p_2\| \), which implies \( \arg \min_{b \in B} \|\lambda p_1 - b\| = p_2 \).
+

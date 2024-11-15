@@ -1,12 +1,15 @@
-\chapter{Sensitivity-aware motion planner}
-\markboth{Sensitivity-aware motion planner}{}% To set left/right header
+\chapter{Robust and Global Sensitivity-Optimal Motion Planning}\label{chap:samp}
+\markboth{Robust and Global Sensitivity-Optimal Motion Planning}{}% To set left/right header
 % \localtableofcontents
 
 This chapter introduces the first major contribution of this thesis, by leveraging the sensitivity concept discussed in Chapter~\ref{chap:models}.
 The contribution of this chapter is twofold:
 \begin{enumerate}
-    \item Firstly, it addresses the generation of a desired trajectory with minimal sensitivity, ensuring that the closed-loop evolution of $\q(t)$/$\u(t)$ closely matches its nominal evolution, $\q_n(t)$/$\u_n(t)$. While previous work has explored sensitivity optimization for generating locally sensitivity-optimal trajectories \cite{cPi, cTh}, this approach has never been applied within a global sampling-based planning framework that accounts for obstacles. Therefore, the first contribution is to propose methods for efficiently performing global sensitivity-optimal motion planning.
-    \item Secondly, this chapter introduces, for the first time, the use of sensitivity-based uncertainty tubes to enforce constraints in both the state and input spaces. This enables the generation of intrinsically-robust motions (i.e. accounting for the controller's behavior with respect to uncertainty) that ensures robustness to both the environment and the actuator limits.
+    \item Firstly, it addresses the generation of a desired trajectory with minimal sensitivity, ensuring that the closed-loop evolution of $\q(t)$ closely matches its nominal evolution, $\q_n(t)$. 
+    While previous work has explored sensitivity optimization for generating locally sensitivity-optimal trajectories \cite{cPi, cTh}, this approach has never been applied within a global sampling-based planning framework that accounts for obstacles. 
+    Therefore, the first contribution is to propose methods for efficiently performing global sensitivity-optimal motion planning.
+    \item Secondly, this chapter introduces, for the first time, the use of sensitivity-based uncertainty tubes to enforce constraints in both the state and input spaces. 
+    This enables the generation of intrinsically-robust motions (i.e. accounting for the controller behavior with respect to uncertainty) that ensures robustness to both the environment and the actuator limits.
 \end{enumerate}
 This chapter is organized as follows: it first presents in Section~\ref{sec:metrics} how the uncertainty tubes of Section~\ref{sec:tubes} are used to enforce robust constraints in the planning process, as well as the development of an appropriate cost function for performing global sensitivity optimization.
 Then, in Section~\ref{sec:unified}, a unified approach is presented, which allows for planning a robust trajectory with optimal sensitivity by directly incorporating the sensitivity computation into the optimal tree-building process (e.g., \myglsentry{rrtstar}). 
@@ -15,7 +18,7 @@ Finally, a decoupled approach that shows better efficiency for more complex syst
 
 This chapter is associated to the following publication in ICRA 2023: Wasiela, S., Giordano, P. R., Cortés, J., and Simeon, T. (2023, May). "A sensitivity-aware motion planner (samp) to generate intrinsically-robust trajectories." In IEEE International Conference on Robotics and Automation (ICRA) (pp. 12707-12713).
 
-\section{??Sensitivity-aware metrics??}\label{sec:metrics}
+\section{Practical Considerations}\label{sec:metrics}
 
 This section first presents how the uncertainty tubes from Section~\ref{sec:tubes} are used to perform robust feasibility checks, followed by the selection of an appropriate cost function for global sampling-based optimization.
 
@@ -26,7 +29,7 @@ During the process, each of these local trajectories are subject to collision ch
 However, in this thesis, the collision check is extended to include a more general feasibility test, which also accounts for the control input space. 
 This extension ensures that the generated trajectories are not only free from obstacles but also prevent control inputs from reaching saturation. 
 Additionally, it accounts for uncertainty in both the state and control input spaces, further enhancing the robustness of the trajectories.
-The following sections describe how these extended feasibility checks are performed to ensure the robustness of each local trajectory in this context.
+The following section describes how these extended feasibility checks are performed to ensure the robustness of each local trajectory in this context.
 It is important to note that these tests are not continuous; rather, they are performed along a discrete representation of the local trajectories.
 
 \paragraph{Robust collision checking}
@@ -104,7 +107,7 @@ However, the third approach is employed in the scenario presented in Section~\re
 Although the methods employed in this thesis for robust collision checking rely on the uncertainty ellipsoid bounding box computed using Equation~\ref{eq:radius}, the tubes are represented by ellipsoids in the various figures of this manuscript for smoother visualization.
 
 \paragraph{Robust saturation checking}
-Then, in this manuscript, the feasibility check is not restricted to the aforementioned collision test presented above, but it also verifies that the robot control inputs does not saturate.
+Then, in this manuscript, the feasibility check is not restricted to the aforementioned collision test, but it also verifies that the robot control inputs does not saturate.
 This test is performed by checking that the tube associated with each control input remains in its feasibility domain.
 An example of infeasible input for the quadrotor case is presented in Figure.\ref{fig:invalid_inputs},  where the tube (green) around the nominal control input of the first actuator (blue) exceeds the maximum allowed input (red).
 Note that this simple test is less costly than the robust collision checking one, it is therefore performed first by mean of computational efficiency. 
@@ -112,46 +115,164 @@ Note that this simple test is less costly than the robust collision checking one
 \begin{figure} [t]
     \centering
     \includegraphics[width=0.8\linewidth]{figures/samp/Invalid_Inputs.png} 
-    \caption{Non-robust nominal control input profile for the first rotor of a quadrotor (blue) along a specified trajectory, depicted with its uncertainty tube (green) and the control inputs limits (red).}%
+    \caption{Non-robust nominal control input profile for the first rotor of a quadrotor (blue) along a specified trajectory, depicted with its uncertainty tube (green) and the control input limits (red).}%
     \label{fig:invalid_inputs}%
 \end{figure}
 
 \subsubsection{Cost function}\label{sec:sensi_cost}
 
+First of all, generating a sensitivity-optimal trajectory requires identifying an appropriate sensitivity-based cost function.
+The approaches in~\cite{cPi, cTh} proposed leveraging the Frobenius norm of the sensitivity matrices (Equation~\ref{eq:sensi}).
+However, this formulation does not exploit the available information on the uncertainty ranges, $\delta \p$.
+
+Therefore, in this work we consider the largest eigenvalue of the kernel matrix $\bPi(t) \W \bPi(t)^T$ as \emph{sensitivity norm}, since this will represent the largest (worst-case) deviation in the state space. 
+In particular, letting $\lambda_i(t)$ be the eigenvalues of $\bPi(t) \W \bPi(t)^T$, we performed a smooth approximation of the $\max(\cdot)$ operator with the $p$-norm:
+\begin{equation}
+    \lambda_{max}(t)\approx \left(\sum \lambda_{i}(t)^p\right)^{1/p}.
+\end{equation} 
+
+However, such function is neither additive (i.e., considering two desired trajectories ($\q_{d,1}(t), \q_{d,2}(t)$), the cost of their concatenation $c(\q_{d,1}(t)|\q_{d,2}(t)) \neq c(\q_{d,1}(t)) + c(\q_{d,2}(t))$), nor monotonic as depicted in Figure~\ref{fig:monotonic}.
+Therefore, it is unsuitable for global optimization using sampling-based motion planners like \cite{cRRTstar, cSST}, since they require additive and monotonic objective functions.
+The total cost function $c(\q_d(t))$ for a desired trajectory $\q_d(t)$ is then defined as
+\begin{equation} \label{eq:cost_function}
+    c(\q_d(t))=\int_{t_{0}}^{t_{f}}\lambda_{max}(\tau)d\tau.
+\end{equation}
+Minimization of this cost will minimize the largest deviation of the state tube along the whole motion.
+
 \begin{figure} [t]
     \centering
-    \includegraphics[width=0.8\linewidth]{figures/samp/non_monotoic.png} 
+    \includegraphics[width=0.7\linewidth]{figures/samp/non_monotoic.png} 
     \caption{Non monotonic p-norm profile along a 70-state trajectory for a quadrotor example.}%
     \label{fig:monotonic}%
 \end{figure}
 
-Now that the sensitivity matrices are defined, one can compute and minimize a chosen norm of $\bPi(t)$ and $\bTheta(t)$ w.r.t. the desired trajectory $\q_d(t)$.
-
-However, sensitivity non monotonic and non additive, not suitable for optimal motion planning that requires monotonic and additive cost function properties.
-Add figure.
-
-We therefore chose integral.
-However, instead of integral of norm of PI as done in~\cite{cPi,cTh}, we chose integral of p-norm radii, better capture deviations to the nominal case.
-
 \section{Unified approach}\label{sec:unified}
 
-This section first present a unified approach that allow planning a robust trajectory with an optimal sensitivity by directly incorporating the sensitivity computation in an optimal planning process (e.g. \myglsentry{rrtstar}).
+This section present how the sensitivity matrices and resulting uncertainty tubes computation can be incorporated into any assymptotically-optimal tree planner in order to generate robust and sensitivity-optimal trajectories.  
 
-\subsection{General method}
-Explain that ODEs as to be solved each motion check.
-Explain roles of init and final conditions, therefore we focus on tree-based approaches.
+\subsection{General method}\label{sec:general_method}
 
-Remarque complétude.
+As shown in Section~\ref{sec:sensi_and_tubes}, the state/input sensitivity matrices (and resulting uncertainty tubes) are computed by forward integrating the set of \myglsentry{odes} presented by Equation~(\ref{eq:dyna}), Equation~(\ref{eq:ctrl}), and Equation~(\ref{eq:dyna_sensi}).
+This computation is performed using the controller time step along a given desired trajectory.
+In a sampling-based framework, this computation must be performed at each new extension to assess the trajectory cost and the associated uncertainty tubes for the robust feasibility check.
+Although the \myglsentry{odes} need to be solved at each controller time step, it is important to note that the robust feasibility check presented in Section~\ref{sec:robust_CC} can be conducted using a coarser time step.
 
-\subsection{Algorithms}
-\subsubsection{Robust Sensitivity Aware RRT*}
-Pseudo code and explain that it is costly because many calls are required to the ODEs (rewiring, optimal connection within radius, etc.).
-Explain that the trivial "update children cost" become non trivial as it requires to recimpute the ODEs for eery of them.
-\subsubsection{Robust Sensitivity Aware SST*}
+Furthermore, in a sampling-based context, solving the \myglsentry{odes} from a set of non-zero initial conditions (e.g. $\bPi_0$, $\q^0$ etc.), denoted $S_0$, is required when an extension is made from a node that is not the root.
+Therefore, after a feasible extension is made and the new node is added to the structure, the set of final conditions (e.g. $\bPi_F$, $\q^F$,  etc.), denoted $S_F$, must be embedded within the new node.
+These conditions are then reused as initial conditions for future extensions.
+Moreover, it is important to note that the initial conditions of a given node are determined by the trajectory from the root node. 
+As a result, these initial conditions are specific to the parent node, making them applicable only in tree-based planners, where each node has exactly one parent.
+Additionally, note that, since dynamics are taken into account, the algorithms presented in this thesis utilize directed data structures (i.e., structures like directed trees that represent dependencies and directionality in motion).
+
+The following section describes how the concepts outlined above can be incorporated into different tree planners to develop robust, sensitivity-aware variants, generally referred to as \gls{samp}.
+Note that although the following sections of this chapter focus on asymptotically-optimal planner variants to generate globally sensitivity-optimal trajectories, the same principles can easily be applied to non-asymptotically optimal planners (see Chapter~\ref{chap:sampNN}), such as the standard \gls{rrt}.
+ 
+\subsection{Sensitivity-Aware Motion Planner (SAMP)}
+
+For clarity in the pseudo-code, the temporal notation is omitted in this section. 
+Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent instantaneous vectors (e.g., $q^{rand}$ denotes a random state without temporal dependencies, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given state vector, etc.).
+
+\subsubsection{Sensitivity-Aware RRT* (SARRT*)}
+
+\begin{algorithm}[t]
+    \caption{SARRT$^* [q^{init}, q^{goal}]$}\label{alg:SARRT*}
+    \begin{algorithmic}[1]
+        \State $T \gets$ InitTree$({q^{init}, q^{goal}});$
+        \While{\textbf{not} StopCondition$(T, {q^{goal}})$}  
+            \State $q^{rand} \gets $Sample()$;$
+            \State $q^{nearest} \gets$ Nearest$(T,{q^{rand}});$
+            \State $\q_d \gets$ LocalPlan$({q^{nearest}},{q^{rand}});$
+            \State $S_0 \gets $GetNodeConditions$({q^{nearest}});$
+            \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
+            \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
+                \State $q^{min} \gets q^{nearest};$
+                \State SetNodeConditions$({q^{rand}}, S_{F});$
+                \State $Q^{near} \gets$ NearestNodes$(T,{q^{rand}});$
+                \State RobustOptimal$(T, Q^{near}, q^{rand}, q^{min});$
+                \State RobustRewire$(T, Q^{near}, q^{min});$
+            \EndIf
+        \EndWhile
+        \State \textbf{return} GetTrajectory$(T, q^{init}, q^{goal})$;
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[t]
+    \caption{RobustOptimal$[T, Q^{near}, q^{rand}, q^{min}]$}\label{alg:RobustOptimalConnect}
+    \begin{algorithmic}[1]
+        \State $c^{min} \gets$ Cost$(q^{rand});$
+        \For {each $q^{near} \in Q^{near}$}
+            \State $\q_d \gets$ LocalPlan$(q^{near},q^{rand});$
+            \State $S_0 \gets $GetNodeConditions$({q^{near}});$
+            \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
+            \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
+                \If {Cost$(q^{near}) + J(\q_d) < c^{min}$}
+                    \State $q^{min} \gets q^{near}; c^{min} \gets$ Cost$(q^{near}) + J(\q_d);$
+                    \State SetNodeConditions$({q^{rand}}, S_{F});$
+                \EndIf
+            \EndIf
+        \EndFor
+        \State AddNewNode$(T, {q^{rand}});$
+        \State AddNewEdge$(T, {q^{min}}, {q^{rand}});$
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[t]
+    \caption{RobustRewire$[T, Q^{near}, q^{min}]$}\label{alg:RobustRewire}
+    \begin{algorithmic}[1]
+        \For {each $q^{near} \in Q^{near} \backslash \{q^{min}\}$}
+            \State $\q_d \gets$ LocalPlan$(q^{rand}, q^{near});$
+            \State $S_0 \gets $GetNodeConditions$({q^{rand}});$
+            \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
+            \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
+                \If {Cost$(q^{rand}) + J(\q_d) <$ Cost$(q^{near})$}
+                    \State $q^{parent} \gets$ GetParent$(q^{near});$
+                    \State RemoveEdge$(T, q^{parent}, q^{near});$
+                    \State AddNewEdge$(T, q^{rand}, q^{near});$
+                    \State SetNodeConditions$(q^{near}, S_{F});$
+                    \State UpdateChildren$(T, q^{near});$
+                \EndIf
+            \EndIf
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
+
+The first implementation presented in Algorithm~\ref{alg:SARRT*} is a variant of the widely used \gls{rrtstar}~\cite{cRRTstar}, denoted \gls{sarrt*} as a particular instance of \myglsentry{samp}.
+The tree is initialized with the desired initial and goal robot states, $(q^{init}, q^{goal})$ (line 1), and the algorithm continues until a user-defined stopping criterion is met (line 2).
+Such a criterion can include a maximum number of iterations, a maximum runtime, a cost convergence threshold, etc.
+
+The first stage of the algorithm follows the same standard procedure as the vanilla \myglsentry{rrtstar}, including sampling a desired robot state $q^{rand}$ and finding its nearest neighbor $q^{nearest}$ in the tree structure (lines 3 and 4, respectively).
+Then, a local planner (such as the ones presented in Section~\ref{sec:kinosplines} and Section~\ref{sec:dubins}) is employed to generate a desired local trajectory $\q_d$ that connects $q^{rand}$ to $q^{nearest}$.
+Next, as discussed in Section~\ref{sec:general_method}, the set of \myglsentry{odes} is solved (line 7) to compute the nominal trajectory $\q_n$, the nominal control inputs $\u_n$, and the uncertainty tubes $(\Rq, \Ru)$, utilizing the initial conditions $S_0$ (line 6).
+A robust feasibility check is then conducted along the nominal trajectory and control inputs (line 8), following the procedure outlined in Section~\ref{sec:robust_CC}.
+Remember that this test is carried out along the nominal values, as the uncertainty tubes are valid around them, as detailed in Section~\ref{sec:tubes}.
+If the extension is feasible, the new node parent is temporarily set to $q^{nearest}$, and the final conditions $S_F$ are temporarily stored within $q^{rand}$ (line 9-10).
+
+Although the nearest neighbor search (line 4) uses a distance function aimed at returning the optimal cost between two states, heuristics are often applied to maintain computational efficiency.
+To ensure that the temporarily assigned parent $q^{min}$ is the optimal one, an additional search is conducted within a specified neighborhood $Q^{near}$ (line 11).
+Such procedure, depicted in Algorithm~\ref{alg:RobustOptimalConnect}, starts by computing the cost of the unique trajectory from the root node to $q^{rand}$ (line 1).
+Then, the optimal parent $q^{min}$ is set to the node in $Q^{near}$ that allows a robust extension while incurring the minimum cost to get to $q^{rand}$ (line 2-9).
+Finally, the new node is inserted in the tree with its optimal parent (line 10-11).
+
+Now that the optimal feasible extension is added to the tree, the \myglsentry{sarrt*} checks if any optimal rewiring can be performed using Algorithm~\ref{alg:RobustRewire}.
+This rewiring phase checks, for each neighbor $q^{near}$ within $Q^{near}$, whether the trajectory from the root to $q^{near}$, passing through the newly added node $q^{rand}$, can be improved (lines 1-6).
+In such case, the parent of $q^{near}$ is updated accordingly, and the final \myglsentry{odes} conditions $S_F$ are also modified (lines 7-10).
+Finally, in contrast to the standard \myglsentry{rrtstar}, each child of the newly rewired node must be rechecked for robust feasibility, as their uncertainty tubes and control inputs may have changed due to the updated trajectory resulting from the rewiring (line 11).
+Note that this final operation requires re-solving the \myglsentry{odes} for each child node.
+
+\subsubsection{Sensitivity-Aware SST* (SASST*)}
+
+It is important to note that a single iteration of \myglsentry{sarrt*} requires solving the set of \myglsentry{odes} multiple times which leads to a prohibitive computation time per iteration as shown in Section~\ref{sec:samp_simu}.
+To mitigate this impact, this section proposes a robust sensitivity-aware variant of the \gls{sst*}~\cite{cSST}, denoted \gls{sasst*} as a particular instance of \myglsentry{samp}. 
+
+The main advantage of the \myglsentry{sst*} algorithm is to limit the number of feasibility checks to one per iteration.
+Additionally, the vanilla \myglsentry{sst*} rely on a monte carlo prop that sample in the control space and then compute the forward dynamic propagation, thus getting rig of the need to a local planner. 
+However, as this thesis consider the closed-loop  
+
 Pseudo code and explain that it is more suitable for dynamic propagation as it requires one check per iteration.
 Note that in the original version only an open loop approach is considered in the monte carlo propagation, as we are dealing with close loop we rely on a steering method here.
 
-\subsection{Simulation results}
+\subsection{Simulation results}\label{sec:samp_simu}
+Implemented with OMPL.
 \subsubsection{Differential drive robot}
 Results, graph profiling RRT*/RSARRT*, SST*/RSASST*
 \subsubsection{Quadrotor robot}
@@ -160,13 +281,18 @@ Results, graph profiling RRT*/RSARRT*, SST*/RSASST*
 Very long planning time because very large state space to be explored, lots of iteartions needed to provide a good coverage of the space for convergence.
 In view of the part taken by the ODEs it's not tracktable, while it is still tracktable for "standard" RRT* optimizing time.
 
+The key bottleneck is the number of time we need to solve the \myglsentry{odes}. 
+For more complex system such as quadrotor it is still not tracktable.
+
 \section{Decoupled approach}\label{sec:decoupled}
-For more complex system such as quadrotor it is still not tracktable. We need to reduce the number of calls again.
+
+This section introduces a decoupled approach that minimizes the frequency of solving the \myglsentry{odes}, offering a more efficient algorithm for complex systems, such as quadrotor, to generate robust trajectories with near-optimal sensitivity.
+
 \subsection{Algorithms}
-\subsubsection{Sensitivity Aware RRT*}
+\subsubsection{Lazy Sensitivity-Aware RRT*}
 
 \begin{algorithm}[htp]
-    \caption{SARRT$^* [x_{init}, x_{goal}]$}\label{alg:SARRT}
+    \caption{LazySARRT$^* [x_{init}, x_{goal}]$}\label{alg:LazySARRT}
     \begin{algorithmic}[1]
         \State $V \gets \left \{ x_{init}, x_{goal} \right \}; E \gets \emptyset; sol \gets \emptyset; i \gets 0;$
         \While{$i < N$}
@@ -188,7 +314,7 @@ For more complex system such as quadrotor it is still not tracktable. We need to
     \end{algorithmic}
 \end{algorithm}
 
-Algorithm \ref{alg:SARRT} provides the pseudo-code of the SARRT$^*$ planner.  
+Algorithm \ref{alg:LazySARRT} provides the pseudo-code of the LazySARRT$^*$ planner.  
 It is a variant of RRT$^*$, modified in order to guarantee the robustness of the computed solution w.r.t. the state/input uncertainties.
 Indeed, in addition to providing a (near) time-optimal trajectory the algorithm verifies that the returned trajectory is collision-free w.r.t. the state uncertainties and also that inputs remain in their allowed bounds.
 However, as mentioned in Section~\ref{sec:unified}, the number of sensitivity computation within the RRT$^*$ must remain as limited as possible to avoid a too long computing time. 
@@ -204,6 +330,8 @@ Keep the lazy collision check with tubes.
 \subsubsection{Quadrotor robot}
 
 \section{Conclusion}\label{sec:concl}
+Note that the algorithms not complete proof
+
 Approach more efficient when we reduce the number of call. 
 
 Additionally, one may compute the ODEs for unbounded local trajectories. 

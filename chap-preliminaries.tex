@@ -1,19 +1,19 @@
-\chapter{Definitions and Systems Overview}\label{chap:models}
-\markboth{Definitions and Systems Overview}{}% To set left/right header
+\chapter{Preliminaries}\label{chap:models}
+\markboth{Preliminaries}{}% To set left/right header
 % \localtableofcontents
 
-This chapter first introduces the notion of \emph{closed-loop sensitivity}, which forms a key foundation of this thesis.
-This concept quantifies how variations of some models parameters (supposed to be uncertain) affect the evolution of the system in closed-loop, i.e., by also taking into account any controller chosen for executing the task.
-Then, it is presented how this sensitivity notion can be leveraged to derive \emph{uncertainty tubes} that bounds the system states evolution both in the \emph{input} and \emph{state} spaces.
+This chapter introduces the notion of \emph{closed-loop sensitivity}, which forms a key foundation of this thesis.
+This concept quantifies how variations of some model parameters (supposed to be uncertain) affect the evolution of the system in closed-loop, i.e., by also taking into account any controller chosen for executing the task.
+Then, it is presented how this sensitivity notion can be leveraged to derive \emph{uncertainty tubes} that bounds the system evolution both in the \emph{input} and \emph{state} spaces.
 These tubes are subsequently used to enforce robust constraints within the several motion planning algorithms presented in this thesis.
-Finally, the quadrotor robot and differential drive robot models used in this manuscript are introduced.
+Finally, the quadrotor and differential drive robot models used in this manuscript are introduced.
 
-\section{Closed-loop sensitivity}
+\section{Closed-loop sensitivity}\label{sec:sensi_and_tubes}
 
 \subsection{Definition}\label{sec:sensi}
 
 Consider an arbitrary dynamic system with a set of uncertain parameters $\p \in \mathbb{R}^{n_p}$ (i.e. model parameters that are difficult to evaluate or likely to vary during a motion).
-The system dynamic can be described using the following set of \myglsentry{odes}:
+The system dynamic can be described using the following set of \gls{odes}:
 \begin{equation}\label{eq:dyna}
     \dot{\q}=\f(\q,\,\u,\,\p), \quad \q(t_0)=\q_{0},
 \end{equation}
@@ -69,8 +69,8 @@ This optimization produces a trajectory s.t. the closed-loop evolution of $\q(t)
 
 \begin{figure} [t]
   \centering
-  \includegraphics[width=0.7\linewidth]{figures/models/radius.png} 
-  \caption{2D representation of an uncertainty ellipse (green) in the X-Y state space centered at $\q_n$, along with the tube radius (red) that illustrates the worst-case deviations along each state space components.}%
+  \includegraphics[width=0.6\linewidth]{figures/models/radius.png} 
+  \caption{2D representation of an uncertainty ellipse (green) in the x-y state space centered at $\q_n$, along with the tube radius (red) that illustrates the worst-case deviations along each state space components.}%
   \label{fig:ellips_radius}%
 \end{figure}
 
@@ -121,7 +121,7 @@ Nevertheless, it has been shown in ~\cite{cTube} how to obtain the tube radius a
 where $\boldsymbol{n}_i$ is the unit-norm vector of the $i$-th state space component, and $\boldsymbol{K_{\Pi}}(t) = \boldsymbol{\Pi}(t)\boldsymbol{W}\boldsymbol{\Pi}(t)^T$ is the kernel matrix of Equation~(\ref{eq:q_ellipsoid}).
 It is important to note that the radius along the $i$-th component represents the maximum possible deviation in that direction and does not directly correspond to the semi-axes of the uncertainty ellipsoid as depicted in Figure~\ref{fig:ellips_radius}.
 
-Finally, it is important to remind that since the uncertainty tube radii depend on the state sensitivity $\boldsymbol{\Pi}(t)$, it is necessary to solve the set of ODEs represented by Equation~(\ref{eq:dyna}), Equation~(\ref{eq:ctrl}), and Equation~(\ref{eq:dyna_sensi}) beforehand.
+Finally, it is important to remind that since the uncertainty tube radii depend on the state sensitivity $\boldsymbol{\Pi}(t)$, it is necessary to solve the set of \myglsentry{odes} represented by Equation~(\ref{eq:dyna}), Equation~(\ref{eq:ctrl}), and Equation~(\ref{eq:dyna_sensi}) beforehand.
 Additionally, note how, in general, the tube radius does not necessarily increase monotonically due to the influence of feedback action as illustrated in Figure~\ref{fig:tubes}, despite the cumulative effect of uncertainties over time. 
 
 \section{Models considered in this thesis}
@@ -263,7 +263,7 @@ Note also that no internal controller states are considered in this controller; 
 \right .
 \end{equation}
 
-\subsubsection{State interpolation}
+\subsubsection{State interpolation}\label{sec:kinosplines}
 
 With the quadrotor model and controller now defined, this section presents the interpolation method (hereafter referred to as the \emph{local} planner) for computing a desired trajectory that the geometric controller will track.
 
@@ -277,10 +277,10 @@ Finally, the kino-spline method also consider bounds on the several derivatives 
 
 As previously mentioned, this local planner focuses on generating local trajectories that are time optimal, i.e. that minimize the total time needed to reach $\q_d^F$.
 This is achieved by reaching the full speed as soon as possible and by maintaining it as long as possible for each component of $\boldsymbol{\gamma}$.
-This also implies that the time spend reaching this velocity must be minimized, which means that the time spent at maximum acceleration during transient phases must be maximized.
-The same principles apply to jerk and snap; during variations in acceleration, the maximum achievable jerk should be maintained for as long as possible, while the duration of jerk variation phases must be minimized.
-This is achieved through a straightforward bang-bang snap method, which aims to maximize the time spent at maximum snap during the jerk transient phases. 
-By doing so, the duration of transient phases is minimized, and gradually the duration of the maximum speed phase is maximized.
+This also implies that the time spent reaching this velocity must be minimized, which means that the time spent at maximum acceleration during transient phases must be maximized.
+The same principle applies to jerk and snap; during variations in acceleration, the maximum achievable jerk should be maintained for as long as possible, while the duration of jerk variation phases is minimized.
+This is achieved through a straightforward bang-bang snap method, which aims to maximize the time spent at maximum snap during the jerk transient phases.
+By doing so, the duration of transient phases is minimized, and gradually, the duration of the maximum speed phase is maximized.
 The principle of this trajectory generation is illustrated by Figure~\ref{fig:kino}.
 
 \begin{figure} [t]
@@ -394,7 +394,7 @@ and the control inputs as:
 \end{equation}
 where $\boldsymbol{T}_n$ represent the same allocation matrix as in Equation~\ref{eq:unic_dyna} but evaluated on the nominal parameters $\p_n$.
 
-\subsubsection{State interpolation}
+\subsubsection{State interpolation}\label{sec:dubins}
 
 Now that the dynamic of the differential drive robot and its controller are defined, this section presents the local planner used to generate the desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$ that is tracked by the \myglsentry{dfl} controller.
 The trajectory generation problem is addressed using Dubins curves~\cite{cDubins}, which are differentiated twice. 
@@ -406,8 +406,8 @@ Each segment is designed with an optimal distance, arranged to create the shorte
 This configuration results in one of six possible combinations of segments (e.g., left-straight-right), producing a smooth, continuous path that meets the system turning and heading requirements.
 
 In this thesis, the robot state used to compute such path is defined as $\boldsymbol{\gamma} = [x \, y \, \theta] \in \mathbb{R}^3$.
-Once the path is computed, the x and y components are discretized using a given time step, and then differentiated to access the corresponding desired velocities and accelerations required by Equation~\ref{eq:unic_control_law}.
-Note that, although the heading is not directly controlled, a desired heading is specified to satisfy the tangent constraints along the path.
+Once the path is computed, the x and y components are discretized using a given time step and then differentiated to obtain the corresponding desired velocities and accelerations required by Equation~\ref{eq:unic_control_law}.
+Note that, although the heading is not directly controlled, a desired heading is specified to satisfy the tangent constraints.
 
 \begin{figure} [t]
   \centering

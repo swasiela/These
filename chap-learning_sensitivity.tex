@@ -167,6 +167,15 @@
 
 \section{Method} \label{sec:method}
 \subsection{Problem statement}
+
+The goal is to train a neural network to approximate sensitivity-based uncertainty tubes, hence avoiding the computational cost of solving many \myglsentry{odes}. 
+Moreover, we aim at predicting the control inputs that the system will exert to successfully track a desired trajectory, in addition to the uncertainty tubes on these control inputs. 
+Given a sequence of desired robot state vectors $\textbf{M} = \{\q_{d}^0, \q_{d}^1, ..., \q_{d}^n\}$ representing the desired robot's motion (i.e. a desired trajectory to follow), the task at hand is to learn a function $\boldsymbol{g}$ that estimates the radii of uncertainty tubes for each state $\q_{d}^k$ as well as the robot control inputs at this state such that:
+\begin{equation}\label{eq:prob_statement}
+\{\Rq^{k}, \Ru^{k},\u^{k}\} = \boldsymbol{g}(\q_{d}^0, \q_{d}^1, ... \q_{d}^{k-1})
+\end{equation}
+Since evaluating the function $\boldsymbol{g}$ on $\q_{d}^k$ depends on all the previous states of the robot in $\textbf{M}$, recurrent neural network architectures are a good fit given their ability to encode and accumulate temporal information while keeping inference time low.
+
 \subsection{Neural network architecture}
 \subsection{Dataset}
 
@@ -180,6 +189,6 @@
 \subsection{Ablation study}
 \subsection{Qualitative results}
 
-\section{Conclusion} \label{sec:concl}
+\section{Conclusion} \label{sec:NN_concl}
 
 \todomarker{}
