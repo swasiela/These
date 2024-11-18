@@ -17,8 +17,8 @@ The system dynamic can be described using the following set of \gls{odes}:
 \begin{equation}\label{eq:dyna}
     \dot{\q}=\f(\q,\,\u,\,\p), \quad \q(t_0)=\q_{0},
 \end{equation}
-where $\q\in \mathbb{R}^{n_{q}}$ is the system state vector and $\u\in \mathbb{R}^{n_{u}}$ the control input vector.
-Also, assume the presence of a controller $\boldmu$ of any form to track a \emph{desired trajectory} $\q_d(t)$ such that:
+where $\q\in \mathbb{R}^{n_{q}}$ is the system state vector and $\u\in \mathbb{R}^{n_{u}}$ is the control input vector.
+Also, assume the presence of a controller $\boldmu$ of any form whose aim is to track a \emph{desired trajectory} $\q_d(t)$ such that:
 \begin{equation}\label{eq:ctrl}
      \left \{
      \begin{array}{l l}
@@ -291,7 +291,7 @@ The principle of this trajectory generation is illustrated by Figure~\ref{fig:ki
   \label{fig:kino}%
 \end{figure}
 
-\subsection{Differential drive robot}
+\subsection{Differential drive robot}\label{sec:unic_model}
 
 \subsubsection{Dynamic model}
 
@@ -374,7 +374,7 @@ Let the following vectors:
   \end{array}
   \right .
 \end{equation}
-where $k_v$, $k_p$ and $k_i$ are the controller gains.
+where $k_v$, $k_p$ and $k_i$ are the controller gains, s.t. in the following chapters of this thesis, the controller gain vector is defined as $\boldsymbol{k}_c = [k_p, \, k_v \, k_i]^T \in \mathbb{R}^3$.
 
 Without loss of generality, the dynamics of the internal control states can be expressed (refer to~\cite{cDFL} for further details) as follows:
 \begin{equation}
@@ -399,7 +399,7 @@ where $\boldsymbol{T}_n$ represent the same allocation matrix as in Equation~\re
 Now that the dynamic of the differential drive robot and its controller are defined, this section presents the local planner used to generate the desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$ that is tracked by the \myglsentry{dfl} controller.
 The trajectory generation problem is addressed using Dubins curves~\cite{cDubins}, which are differentiated twice. 
 
-This approach ensures smooth and continuous trajectories between two position $(x^0, y^0)$ and $(x^F, y^F)$ in the x-y plane for systems with constraints on turning radius $\beta$ and forward motion such as the differential drive robot.
+This approach ensures smooth and continuous trajectories between two position $(x^0, y^0)$ and $(x^F, y^F)$ in the x-y plane for systems with constraints on turning radius and forward motion such as the differential drive robot.
 The method takes advantage of specified initial and final tangents to the curve (e.g. the differential drive robot heading angle $\theta$, in this case) to create smooth curves that respect the turning constraints.
 A Dubins curve is composed of three possible segment types: left turn, right turn, and straight line as depicted in Figure~\ref{fig:dubins}. 
 Each segment is designed with an optimal distance, arranged to create the shortest path between the two points $(x^0, y^0)$ and $(x^F, y^F)$. 

@@ -1,5 +1,5 @@
-\chapter{Robust and Global Sensitivity-Optimal Motion Planning}\label{chap:samp}
-\markboth{Robust and Global Sensitivity-Optimal Motion Planning}{}% To set left/right header
+\chapter{Robust and Globally Sensitivity-Optimal Motion Planning}\label{chap:samp}
+\markboth{Robust and Globally Sensitivity-Optimal Motion Planning}{}% To set left/right header
 % \localtableofcontents
 
 This chapter introduces the first major contribution of this thesis, by leveraging the sensitivity concept discussed in Chapter~\ref{chap:models}.
@@ -167,7 +167,7 @@ Additionally, note that, since dynamics are taken into account, the algorithms p
 The following section describes how the concepts outlined above can be incorporated into different tree planners to develop robust, sensitivity-aware variants, generally referred to as \gls{samp}.
 Note that although the following sections of this chapter focus on asymptotically-optimal planner variants to generate globally sensitivity-optimal trajectories, the same principles can easily be applied to non-asymptotically optimal planners (see Chapter~\ref{chap:sampNN}), such as the standard \gls{rrt}.
  
-\subsection{Sensitivity-Aware Motion Planner (SAMP)}
+\subsection{Sensitivity-Aware Motion Planner (SAMP)}\label{sec:samp}
 
 For clarity in the pseudo-code, the temporal notation is omitted in this section. 
 Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent instantaneous vectors (e.g., $q^{rand}$ denotes a random state without temporal dependencies, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given state vector, etc.).
@@ -188,7 +188,7 @@ Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a de
                 \State $q^{min} \gets q^{nearest};$
                 \State SetNodeConditions$({q^{rand}}, S_{F});$
                 \State $Q^{near} \gets$ NearestNodes$(T,{q^{rand}});$
-                \State RobustOptimal$(T, Q^{near}, q^{rand}, q^{min});$
+                \State RobustOptimalConnection$(T, Q^{near}, q^{rand}, q^{min});$
                 \State RobustRewire$(T, Q^{near}, q^{min});$
             \EndIf
         \EndWhile
@@ -197,7 +197,7 @@ Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a de
 \end{algorithm}
 
 \begin{algorithm}[t]
-    \caption{RobustOptimal$[T, Q^{near}, q^{rand}, q^{min}]$}\label{alg:RobustOptimalConnect}
+    \caption{RobustOptimalConnection$[T, Q^{near}, q^{rand}, q^{min}]$}\label{alg:RobustOptimalConnect}
     \begin{algorithmic}[1]
         \State $c^{min} \gets$ Cost$(q^{rand});$
         \For {each $q^{near} \in Q^{near}$}
@@ -240,15 +240,14 @@ The first implementation presented in Algorithm~\ref{alg:SARRT*} is a variant of
 The tree is initialized with the desired initial and goal robot states, $(q^{init}, q^{goal})$ (line 1), and the algorithm continues until a user-defined stopping criterion is met (line 2).
 Such a criterion can include a maximum number of iterations, a maximum runtime, a cost convergence threshold, etc.
 
-The first stage of the algorithm follows the same standard procedure as the vanilla \myglsentry{rrtstar}, including sampling a desired robot state $q^{rand}$ and finding its nearest neighbor $q^{nearest}$ in the tree structure (lines 3 and 4, respectively).
+The first stage of the algorithm follows the same standard procedure as the vanilla \myglsentry{rrtstar}, including sampling a desired robot state $q^{rand}$ and finding its nearest neighbor $q^{nearest}$ in the tree structure (lines 3 and 4, respectively) using an efficient distance metric.
 Then, a local planner (such as the ones presented in Section~\ref{sec:kinosplines} and Section~\ref{sec:dubins}) is employed to generate a desired local trajectory $\q_d$ that connects $q^{rand}$ to $q^{nearest}$.
 Next, as discussed in Section~\ref{sec:general_method}, the set of \myglsentry{odes} is solved (line 7) to compute the nominal trajectory $\q_n$, the nominal control inputs $\u_n$, and the uncertainty tubes $(\Rq, \Ru)$, utilizing the initial conditions $S_0$ (line 6).
 A robust feasibility check is then conducted along the nominal trajectory and control inputs (line 8), following the procedure outlined in Section~\ref{sec:robust_CC}.
 Remember that this test is carried out along the nominal values, as the uncertainty tubes are valid around them, as detailed in Section~\ref{sec:tubes}.
 If the extension is feasible, the new node parent is temporarily set to $q^{nearest}$, and the final conditions $S_F$ are temporarily stored within $q^{rand}$ (line 9-10).
 
-Although the nearest neighbor search (line 4) uses a distance function aimed at returning the optimal cost between two states, heuristics are often applied to maintain computational efficiency.
-To ensure that the temporarily assigned parent $q^{min}$ is the optimal one, an additional search is conducted within a specified neighborhood $Q^{near}$ (line 11).
+Next, to identify the optimal parent of $q^{rand}$, which is temporarily assigned to $q^{min}$, an additional search is conducted within a specified neighborhood $Q^{near}$ (line 11).
 Such procedure, depicted in Algorithm~\ref{alg:RobustOptimalConnect}, starts by computing the cost of the unique trajectory from the root node to $q^{rand}$ (line 1).
 Then, the optimal parent $q^{min}$ is set to the node in $Q^{near}$ that allows a robust extension while incurring the minimum cost to get to $q^{rand}$ (line 2-9).
 Finally, the new node is inserted in the tree with its optimal parent (line 10-11).
@@ -264,18 +263,114 @@ Note that this final operation requires re-solving the \myglsentry{odes} for eac
 It is important to note that a single iteration of \myglsentry{sarrt*} requires solving the set of \myglsentry{odes} multiple times which leads to a prohibitive computation time per iteration as shown in Section~\ref{sec:samp_simu}.
 To mitigate this impact, this section proposes a robust sensitivity-aware variant of the \gls{sst*}~\cite{cSST}, denoted \gls{sasst*} as a particular instance of \myglsentry{samp}. 
 
-The main advantage of the \myglsentry{sst*} algorithm is to limit the number of feasibility checks to one per iteration.
-Additionally, the vanilla \myglsentry{sst*} rely on a monte carlo prop that sample in the control space and then compute the forward dynamic propagation, thus getting rig of the need to a local planner. 
-However, as this thesis consider the closed-loop  
+The \myglsentry{sst*} algorithm has two key features: it reduces the number of collision checks to just one per iteration and uses Monte Carlo propagation to sample the control input space and perform forward dynamic propagation, eliminating the need for a local planner.
+However, since this thesis uses the system closed-loop dynamics for sensitivity computation rather than open-loop Monte Carlo propagation, the latter is replaced by a local planner.
 
-Pseudo code and explain that it is more suitable for dynamic propagation as it requires one check per iteration.
-Note that in the original version only an open loop approach is considered in the monte carlo propagation, as we are dealing with close loop we rely on a steering method here.
+The \myglsentry{sasst*} variant, detailed in Algorithm~\ref{alg:SASST*}, operates as follows:
+\begin{itemize}
+    \item It first performs metrics and tree initialization (line 1-4) by splitting it into two subsets: $V_{active}$ and $V_{inactive}.$
+    Nodes in $V_{active}$ are those with the optimal trajectory cost from the root within their local neighborhoods. 
+    In contrast, nodes in $V_{inactive}$ while suboptimal in trajectory cost, are preserved in the tree to maintain connectivity, as they have children with better trajectory costs in their respective neighborhoods. 
+    \item To define local neighborhoods, the algorithm leverages an auxiliary set of states called "witnesses," denoted as $W$ (line 5). 
+    Each witness $w \in W$ is associated with a single representative node in the tree, stored in the $w.rep$ field of the witness (line 6).
+    This representative node corresponds to the trajectory with the lowest cost from the root within a distance $\delta_s$ of the witness $w$.
+    Any nodes within the $\delta_s$-neighborhood of $w$ that have a higher trajectory cost than $w.rep$ are removed from the active set $V_{active}$.
+    \item Then, until a user defined criterion is met, the algorithm performs for N iterations:
+    \begin{enumerate}
+        \item A best-first selection that samples a random state from the state space and finds the best node in terms of cost from the root within a distance of $\delta_{BN}$ in the active set of the tree. 
+        This node, referred as $q^{selected}$, represents the state to be propagated (line 9).
+        \item Then, instead of the original Monte Carlo propagation, a random state $q^{rand}$ is sampled within a maximum distance of $q^{selected}$ (line 10), analogous to sampling a control input and propagation duration in the vanilla algorithm.
+        The local trajectory connecting the two state is computed (line 11) and, as discussed in Section~\ref{sec:general_method}, the set of \myglsentry{odes} is solved (line 12-13) before performing the robust feasibility check (line 14) presented in Section~\ref{sec:robust_CC}.
+        \item If the local trajectory is robustly feasible, the set $W$ is used by the IsNodeLocallyTheBestSST procedure (line 15) to check whether the newly sampled state $q^{rand}$ dominates the $\delta_s$-neighborhood of its closest witness and to update the witness set $W$ accordingly.
+        \item Then, the sample is added to the tree (line 16-17), and the sets of active and inactive nodes are updated.
+        Nodes that no longer belong to any of these sets are pruned (line 18).
+    \end{enumerate}
+    \item Finally, after the N iterations, if the stopping criterion is not met, the hyperparameters of the algorithm are updated (line 19-21).
+    These parameters are responsible for the algorithm asymptotic optimality and convergence. 
+    The algorithm gradually reduces the radii $\delta_s$ and $\delta_{BN}$, enabling it to explore new homotopic classes over time.
+\end{itemize}
+
+Note that in this implementation the \myglsentry{odes} need to be solved only once per iteration compared to the \myglsentry{sarrt*} implementation.
+
+\begin{algorithm}[t]
+    \caption{SASST$^* [q^{init}, q^{goal}, N_0, \delta_{BN,0}, \delta_{s,0}, \xi]$}\label{alg:SASST*}
+    \begin{algorithmic}[1]
+        \State $j \gets 0; N \gets N_0;$
+        \State $\delta_{s} \gets \delta_{s,0}; \delta_{BN} \gets \delta_{BN,0};$
+        \State $V_{active} \gets \{q^{init}, q^{goal}\}, V_{inactive} \gets \emptyset;$
+        \State $T \gets$ InitTree$(V_{active}, V_{inactive});$
+        \State $w_0 \gets q^{init}, w_G \gets q^{goal}, W \gets \{w_0, w_G\};$
+        \State $w_0.rep \gets q^{init}, w_G.rep \gets q^{goal};$
+        \While{\textbf{not} StopCondition$(T, {q^{goal}})$}  
+            \For{N iterations}
+                \State $\{q^{selected}, q^{rand}\} \gets $BestFirstSelectionSST$(V_{active}, \delta_{BN});$
+                \State $q^{rand} \gets$ Sample$(q^{selected}, d_{max});$
+                \State $\q_d \gets$ LocalPlan$({q^{selected}},{q^{rand}});$
+                \State $S_0 \gets $GetNodeConditions$({q^{selected}});$
+                \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
+                \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
+                    \If{IsNodeLocallyTheBestSST$(q^{rand}, W, \delta_s)$}
+                        \State $V_{active} \gets V_{active} \cup \{q^{rand}\};$
+                        \State AddNewEdge$(T, q^{selected}, q^{rand});$
+                        \State PruneDominatedNodesSST$(q^{rand}, V_{active}, V_{inactive});$
+                    \EndIf
+                \EndIf
+            \EndFor
+            \State $\delta_s \gets \xi\delta_s; \delta_{BN}\gets\xi\delta_{BN};$
+            \State $j \gets j+1;$
+            \State $N \gets (1+$log $j)\xi^{-(d+1)j}N_0;$
+        \EndWhile
+        \State \textbf{return} GetTrajectory$(T, q^{init}, q^{goal})$;
+    \end{algorithmic}
+\end{algorithm}
 
 \subsection{Simulation results}\label{sec:samp_simu}
-Implemented with OMPL.
+
+This section presents the results of trajectory planning using the previously discussed variants, evaluated in terms of computation time, and robustness for the two systems introduced in Chapter~\ref{chap:models}.
+All implementation is performed using the \gls{ompl}~\cite{cOMPL}.
+
 \subsubsection{Differential drive robot}
+
+\paragraph{Setup}
+
+This section presents results for the differential drive robot model depicted in Section~\ref{sec:unic_model}, with the following set of uncertain parameters $\p = [r, \, d]^T \in \mathbb{R}^{2}$.
+The nominal value vector is set to $\p_n = [0.1m, \, 0.4m]^T$, with an associated uncertainty range of $\delta\p = [3\%, \, 3\%]^T$, representing the percentage deviation from their corresponding nominal values.
+Therefore, in this differential drive robot application, $\bPi \in \mathbb{R}^{3\times2}$, $\bPixi\in \mathbb{R}^{3\times2}$, and $\bPi \in \mathbb{R}^{2\times2}$.
+As a result, the computations necessary to find the uncertainty tubes involve solving 19 \myglsentry{odes}.
+The uncertainty tubes considered for this application are defined as $\Rq = [r_x, \, r_y]^T \in \mathbb{R}^2$, representing the uncertainty tubes along the x,y-axes of the state respectively, and $\Ru = [r_{u1}, \, r_{u2}]^T \in \mathbb{R}^2$, representing the uncertainty tubes along the two control input space axes ($\omega_r$ and $\omega_l$).
+The controller gains are set to $\k_c = [1.5, \, 8.0, \, 0.2]^T$, and the control inputs limits are set to $\u_{max} = [60, \, 60]^T$, corresponding to the maximum speed of the two wheels expressed in rad.s$^{-1}$.
+
+Remind that the local planning method used is the Dubins path planner (see Section~\ref{sec:dubins}). 
+Using the true cost-to-go as the distance metric is known to be computationally inefficient. 
+However, as the cost of Equation(~\ref{eq:cost_function}) is strongly correlated to the trajectory length through the integral term, the length of the Dubins curves is used as the distance function heuristic. 
+The time step used for the \myglsentry{odes} and robust feasibility checks is set to 0.05s.
+The algorithms stopping criterion is defined by a cost convergence threshold of 5\%.
+
+Finally, the \myglsentry{sasst*} hyperparameters are chosen according to the suggestion of~\cite{cSST} s.t.: $N_0 = 5000$, $\delta_s = 0.5$, $\delta_{BN} = 1$, and $\xi = 0.9$.
+
+\paragraph{Results}
+
+In order to show the interest of planning robust sensitivity-optimal trajectory this section compare the two sensitivity-aware variant of Section~\ref{sec:samp} optimizing the sensitivity by mean of the cost function  against their 
+
+\input{figures/tables/SAMP_unicycle.tex}
+
 Results, graph profiling RRT*/RSARRT*, SST*/RSASST*
+
 \subsubsection{Quadrotor robot}
+
+\paragraph{Setup}
+
+\paragraph{Results}
+
+As explained in Section~\ref{sec:unified}
+
+\begin{figure} [t]
+    \centering
+    \includegraphics[width=0.7\linewidth]{figures/samp/SSTstar_Sensi.png} 
+    \caption{Evolution of the sensitivity as a function of the planning time of a \myglsentry{sasst*} (green), and of \myglsentry{sarrt*} (red) for the quadrotor application.}%
+    \label{fig:samp_quad_time}%
+\end{figure}
+
 Results, graph profiling RRT*/RSARRT*, SST*/RSASST*
 
 Very long planning time because very large state space to be explored, lots of iteartions needed to provide a good coverage of the space for convergence.
@@ -286,19 +381,26 @@ For more complex system such as quadrotor it is still not tracktable.
 
 \section{Decoupled approach}\label{sec:decoupled}
 
-This section introduces a decoupled approach that minimizes the frequency of solving the \myglsentry{odes}, offering a more efficient algorithm for complex systems, such as quadrotor, to generate robust trajectories with near-optimal sensitivity.
+As demonstrated in Section~\ref{sec:samp_simu}, the proposed \myglsentry{samp} variants are efficient for simple systems but face challenges with more complex ones, such as the quadrotor. 
+Achieving effective state-space coverage and convergence to a solution requires thousands of iterations, each involving the resolution of \myglsentry{odes}. 
+This creates a bottleneck for the method, particularly when solving the \myglsentry{odes} takes tens of milliseconds, as is common in complex systems.
+Therefore, this section introduces a decoupled approach that minimizes the frequency of solving the \myglsentry{odes}, offering a more efficient algorithm for complex systems, such as quadrotor, to generate robust trajectories with near-optimal sensitivity.
 
 \subsection{Algorithms}
-\subsubsection{Lazy Sensitivity-Aware RRT*}
 
-\begin{algorithm}[htp]
-    \caption{LazySARRT$^* [x_{init}, x_{goal}]$}\label{alg:LazySARRT}
+Since the cost function of Equation(~\ref{eq:cost_function}) corresponds to the integration of the sensitivity over the trajectory, it is then noticeable that starting from an initial (near) time-optimal trajectory helps to produce initial solutions of rather good quality w.r.t. the sensitivity cost.
+The proposed decoupled approach is based on a lazy sensitivity-aware variant, generally referred to as \gls{lazysamp}, that plans a robust (near) time-optimal trajectory, that is then locally optimized for minimizing the cost function~(\ref{eq:cost_function}) via a robust variant of the `shortcut' technique classically used to smooth solutions of randomized planners~\cite{cShortcut}. 
+
+\subsubsection{Lazy Sensitivity-Aware RRT* (LazySARRT*)}\label{sec:lazy_rrt*}
+
+\begin{algorithm}[t]
+    \caption{LazySARRT$^* [q^{init}, q^{goal}]$}\label{alg:LazySARRT*}
     \begin{algorithmic}[1]
-        \State $V \gets \left \{ x_{init}, x_{goal} \right \}; E \gets \emptyset; sol \gets \emptyset; i \gets 0;$
-        \While{$i < N$}
-            \State $T \gets (V,E);$
-            \State $x_{rand} \gets Sample(i); i \gets i+1;$
-            \State $T \gets Extend(T, x_{rand});$
+        \State $T \gets$ InitTree$({q^{init}, q^{goal}});$
+        \While{\textbf{not} StopCondition$(T, {q^{goal}})$}  
+            \State $q^{rand} \gets $Sample()$;$
+            \State $q^{nearest} \gets$ Nearest$(T,{q^{rand}});$
+            \State Extend$(T, q^{rand}, q^{nearest});$
             \State $sol_{new} \gets CheckForSolution(T);$
             \If{$sol_{new} \, found$}
                 \State $U \gets GetUncertainties(sol_{new});$
@@ -310,11 +412,11 @@ This section introduces a decoupled approach that minimizes the frequency of sol
                 \EndIf
             \EndIf
         \EndWhile
-        \State \textbf{return} $sol$
+        \State \textbf{return} GetTrajectory$(T, q^{init}, q^{goal})$;
     \end{algorithmic}
 \end{algorithm}
 
-Algorithm \ref{alg:LazySARRT} provides the pseudo-code of the LazySARRT$^*$ planner.  
+Algorithm \ref{alg:LazySARRT*} provides the pseudo-code of the LazySARRT$^*$ planner.  
 It is a variant of RRT$^*$, modified in order to guarantee the robustness of the computed solution w.r.t. the state/input uncertainties.
 Indeed, in addition to providing a (near) time-optimal trajectory the algorithm verifies that the returned trajectory is collision-free w.r.t. the state uncertainties and also that inputs remain in their allowed bounds.
 However, as mentioned in Section~\ref{sec:unified}, the number of sensitivity computation within the RRT$^*$ must remain as limited as possible to avoid a too long computing time. 
@@ -324,6 +426,30 @@ Lazy approach with the tubes, the tree is not robust compared to R-SARRT*, only 
 \subsubsection{Sensitivity Aware Shortcut}
 Robust shortcut variant.
 Keep the lazy collision check with tubes.
+
+\begin{algorithm}[htp]
+    \caption{SAshortcut [$sol_{SARRT^*}$]}\label{alg:SAshortcut}
+    \begin{algorithmic}[1]
+    \State $\left \{sol_{\Pi}, cost_{\Pi} \right \} \gets \left \{sol_{SARRT^*}, GetSensi(sol_{SARRT^*}) \right \};$
+    \While{$i < N$}
+    \State $\left \{ x_{1}, x_{2} \right \} \gets SampleOnTraj(sol_{\Pi});$
+    \State $\pi_{start} \gets sol_{\Pi}(x_{init}, x_{1});$
+    \State $\pi_{end} \gets sol_{\Pi}(x_{2}, x_{goal});$
+    \State $\pi \gets Steer(x_{1}, x_{2});$
+    \If{$CollisionFree(\pi)$}
+    \State $sol_{new} \gets \pi_{start}+\pi+\pi_{end};$
+    \State $\left \{cost_{new}, U \right \} \gets GetSensi(sol_{new});$
+    \If{$CostBetterThan(cost_{new}, cost_{\Pi})$}
+    \If{$TubesCC(sol_{new}, U)$}
+    \State $\left \{sol_{\Pi}, cost_{\Pi} \right \} \gets \left \{sol_{new}, cost_{new} \right \};$
+    \EndIf
+    \EndIf
+    \EndIf
+    \State $i \gets i+1;$
+    \EndWhile
+    \State \textbf{return} $sol_{\Pi}$
+    \end{algorithmic}
+\end{algorithm}
 
 \subsection{Simulation results}
 \subsubsection{Differential drive robot}

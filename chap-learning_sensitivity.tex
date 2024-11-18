@@ -169,7 +169,7 @@
 \subsection{Problem statement}
 
 The goal is to train a neural network to approximate sensitivity-based uncertainty tubes, hence avoiding the computational cost of solving many \myglsentry{odes}. 
-Moreover, we aim at predicting the control inputs that the system will exert to successfully track a desired trajectory, in addition to the uncertainty tubes on these control inputs. 
+Moreover, the model aims at predicting the control inputs that the system will exert to successfully track a desired trajectory, in addition to the uncertainty tubes on these control inputs. 
 Given a sequence of desired robot state vectors $\textbf{M} = \{\q_{d}^0, \q_{d}^1, ..., \q_{d}^n\}$ representing the desired robot's motion (i.e. a desired trajectory to follow), the task at hand is to learn a function $\boldsymbol{g}$ that estimates the radii of uncertainty tubes for each state $\q_{d}^k$ as well as the robot control inputs at this state such that:
 \begin{equation}\label{eq:prob_statement}
 \{\Rq^{k}, \Ru^{k},\u^{k}\} = \boldsymbol{g}(\q_{d}^0, \q_{d}^1, ... \q_{d}^{k-1})
@@ -181,6 +181,24 @@ Since evaluating the function $\boldsymbol{g}$ on $\q_{d}^k$ depends on all the 
 
 \section{Evaluation}
 \subsection{Metrics}
+
+The performance of the model is evaluated using the Mean Absolute Error (MAE) over the different outputs. Rather than comparing the results on each sub-component of the input (e.g $\{x, y, z\}$ for $r_q$), we combine them into a single metric in order to obtain simpler and more general comparisons, as follows:
+\begin{itemize}
+    \item $\mathbf{MAE_{\Rq}}$ : represents the mean absolute error on the norm of $\Rq$. 
+    For a given datapoint, given the ground truth and predicted state uncertainty tubes $\Rq$ and $\mathbf{\hat{r}_q}$, their respective norms $\|\Rq\|$ and $\|\mathbf{\hat{r}_q}\|$, are computed. 
+    The mean absolute error, $\mathbf{MAE_{\Rq}}$, is then defined as:
+    \begin{equation}\label{eq:MAE rq}
+        \mathbf{MAE_{\Rq}} = MAE(\|\Rq\|, \|\mathbf{\hat{r}_q}\|)
+    \end{equation}
+    This metric is expressed in meters (m).
+    \item $\mathbf{MAE_{u}}$ : represents the mean absolute error on the norm of $\u$. 
+    The norms of the ground truth and predicted control inputs, $|\u|$ and $|\hat{\u}|$, are computed. 
+    The mean absolute error, $\mathbf{MAE_{u}}$, is then calculated as the mean absolute error between these two norms. It is expressed in [(rad/s)²].
+    \item $\mathbf{MAE_{\Ru}}$ : represents the mean absolute error on the norm of $\Ru$. As for the two previous metrics, $\mathbf{MAE_{\Ru}}$ is defined as the mean absolute error between the norms $\|\Ru\|$ and $\|\mathbf{\hat{r}_u}\|$. This metric is expressed in [(rad/s)²].
+\end{itemize}
+
+These metrics are averaged over all elements of a sequence, then averaged over all sequences in the validation and test sets. In addition, we use inference time as metric in order to evaluate the computational cost of our method compared to the defined baselines, as well as traditional uncertainty tubes computation methods involving an ODE solver. Time is denoted $T_{solver/NN}$ according to the model or solver used.
+
 \subsection{Implementation details}
 
 \section{Simulation results}
