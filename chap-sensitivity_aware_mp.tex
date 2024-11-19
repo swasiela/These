@@ -342,7 +342,7 @@ The controller gains are set to $\k_c = [1.5, \, 8.0, \, 0.2]^T$, and the contro
 
 Remind that the local planning method used is the Dubins path planner (see Section~\ref{sec:dubins}). 
 Using the true cost-to-go as the distance metric is known to be computationally inefficient. 
-However, as the cost of Equation(~\ref{eq:cost_function}) is strongly correlated to the trajectory length through the integral term, the length of the Dubins curves is used as the distance function heuristic. 
+However, as the cost of Equation~(\ref{eq:cost_function}) is strongly correlated to the trajectory length through the integral term, the length of the Dubins curves is used as the distance function heuristic. 
 The time step used for the \myglsentry{odes} and robust feasibility checks is set to 0.05s.
 The algorithms stopping criterion is defined by a cost convergence threshold of 5\%.
 
@@ -388,8 +388,9 @@ Therefore, this section introduces a decoupled approach that minimizes the frequ
 
 \subsection{Algorithms}
 
-Since the cost function of Equation(~\ref{eq:cost_function}) corresponds to the integration of the sensitivity over the trajectory, it is then noticeable that starting from an initial (near) time-optimal trajectory helps to produce initial solutions of rather good quality w.r.t. the sensitivity cost.
-The proposed decoupled approach is based on a lazy sensitivity-aware variant, generally referred to as \gls{lazysamp}, that plans a robust (near) time-optimal trajectory, that is then locally optimized for minimizing the cost function~(\ref{eq:cost_function}) via a robust variant of the `shortcut' technique classically used to smooth solutions of randomized planners~\cite{cShortcut}. 
+Since the cost function of Equation~(\ref{eq:cost_function}) corresponds to the integration of the sensitivity over the trajectory, it is then noticeable that starting from an initial (near) time-optimal trajectory helps to produce initial solutions of rather good quality w.r.t. the sensitivity cost.
+The proposed decoupled approach is based on a lazy sensitivity-aware variant, generally referred to as \gls{lazysamp}, that plans a robust (near) time-optimal trajectory.
+This trajectory is then locally optimized for minimizing the cost function~(\ref{eq:cost_function}) via a robust variant of the `shortcut' technique classically used to smooth solutions of randomized planners~\cite{cShortcut}. 
 
 \subsubsection{Lazy Sensitivity-Aware RRT* (LazySARRT*)}\label{sec:lazy_rrt*}
 
@@ -401,52 +402,83 @@ The proposed decoupled approach is based on a lazy sensitivity-aware variant, ge
             \State $q^{rand} \gets $Sample()$;$
             \State $q^{nearest} \gets$ Nearest$(T,{q^{rand}});$
             \State Extend$(T, q^{rand}, q^{nearest});$
-            \State $sol_{new} \gets CheckForSolution(T);$
-            \If{$sol_{new} \, found$}
-                \State $U \gets GetUncertainties(sol_{new});$
-                \State $\left \{ valid, x_{collide} \right \} \gets TubesCC(sol_{new}, U);$
-                \If{$valid$}
-                    \State $sol\gets sol_{new};$
-                \Else
-                    \State $T \gets RobustExtend(T,x_{collide});$
-                \EndIf
+            \State $Q_{sol} \gets CheckForSolution(T, q^{init}, q^{goal});$
+            \If{$Q_{sol} \neq \emptyset$}
+                \For { i = 0 and  i < size($Q_{sol}$)-1}
+                    \State $S_0 \gets $GetNodeConditions$(Q_{sol}^{i});$
+                    \State $\q_d \gets $LocalPlan$(Q_{sol}^{i}, Q_{sol}^{i+1});$
+                    \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
+                    \If {\textbf{not} IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
+                        \State $T \gets $RobustReconnect$(T, Q_{sol}^{i});$
+                        \State break;
+                    \EndIf
+                \EndFor
             \EndIf
         \EndWhile
         \State \textbf{return} GetTrajectory$(T, q^{init}, q^{goal})$;
     \end{algorithmic}
 \end{algorithm}
 
-Algorithm \ref{alg:LazySARRT*} provides the pseudo-code of the LazySARRT$^*$ planner.  
-It is a variant of RRT$^*$, modified in order to guarantee the robustness of the computed solution w.r.t. the state/input uncertainties.
-Indeed, in addition to providing a (near) time-optimal trajectory the algorithm verifies that the returned trajectory is collision-free w.r.t. the state uncertainties and also that inputs remain in their allowed bounds.
-However, as mentioned in Section~\ref{sec:unified}, the number of sensitivity computation within the RRT$^*$ must remain as limited as possible to avoid a too long computing time. 
+This section present the \gls{lazysarrt*}, as a particular instance of \myglsentry{lazysamp}, that plans a robust (near) time-optimal trajectory.
+The algorithm not only provides a (near) time-optimal trajectory but also ensures that the resulting trajectory is collision-free w.r.t. the state uncertainties and also that control inputs remain in their allowed bounds.
+However, as highlighted in Section~\ref{sec:unified}, the number of \myglsentry{odes} computation within the \myglsentry{rrtstar} must remain as limited as possible to avoid a too long computing time. 
 For this reason, trajectory robustness is checked in a lazy way, only when a better solution is found, and reconnecting the nodes optimally if necessary.
+Consequently, unlike the \myglsentry{samp} methods described in Section~\ref{sec:samp}, the tree built by the lazy variant is not inherently robust; only the final solution meets the robustness requirements.
 
-Lazy approach with the tubes, the tree is not robust compared to R-SARRT*, only the final solution is robust.
+Algorithm~\ref{alg:LazySARRT*} provides the pseudo-code of the \myglsentry{lazysarrt*} planner.  
+The first stage applies the unmodified \myglsentry{rrtstar} (line 1-5) where the Extend procedure performs the standard collision checking (i.e. without uncertainty tubes), optimal connection, and rewiring phase for the given sample  $q^{rand}$ as in~\cite{cRRTstar}.
+The algorithm then verifies at each iterations whether a new, lower-cost solution has been discovered. 
+If a better solution is identified, the set of nodes $Q_{sol}$, which enables the reconstruction of this solution, is retrieved (line 6).
+
+Next, for each local trajectories between two consecutive nodes in this set, the \myglsentry{odes} are solved, and the uncertainty tubes computed (line 9-11).
+The algorithm then verifies the robust feasibility of the local trajectory using the robustness test outlined in Section~\ref{sec:robust_CC}. 
+If a local trajectory is found to be non-robustly feasible, all nodes in the tree connected to $Q_{sol}^i$ are disconnected and reconnected using the RobustReconnect procedure (line 13).
+
+The RobustReconnect procedure may differ depending on the specific \myglsentry{lazysamp} variant used (see Chapter~\ref{chap:sampNN}). 
+In the case of \myglsentry{lazysarrt*}, where maintaining an optimal tree is required, it operates as follows:
+\begin{itemize}
+    \item For all tree nodes, a set of robust infeasible parent $Q_{collide}$ is maintained. 
+    The RobustReconnect procedure starts by adding $Q_{sol}^i$ in the set of infeasible parents of $Q_{sol}^{i+1}$ (i.e. $Q_{sol}^i$ will no longer be considered as a potential parent for the node $Q_{sol}^{i+1}$).
+    \item Then, all the nodes of the tree from $Q_{sol}^i$ are disconnected, and for each of them, the vanilla Extend procedure is executed considering their associated $Q_{collide}$ set.
+    As in the standard \myglsentry{rrtstar}, an optimal re-connection phase is first attempted.
+    \item If no re-connection is found for a node, then the node is deleted from the tree. 
+    Otherwise, the rewiring phase is carried out considering the $Q_{collide}$ set.
+\end{itemize}
+
+The output of \myglsentry{lazysarrt*} is a (near) time-optimal trajectory that is feasible in terms of both collision avoidance and actuator saturation, accounting for uncertainties.
+It is however not optimized in terms of the sensitivity. 
+Therefore, its robustness can be further improved.
+
 \subsubsection{Sensitivity Aware Shortcut}
+
+In order to improve the sensitivity-based cost function, a local optimization is performed using a simple robust sensitivity-aware variant of the 'shortcut' smoothing algorithm~\cite{cShortcut}, called \gls{SAshortcut} and described in Algorithm~\ref{alg:SAshortcut}. 
+A more detailed discussion regarding the 
+
+The reason for this variant, as already mentioned in Section~\ref{sec:samp}, is that the sensitivity of a trajectory portion is not invariant but instead depends on the previous portions since the start of the motion.
+
 Robust shortcut variant.
 Keep the lazy collision check with tubes.
 
-\begin{algorithm}[htp]
-    \caption{SAshortcut [$sol_{SARRT^*}$]}\label{alg:SAshortcut}
+\begin{algorithm}[t]
+    \caption{SAShortcut [$sol_{SARRT^*}$]}\label{alg:SAshortcut}
     \begin{algorithmic}[1]
-    \State $\left \{sol_{\Pi}, cost_{\Pi} \right \} \gets \left \{sol_{SARRT^*}, GetSensi(sol_{SARRT^*}) \right \};$
-    \While{$i < N$}
-    \State $\left \{ x_{1}, x_{2} \right \} \gets SampleOnTraj(sol_{\Pi});$
-    \State $\pi_{start} \gets sol_{\Pi}(x_{init}, x_{1});$
-    \State $\pi_{end} \gets sol_{\Pi}(x_{2}, x_{goal});$
-    \State $\pi \gets Steer(x_{1}, x_{2});$
-    \If{$CollisionFree(\pi)$}
-    \State $sol_{new} \gets \pi_{start}+\pi+\pi_{end};$
-    \State $\left \{cost_{new}, U \right \} \gets GetSensi(sol_{new});$
-    \If{$CostBetterThan(cost_{new}, cost_{\Pi})$}
-    \If{$TubesCC(sol_{new}, U)$}
-    \State $\left \{sol_{\Pi}, cost_{\Pi} \right \} \gets \left \{sol_{new}, cost_{new} \right \};$
-    \EndIf
-    \EndIf
-    \EndIf
-    \State $i \gets i+1;$
-    \EndWhile
+        \State $\left \{sol_{\Pi}, cost_{\Pi} \right \} \gets \left \{sol_{SARRT^*}, GetSensi(sol_{SARRT^*}) \right \};$
+            \While{$i < N$}
+            \State $\left \{ x_{1}, x_{2} \right \} \gets SampleOnTraj(sol_{\Pi});$
+            \State $\pi_{start} \gets sol_{\Pi}(x_{init}, x_{1});$
+            \State $\pi_{end} \gets sol_{\Pi}(x_{2}, x_{goal});$
+            \State $\pi \gets Steer(x_{1}, x_{2});$
+            \If{$CollisionFree(\pi)$}
+                \State $sol_{new} \gets \pi_{start}+\pi+\pi_{end};$
+                \State $\left \{cost_{new}, U \right \} \gets GetSensi(sol_{new});$
+                \If{$CostBetterThan(cost_{new}, cost_{\Pi})$}
+                    \If{$TubesCC(sol_{new}, U)$}
+                        \State $\left \{sol_{\Pi}, cost_{\Pi} \right \} \gets \left \{sol_{new}, cost_{new} \right \};$
+                    \EndIf
+                \EndIf
+            \EndIf
+        \State $i \gets i+1;$
+        \EndWhile
     \State \textbf{return} $sol_{\Pi}$
     \end{algorithmic}
 \end{algorithm}
