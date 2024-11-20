@@ -326,8 +326,10 @@ Note that in this implementation the \myglsentry{odes} need to be solved only on
 
 \subsection{Simulation results}\label{sec:samp_simu}
 
-This section presents the results of trajectory planning using the previously discussed variants, evaluated in terms of computation time, and robustness for the two systems introduced in Chapter~\ref{chap:models}.
-All implementation is performed using the \gls{ompl}~\cite{cOMPL}.
+This section presents the results of trajectory planning using the previously discussed variants, evaluated based on computation time, and robustness for the two systems introduced in Chapter~\ref{chap:models}.
+To assess the impact of planning robust, globally sensitivity-optimal trajectories, both \myglsentry{sarrt*} and \myglsentry{sasst*} are compared with their respective non-robust vanilla versions, which focus on optimizing trajectory length.
+The objective of this section is to quantify the ability of the proposed variants to generate robust solutions, and to evaluate the impact of solving \myglsentry{odes} multiple times within a sampling-based framework.
+All implementations are performed using the \gls{ompl}~\cite{cOMPL}.
 
 \subsubsection{Differential drive robot}
 
@@ -343,18 +345,42 @@ The controller gains are set to $\k_c = [1.5, \, 8.0, \, 0.2]^T$, and the contro
 Remind that the local planning method used is the Dubins path planner (see Section~\ref{sec:dubins}). 
 Using the true cost-to-go as the distance metric is known to be computationally inefficient. 
 However, as the cost of Equation~(\ref{eq:cost_function}) is strongly correlated to the trajectory length through the integral term, the length of the Dubins curves is used as the distance function heuristic. 
-The time step used for the \myglsentry{odes} and robust feasibility checks is set to 0.05s.
+The time step used for the solving the \myglsentry{odes} and to perform the robust feasibility checks is set to 0.05s.
 The algorithms stopping criterion is defined by a cost convergence threshold of 5\%.
 
-Finally, the \myglsentry{sasst*} hyperparameters are chosen according to the suggestion of~\cite{cSST} s.t.: $N_0 = 5000$, $\delta_s = 0.5$, $\delta_{BN} = 1$, and $\xi = 0.9$.
+The hyperparameters for \myglsentry{sasst*} are selected based on the recommendations in~\cite{cSST}, with the following values: $N_0 = 5000$, $\delta_s = 0.5$, $\delta_{BN} = 1$, and $\xi = 0.9$.
+For the maximum local distance, $d_{max}$ is set to 1.0.
+
+The standard \myglsentry{rrtstar} does not impose a maximum distance for local connections, which can lead to excessively long trajectories when two sampled states are far apart.
+These trajectories frequently fail the robust feasibility check, leading to significant computational effort spent on computing uncertainty tubes only to detect early infeasibility. 
+This inefficiency slows down tree growth.
+
+To address this, and following the approach used in the original \myglsentry{ompl} implementation, a maximum distance is introduced for local trajectories. 
+This adjustment does not compromise the algorithm properties, as longer trajectories can still be formed by chaining several shorter local trajectories. 
+While this approach requires more iterations to ensure adequate space coverage and convergence, it results in more efficient tree growth under robustness constraints, as illustrated in Figure~\ref{fig:unic_tree}.
+
+Consequently, throughout this thesis, a maximum local trajectory length of 1.0 (meters or seconds according to the local planner used) is also applied to the proposed \myglsentry{sarrt*} and \gls{sarrt} (see Chapter~\ref{chap:sampNN}) variants.
 
 \paragraph{Results}
-
-In order to show the interest of planning robust sensitivity-optimal trajectory this section compare the two sensitivity-aware variant of Section~\ref{sec:samp} optimizing the sensitivity by mean of the cost function  against their 
 
 \input{figures/tables/SAMP_unicycle.tex}
 
 Results, graph profiling RRT*/RSARRT*, SST*/RSASST*
+
+\begin{figure} [h]
+    \centering
+    \includesvg[width=0.8\linewidth]{figures/samp/profiling_unic.svg} 
+    \caption{Evolution of the sensitivity as a function of the planning time of a \myglsentry{sasst*} (green), and of \myglsentry{sarrt*} (red) for the quadrotor application.}%
+    \label{fig:profiling_unic}%
+\end{figure}
+
+\begin{figure} [t]
+    \centering
+    \subfloat[\centering Unbounded local trajectory length]{{\includegraphics[width=0.4\linewidth]{figures/samp/rrtstar_unbounded.png} }}%
+    \subfloat[\centering Bounded local trajectory length]{{\includegraphics[width=0.4\linewidth]{figures/samp/rrtstar_bounded.png} }}%
+    \caption{Tree generated after 1.000 iterations of the \myglsentry{sarrt*} algorithm for the differential drive robot shown for two cases: (a) with unbounded local trajectory length, (b) with bounded local trajectory length.}%
+    \label{fig:unic_tree}%
+\end{figure}
 
 \subsubsection{Quadrotor robot}
 
@@ -369,6 +395,13 @@ As explained in Section~\ref{sec:unified}
     \includegraphics[width=0.7\linewidth]{figures/samp/SSTstar_Sensi.png} 
     \caption{Evolution of the sensitivity as a function of the planning time of a \myglsentry{sasst*} (green), and of \myglsentry{sarrt*} (red) for the quadrotor application.}%
     \label{fig:samp_quad_time}%
+\end{figure}
+
+\begin{figure} [h]
+    \centering
+    \includesvg[width=0.8\linewidth]{figures/samp/profiling_quad.svg} 
+    \caption{Evolution of the sensitivity as a function of the planning time of a \myglsentry{sasst*} (green), and of \myglsentry{sarrt*} (red) for the quadrotor application.}%
+    \label{fig:profiling_quad}%
 \end{figure}
 
 Results, graph profiling RRT*/RSARRT*, SST*/RSASST*
@@ -425,7 +458,7 @@ However, as highlighted in Section~\ref{sec:unified}, the number of \myglsentry{
 For this reason, trajectory robustness is checked in a lazy way, only when a better solution is found, and reconnecting the nodes optimally if necessary.
 Consequently, unlike the \myglsentry{samp} methods described in Section~\ref{sec:samp}, the tree built by the lazy variant is not inherently robust; only the final solution meets the robustness requirements.
 
-Algorithm~\ref{alg:LazySARRT*} provides the pseudo-code of the \myglsentry{lazysarrt*} planner.  
+Algorithm~\ref{alg:LazySARRT*} provides the pseudo-code of the \myglsentry{lazysarrt*} variant.  
 The first stage applies the unmodified \myglsentry{rrtstar} (line 1-5) where the Extend procedure performs the standard collision checking (i.e. without uncertainty tubes), optimal connection, and rewiring phase for the given sample  $q^{rand}$ as in~\cite{cRRTstar}.
 The algorithm then verifies at each iterations whether a new, lower-cost solution has been discovered. 
 If a better solution is identified, the set of nodes $Q_{sol}$, which enables the reconstruction of this solution, is retrieved (line 6).
@@ -452,40 +485,120 @@ Therefore, its robustness can be further improved.
 \subsubsection{Sensitivity Aware Shortcut}
 
 In order to improve the sensitivity-based cost function, a local optimization is performed using a simple robust sensitivity-aware variant of the 'shortcut' smoothing algorithm~\cite{cShortcut}, called \gls{SAshortcut} and described in Algorithm~\ref{alg:SAshortcut}. 
-A more detailed discussion regarding the 
+A more detailed discussion regarding the robust sensitivity-aware local optimization can be found in Chapter~\ref{chap:sampNN}.
 
-The reason for this variant, as already mentioned in Section~\ref{sec:samp}, is that the sensitivity of a trajectory portion is not invariant but instead depends on the previous portions since the start of the motion.
-
-Robust shortcut variant.
-Keep the lazy collision check with tubes.
+The algorithm is first initialized with the robust trajectory resulting from the \myglsentry{lazysarrt*} presented above (line 1).
+It is important to note that the robustness of the initial trajectory is a crucial assumption, as the \myglsentry{SAshortcut} algorithm does not guarantee the generation of a robust trajectory if the initial trajectory is not robust.
+Nevertheless, the algorithm preserves this robustness throughout its local optimization process.
+Then, the algorithm randomly samples two states $\{q_d^{1}, q_d^{2}\}$, along the current best trajectory (line 3).
+Next, it computes the local trajectory between the two samples $\q_{d,shct}$ (line 7).
+To minimize the frequency of solving the \myglsentry{odes}, a lazy approach is employed.
+First, the algorithm ensures that the proposed shortcut is collision-free (line 8). 
+Unlike the classical shortcut method, which compares only the costs of the original and proposed trajectory segments, the entire trajectory is reevaluated to incrementally compute the sensitivity cost (lines 9–13).
+Finally, if the new solution has a lower sensitivity cost (line 14), then a robust feasibility check is performed before updating the trajectory portion in case of success (line 15).
 
 \begin{algorithm}[t]
-    \caption{SAShortcut [$sol_{SARRT^*}$]}\label{alg:SAshortcut}
+    \caption{SAShortcut [$\q_{d,SARRT^*}$]}\label{alg:SAshortcut}
     \begin{algorithmic}[1]
-        \State $\left \{sol_{\Pi}, cost_{\Pi} \right \} \gets \left \{sol_{SARRT^*}, GetSensi(sol_{SARRT^*}) \right \};$
-            \While{$i < N$}
-            \State $\left \{ x_{1}, x_{2} \right \} \gets SampleOnTraj(sol_{\Pi});$
-            \State $\pi_{start} \gets sol_{\Pi}(x_{init}, x_{1});$
-            \State $\pi_{end} \gets sol_{\Pi}(x_{2}, x_{goal});$
-            \State $\pi \gets Steer(x_{1}, x_{2});$
-            \If{$CollisionFree(\pi)$}
-                \State $sol_{new} \gets \pi_{start}+\pi+\pi_{end};$
-                \State $\left \{cost_{new}, U \right \} \gets GetSensi(sol_{new});$
-                \If{$CostBetterThan(cost_{new}, cost_{\Pi})$}
-                    \If{$TubesCC(sol_{new}, U)$}
-                        \State $\left \{sol_{\Pi}, cost_{\Pi} \right \} \gets \left \{sol_{new}, cost_{new} \right \};$
+        \State $\{\q_{d,best}, cost_{best}\} \gets \{\q_{d,SARRT^*}, $Cost$(\q_{d,SARRT^*}) \};$
+        \State $q_d^{init} \gets \q_{d,best}^0; q_d^{goal} \gets \q_{d,best}^F;$
+        \While{\textbf{not} StopCondition$()$} 
+            \State $\{q_d^{1}, q_d^{2}\} \gets$ SampleOnTraj$(\q_{d,best});$
+            \State $\q_{d,start} \gets $LocalPlan$(q_d^{init}, q_d^{1});$
+            \State $\q_{d,end} \gets $LocalPlan$(q_d^{2}, q_d^{goal});$
+            \State $\q_{d,shct} \gets $LocalPlan$(q_d^{1}, q_d^{2});$
+            \If{CollisionFree$(\q_{d,shct})$}
+                \State $\q_{d,new} \gets \q_{d,start}+\q_{d,shct}+\q_{d,end};$
+                \State $cost_{new} \gets $Cost$(\q_{d,new});$
+                \If{CostBetterThan$(cost_{new}, cost_{best})$}
+                    \State $S_0 \gets $GetNodeConditions$(q_d^{init});$
+                    \State $\{\q_n, \u_n, \Rq, \Ru, S_F\}  \gets $SolveODEs$(\q_{d,new}, S_0);$
+                    \If {\textbf{not} IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
+                        \State $\{\q_{d,best}, cost_{best}\} \gets \{\q_{d,new}, cost_{new}\};$
                     \EndIf
                 \EndIf
             \EndIf
-        \State $i \gets i+1;$
         \EndWhile
-    \State \textbf{return} $sol_{\Pi}$
+    \State \textbf{return} $\q_{d,best}$
     \end{algorithmic}
 \end{algorithm}
 
 \subsection{Simulation results}
 \subsubsection{Differential drive robot}
 \subsubsection{Quadrotor robot}
+
+\paragraph{Setup}
+
+\paragraph{Results}
+
+\input{figures/tables/LazySAMP_quad.tex}
+
+The performances of the decoupled approach were evaluated in three different environments, also considering different parametric uncertainties.
+For the 2D environments (U-shape and 2-Way) we forced the quadrotor to evolve on a plane by producing kinosplines (see Section~\ref{sec:kinosplines}) only between samples constrained within this plane.
+The sensitivity-optimal trajectories used as references to evaluate the proposed decoupled approach were computed using a \myglsentry{sasst*} as described in Section~\ref{sec:samp}.
+
+Table~\ref{tab:lazySAMP_quad} gathers the average computing times of \myglsentry{sasst*} and of the two core procedures of the proposed decoupled approach (\myglsentry{lazysarrt*}, \myglsentry{SAshortcut}), as well as the average final cost found by \myglsentry{sasst*} and \myglsentry{SAshortcut}. 
+The mean values associated with \myglsentry{sasst*} were obtained over 3 runs (due to the very high computing time) while those associated with the proposed decoupled approach are averaged over 10 runs.
+
+\paragraph{2D U-Shape Environment} 
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.7\linewidth]{figures/samp/U_shape_3in1_before.png}
+    \includegraphics[width=0.7\linewidth]{figures/samp/U_shape_3in1_after.png}
+    \includegraphics[width=0.7\linewidth]{figures/samp/U_shape_3in1_sensi.png}
+    \caption{Three trajectories (red, green, blue) produced by \myglsentry{lazysarrt*} (top), and the three trajectories resulting from \myglsentry{SAshortcut} (middle), with the evolution of their respective sensitivity (bottom). 
+    The dashed black trajectory (top, middle) and the dashed purple cost (bottom) correspond to the sensitivity-optimal reference found using the \myglsentry{sasst*}.}
+    \label{fig:U_shape}
+\end{figure}
+
+Figure~\ref{fig:U_shape} shows how the decoupled approach is able to produce solutions that mimic the optimal one found by the \myglsentry{sasst*} in the so called U-shape environment considering the $\delta\p_{low}$ parametric uncertainty vector.
+Furthermore, according to the results shown in Table~\ref{tab:lazySAMP_quad} and in Figure~\ref{fig:U_shape}, \myglsentry{SAshortcut} produces solutions with sensitivity costs close to the optimal reference found by \myglsentry{sasst*}. 
+Also note the huge time saving of the proposed method compared to the \myglsentry{sasst*}.
+Additionally, note that during the \myglsentry{lazysarrt*} planning, the trajectory length optimization allow to decrease the sensitivity cost although this was not the objective function, comforting the choice of a (near) time-optimal as an initial guess for the \myglsentry{SAshortcut} and the use of a length metric as a state space metric when optimizing the sensitivity within the \myglsentry{sarrt*} and \myglsentry{sasst*} of Section~\ref{sec:samp_simu}.
+
+Finally, note that the average computing time of \myglsentry{lazysarrt*} in this case is low compared to the other environments. 
+This is mainly due to the fact that in this case the time-optimal trajectory is far from the obstacles and therefore few re-connections via the \myglsentry{lazysarrt*} RobustReconnect procedure are performed when extending the tree.
+
+\paragraph{2D 2-way Environments} 
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.7\linewidth]{figures/samp/Contribution-example1.png}
+    \includegraphics[width=0.7\linewidth]{figures/samp/Contribution-example2.png}
+    \caption{Solutions with their uncertainty tube (in green) computed by the decoupled approach between the same start/goal states of a quadrotor dynamical model for small/high parameters uncertainties (top/bottom, respectively)}
+    \label{fig:2way}
+\end{figure}
+
+This environment referred to Figure~\ref{fig:2way} where the two sets of uncertainties $\delta\p_{low}$ and $\delta\p_{high}$ are considered.
+
+As shown in Figure~\ref{fig:2way}, in the presence of small uncertainties the decoupled approach produces a trajectory allowing to use the narrow passage. 
+However, while considering large uncertainties, the time optimal trajectory which goes through the narrow passage cannot be taken as a collision is found by considering the uncertainty tube as shown in red in the Figure~\ref{fig:2way}.
+Nevertheless, SAMP is able to find the fastest trajectory apart from those passing through this passage.
+
+In both cases the average cost of the solutions produced by SAMP is close to that found by \myglsentry{sasst*} as shown in Table~\ref{tab:lazySAMP_quad}, where 2-Way$_{low}$ refers to the presence of small uncertainties and 2-Way$_{high}$ to the presence of large uncertainties.
+The average computing time of the \myglsentry{sasst*} is equivalent in both cases as it is performed on exactly the same environment.
+However, note that the average computing time of the \myglsentry{lazysarrt*} is longer than in the U-shape case because the time-optimal trajectories must pass through a location where many collisions may occur. 
+Moreover, in the 2-Way$_{high}$ case the \myglsentry{lazysarrt*} computing time is longer than in the 2-Way$_{low}$ as even more non-robust trajectories are found.
+This is because more iterations are needed before considering a neighborhood deprived of nodes passing through the narrow corridor.
+Finally, we see that the \myglsentry{SAshortcut} computing time remains of the same order of magnitude for both cases as that of the U-shape, and again SAMP produces a solution much faster than \myglsentry{sasst*}.
+
+\paragraph{3D Environment} 
+
+\begin{figure}[t]
+\centering
+    \includegraphics[width=0.7\linewidth]{figures/samp/3D_full_view.png}
+    \includegraphics[width=0.7\linewidth]{figures/samp/3D_ZYprofile.png}
+    \includegraphics[width=0.7\linewidth]{figures/samp/3D_sensi.png}
+    \caption{Trajectories produced by \myglsentry{lazysarrt*} (green), SAMP (red), and \myglsentry{sasst*} (dashed black) in a 3D environment (top). A profile view along the YZ plane is given (middle) as well as the evolution of the sensitivity (red) and the optimal one found by the SST$^*$ (dashed blue) (bottom) during the execution of SAMP.}
+    \label{fig:3D}
+\end{figure}
+
+The uncertainty set considered in this full 3D environment is $\delta\p_{low}$.
+As shown in Figure~\ref{fig:3D}, once again the decoupled approach produces trajectories that mimic the optimal obtained by the \myglsentry{sasst*}.
+It is interesting to note the impact of the \myglsentry{SAshortcut} procedure on the Z component in addition to the impact on the X Y components already seen in the previous 2D environments.
+The average computing time of the shortcut is similar to other environments according to Table~\ref{tab:lazySAMP_quad}.
+Again, the SAMP method produces a near-optimal trajectory much faster than conventional optimal planners.
 
 \section{Conclusion}\label{sec:concl}
 Note that the algorithms not complete proof

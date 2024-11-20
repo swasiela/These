@@ -1,0 +1,30 @@
+\newcolumntype{C}[1]{>{\centering\arraybackslash }b{#1}}
+\begin{table*}[t]
+    \centering
+    \begin{tabular}{|C{0.2\linewidth}||C{0.09\linewidth}|C{0.15\linewidth}|C{0.15\linewidth}|C{0.1\linewidth}|}
+     \hline
+      & U-shape & 2-Way$_{low}$ & 2-Way$_{high}$ & 3D \\
+     \hline
+     \hline
+     Time \myglsentry{sasst*}  (s) & 77529 & 123347 & 129765 & 178461 \\
+     \hline
+     Time \myglsentry{lazysarrt*} (s) & \textbf{695} \quad $\pm$ 225& \textbf{2841} \quad\quad $\pm$ 187& \textbf{3597} \quad\quad $\pm$ 233& \textbf{2678} \quad $\pm$ 183\\
+     \hline
+     Time \myglsentry{SAshortcut} (s) & \textbf{553} \quad $\pm$ 184& \textbf{390} \quad\quad $\pm$ 190& \textbf{849} \quad\quad $\pm$ 91& \textbf{607} \quad $\pm$ 227\\
+     \hline 
+     Decoupled approach time gain (\%)  & 98.4 & 97.4 & 96.6 & 98.3 \\
+     \hline
+     \hline
+      Cost \myglsentry{sasst*} & 0.317 & 0.292 & 5.127 & 0.510 \\
+     \hline
+      Cost decoupled approach & \textbf{0.325} \quad $\pm$ 0.002& \textbf{0.297} \quad $\pm$ 0.003& \textbf{5.283} \quad\quad $\pm$ 0.073& \textbf{0.519} \quad $\pm$ 0.018\\
+     \hline
+      Sub-optimality decoupled approach (\%) & 2.37 & 1.58 & 3.03 & 1.89 \\
+     \hline
+    \end{tabular}
+    \caption{
+    \label{tab:lazySAMP_quad}
+    Average values of costs and computing times for the different methods in several environments.
+    Standard deviations are provided for the SAMP results only as the SST$^*$ results do not contain enough runs.
+    }
+\end{table*}
