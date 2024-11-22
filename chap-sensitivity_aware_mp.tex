@@ -329,11 +329,13 @@ Note that in this implementation the \myglsentry{odes} need to be solved only on
 This section presents the results of trajectory planning using the previously discussed variants, evaluated based on computation time, and robustness for the two systems introduced in Chapter~\ref{chap:models}.
 To assess the impact of planning robust, globally sensitivity-optimal trajectories, both \myglsentry{sarrt*} and \myglsentry{sasst*} are compared with their respective non-robust vanilla versions, which focus on optimizing trajectory length.
 The objective of this section is to quantify the ability of the proposed variants to generate robust solutions, and to evaluate the impact of solving \myglsentry{odes} multiple times within a sampling-based framework.
-All implementations are performed using the \gls{ompl}~\cite{cOMPL}.
+All planner implementations are performed using the \gls{ompl}~\cite{cOMPL}.
+The \myglsentry{odes} are implemented using the JiTCODE \cite{cJit} module which converts the equations to be integrated into C-compiled code.
+The Euler integrator is then used to solve each ODE and take advantage of this compiled function.
 
 \subsubsection{Differential drive robot}
 
-\paragraph{Setup}
+\paragraph{Robot setup}
 
 This section presents results for the differential drive robot model depicted in Section~\ref{sec:unic_model}, with the following set of uncertain parameters $\p = [r, \, d]^T \in \mathbb{R}^{2}$.
 The nominal value vector is set to $\p_n = [0.1m, \, 0.4m]^T$, with an associated uncertainty range of $\delta\p = [3\%, \, 3\%]^T$, representing the percentage deviation from their corresponding nominal values.
@@ -342,39 +344,27 @@ As a result, the computations necessary to find the uncertainty tubes involve so
 The uncertainty tubes considered for this application are defined as $\Rq = [r_x, \, r_y]^T \in \mathbb{R}^2$, representing the uncertainty tubes along the x,y-axes of the state respectively, and $\Ru = [r_{u1}, \, r_{u2}]^T \in \mathbb{R}^2$, representing the uncertainty tubes along the two control input space axes ($\omega_r$ and $\omega_l$).
 The controller gains are set to $\k_c = [1.5, \, 8.0, \, 0.2]^T$, and the control inputs limits are set to $\u_{max} = [60, \, 60]^T$, corresponding to the maximum speed of the two wheels expressed in rad.s$^{-1}$.
 
+\paragraph{Planning setup}
+
 Remind that the local planning method used is the Dubins path planner (see Section~\ref{sec:dubins}). 
 Using the true cost-to-go as the distance metric is known to be computationally inefficient. 
 However, as the cost of Equation~(\ref{eq:cost_function}) is strongly correlated to the trajectory length through the integral term, the length of the Dubins curves is used as the distance function heuristic. 
-The time step used for the solving the \myglsentry{odes} and to perform the robust feasibility checks is set to 0.05s.
-The algorithms stopping criterion is defined by a cost convergence threshold of 5\%.
 
-The hyperparameters for \myglsentry{sasst*} are selected based on the recommendations in~\cite{cSST}, with the following values: $N_0 = 5000$, $\delta_s = 0.5$, $\delta_{BN} = 1$, and $\xi = 0.9$.
+The hyperparameters for \myglsentry{sasst*} are selected based on the recommendations in~\cite{cSST}, with the following values: $N_0 = 10000$, $\delta_s = 0.5$, $\delta_{BN} = 1$, and $\xi = 0.9$.
 For the maximum local distance, $d_{max}$ is set to 1.0.
 
 The standard \myglsentry{rrtstar} does not impose a maximum distance for local connections, which can lead to excessively long trajectories when two sampled states are far apart.
 These trajectories frequently fail the robust feasibility check, leading to significant computational effort spent on computing uncertainty tubes only to detect early infeasibility. 
 This inefficiency slows down tree growth.
-
 To address this, and following the approach used in the original \myglsentry{ompl} implementation, a maximum distance is introduced for local trajectories. 
 This adjustment does not compromise the algorithm properties, as longer trajectories can still be formed by chaining several shorter local trajectories. 
 While this approach requires more iterations to ensure adequate space coverage and convergence, it results in more efficient tree growth under robustness constraints, as illustrated in Figure~\ref{fig:unic_tree}.
 
 Consequently, throughout this thesis, a maximum local trajectory length of 1.0 (meters or seconds according to the local planner used) is also applied to the proposed \myglsentry{sarrt*} and \gls{sarrt} (see Chapter~\ref{chap:sampNN}) variants.
 
-\paragraph{Results}
-
-\input{figures/tables/SAMP_unicycle.tex}
-
-Results, graph profiling RRT*/RSARRT*, SST*/RSASST*
+Finally, all algorithms use a time step of 0.05s for the solving the \myglsentry{odes} and to perform the robust feasibility checks, and the algorithms stopping criterion is defined by a cost convergence threshold of 5\%.
 
 \begin{figure} [h]
-    \centering
-    \includesvg[width=0.8\linewidth]{figures/samp/profiling_unic.svg} 
-    \caption{Evolution of the sensitivity as a function of the planning time of a \myglsentry{sasst*} (green), and of \myglsentry{sarrt*} (red) for the quadrotor application.}%
-    \label{fig:profiling_unic}%
-\end{figure}
-
-\begin{figure} [t]
     \centering
     \subfloat[\centering Unbounded local trajectory length]{{\includegraphics[width=0.4\linewidth]{figures/samp/rrtstar_unbounded.png} }}%
     \subfloat[\centering Bounded local trajectory length]{{\includegraphics[width=0.4\linewidth]{figures/samp/rrtstar_bounded.png} }}%
@@ -382,13 +372,42 @@ Results, graph profiling RRT*/RSARRT*, SST*/RSASST*
     \label{fig:unic_tree}%
 \end{figure}
 
+\paragraph{Results}
+
+\input{figures/tables/SAMP_unicycle.tex}
+
+Table~\ref{tab:samp_unicycle} shows comparative results averaged for each planner over 10 trajectories and 30 simulations with uncertain parameters. 
+The perturbations are uniformly sampled within an ellipsoid with semi-axis defined by $\delta \p$ as explained in Section~\ref{sec:tubes}.
+
+First note that \myglsentry{sarrt*}, and \myglsentry{sasst*} variants have a significantly greater robustness compared to their respective standard, non-robust implementations.
+This robustness is also illustrated in Figure~\ref{fig:robust_unic}, where 
+
+\begin{figure} [t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/samp/non_robust_unic.png}
+    \includegraphics[width=0.9\linewidth]{figures/samp/robust_unic.png}
+    \caption{Planned trajectory (black) produced by the \myglsentry{rrtstar} (top) and the \myglsentry{sarrt*} (bottom). 
+    Simulated trajectories under uncertainty are displayed in green in the case of success, and in red in the case of a crash.}%
+    \label{fig:robust_unic}%
+\end{figure}
+
+\begin{figure} [t]
+    \centering
+    \includesvg[width=0.8\linewidth]{figures/samp/profiling_unic.svg} 
+    \caption{Profiling }%
+    \label{fig:profiling_unic}%
+\end{figure}
+
 \subsubsection{Quadrotor robot}
 
 \paragraph{Setup}
 
+
+
 \paragraph{Results}
 
-As explained in Section~\ref{sec:unified}
+As explained in Section~\ref{sec:unified}, the set of \myglsentry{odes} must be solved at each algorithm iteration at least one per iteration in the case of \myglsentry{sasst*} and tens or hundreds of times for the \myglsentry{sarrt*}.
+Even if this leads to amainable computation time for simple systems such as the differential drive robots, the gap induced by solving the \myglsentry{odes} grows consequently when applied to more complex systems such as the quadrotor which involves a hundred of \myglsentry{odes}. 
 
 \begin{figure} [t]
     \centering
@@ -600,6 +619,7 @@ It is interesting to note the impact of the \myglsentry{SAshortcut} procedure on
 The average computing time of the shortcut is similar to other environments according to Table~\ref{tab:lazySAMP_quad}.
 Again, the SAMP method produces a near-optimal trajectory much faster than conventional optimal planners.
 
+Finally, note that in all cases, the rely high planning time of the \myglsentry{sasst*} compared to the lazy approach suggest that the total number of iterations needed to achieve a good state space coverage in order to converge is higher in the context of robust constrained planning, as more iterations must be performed to reach the low cost regions of the space.
 \section{Conclusion}\label{sec:concl}
 Note that the algorithms not complete proof
 
