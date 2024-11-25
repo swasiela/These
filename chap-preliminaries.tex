@@ -140,7 +140,7 @@ To demonstrate the versatility of the approaches proposed in this thesis across 
 \end{figure}
 
 Let the ENU (East North Up) world frame be defined as $F_W \allowbreak = \allowbreak \{O_W, \allowbreak X_W, \allowbreak Y_W, \allowbreak Z_W\}$ and $F_B = \allowbreak\{O_B, \allowbreak X_B, \allowbreak Y_B, \allowbreak Z_B\}$ be the quadrotor body frame attached to its geometric center ($O_B$).
-The state of the quadrotor is defined as $\boldsymbol{q} = [\boldsymbol{x}  \, \boldsymbol{v} \, \boldsymbol{\rho} \, \boldsymbol{\omega}]$ where $\boldsymbol{x} = [x \, y \,z] \in \mathbb{R}^{3}$ and $\boldsymbol{v} = [v_x \, v_y \,v_z] \in \mathbb{R}^{3}$ are respectively the linear position and linear velocity vector of $O_B$ expressed in $F_W$. The body orientation w.r.t. $F_W$ is represented by the unitary quaternion  $\boldsymbol{\rho}$ and its angular velocity as $\boldsymbol{\omega} = [\omega_x \, \omega_y \, \omega_z] \in \mathbb{R}^{3}$. 
+The state of the quadrotor is defined as $\boldsymbol{q} = [\boldsymbol{x}  \, \boldsymbol{v} \, \boldsymbol{\rho} \, \boldsymbol{\omega}]$ where $\boldsymbol{x} = [x \, y \,z] \in \mathbb{R}^{3}$ and $\boldsymbol{v} = [v_x \, v_y \,v_z] \in \mathbb{R}^{3}$ are respectively the linear position and linear velocity vector of $O_B$ expressed in $F_W$. The body orientation w.r.t. $F_W$ is represented by the unitary quaternion $\boldsymbol{\rho}$ and its angular velocity as $\boldsymbol{\omega} = [\omega_x \, \omega_y \, \omega_z] \in \mathbb{R}^{3}$. 
 Finally, let $\boldsymbol{R(\rho)}$ be the rotation matrix associated to $\boldsymbol{\rho}$.
 
 Let the control input vector $\u = [\omega_{1}^2 \, \omega_{2}^2 \, \omega_{3}^2 \, \omega_{4}^2]^T$ represent the squared rotor speeds. 
@@ -215,7 +215,7 @@ Let the linear position error and linear velocity error be defined as follows:
   \boldsymbol{e_x}(t) = \boldsymbol{x}(t) - \boldsymbol{x}_d(t) \in \mathbb{R}^3, \,
   \boldsymbol{e_v}(t) = \boldsymbol{v}(t) - \boldsymbol{v}_d(t) \in \mathbb{R}^3,
 \end{equation}
-and the controller gains vector \(\boldsymbol{k}_c = [\boldsymbol{k}_{x,y,z}^T \, \boldsymbol{k}_{v_x,v_y,v_z}^T \, \boldsymbol{k}_{\phi,\theta,\psi}^T \, \boldsymbol{k}_{\omega_x,\omega_y,\omega_z}^T]^T \in \mathbb{R}^{12}\) with their associated diagonal representation $(\boldsymbol{K_x}, \boldsymbol{K_v}, \boldsymbol{K_R}, \boldsymbol{K_\omega}) \in (\mathbb{R}^{3\times3})^4$.
+and the controller gains vector \(\boldsymbol{k}_c = [\boldsymbol{k}_{x}^T \, \boldsymbol{k}_{v}^T \, \boldsymbol{k}_{R}^T \, \boldsymbol{k}_{\omega}^T]^T \in \mathbb{R}^{12}\) with their associated diagonal representation $(\boldsymbol{K_x}, \boldsymbol{K_v}, \boldsymbol{K_R}, \boldsymbol{K_\omega}) \in (\mathbb{R}^{3\times3})^4$.
 This control strategy starts by computing the desired third basis vector of the body frame:
 \begin{equation}
   \boldsymbol{r}_{3d} = \frac{-\boldsymbol{K_x} \cdot \boldsymbol{e_x} - \boldsymbol{K_v} \cdot \boldsymbol{e_v} + m(g Z_W + \boldsymbol{a}_d) }{\left\| -\boldsymbol{K_x} \cdot \boldsymbol{e_x} - \boldsymbol{K_v} \cdot \boldsymbol{e_v} + m(g Z_W + \boldsymbol{a}_d) \right\|} \in \mathbb{R}^3.

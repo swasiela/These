@@ -166,6 +166,9 @@
 \section{Reccurent neural networks: overview}
 
 \section{Method} \label{sec:method}
+
+This section presents a multi-task learning neural network based on a GRU architecture, which takes as input the desired states of the dynamic system and outputs the nominal control inputs $\u_n$, as well as the uncertainty tubes around the states $\Rq$ and the control inputs $\Ru$. 
+
 \subsection{Problem statement}
 
 The goal is to train a neural network to approximate sensitivity-based uncertainty tubes, hence avoiding the computational cost of solving many \myglsentry{odes}. 
@@ -176,8 +179,94 @@ Given a sequence of desired robot state vectors $\textbf{M} = \{\q_{d}^0, \q_{d}
 \end{equation}
 Since evaluating the function $\boldsymbol{g}$ on $\q_{d}^k$ depends on all the previous states of the robot in $\textbf{M}$, recurrent neural network architectures are a good fit given their ability to encode and accumulate temporal information while keeping inference time low.
 
-\subsection{Neural network architecture}
+\subsection{Neural network architecture}\label{sec:architecture}
+
+\begin{figure} [t]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/learning_quadrotor/SensiNN_GRU.png}%
+    \caption{Representation of the proposed neural network architecture.
+    }%
+    \label{fig: NN}%
+\end{figure}
+
+A representation of the neural network architecture is presented in Figure~\ref{fig: NN}.
+Blue blocks refer to the inputs of the model which are composed of an initial hidden state $h_{0}$ and of a sequence of desired robot states. 
+For the quadrotor case, in order to make the learned model independent of workspace boundaries used during planning (i.e. robot position and orientation bounds) and initial robot orientations, only the desired linear velocities, accelerations, and yaw angular velocities ($\Dot{\Psi}_d$), are kept as the network input components.
+Hence, the input to the neural network is a vector $\boldsymbol{\q_{in}^k} = [\boldsymbol{v_d} ,\, \boldsymbol{a_d} ,\, \Dot{\Psi}_d]^T$, where $k$ refers to the $k$-th state of the desired trajectory.
+
+The outputs of the neural network correspond to the green blocks.
+In the case of a quadrotor, it is composed of the predicted uncertainty tubes radii along the $\{x,y,z\}$-axis of the state $\Rq=$[$r_{x},\,r_{y},\,r_{z}]^T$, and the uncertainty tubes radii associated with the control inputs of the system $\Ru = [r_{u1},\,r_{u2},\,r_{u3},\,r_{u4}]^T$.
+Moreover, the control input values $\u = [u_1 ,\, u_2 ,\, u_3 ,\, u_4]^T$ are required for the motion planning algorithm, and their computation depends on ODE forward integration (as shown in (Eq.~\ref{eq:dyna_ctrl})). Since our approach aims at eliminating the need for solving ODEs, we need to train the neural network to also predict the control inputs.
+Finally, $h_{N}$ corresponds to the hidden state at the last point of our sequence (i.e., the last trajectory state).
+
+At $k=0$, the first state in the input sequence $\boldsymbol{\q_{in}^0}$ and the initial hidden state $h_0$ are given to a single-layer GRU block with a hidden state size of 512, which outputs an updated hidden state $h_1$. 
+The latter is then fed to a 3-layer multi-layer perceptron (MLP), each layer followed by a ReLU activation function except the final one, to obtain the predicted control inputs $\u^0$, the state uncertainty tubes $\Rq^0$ as well as the control uncertainty tubes $\Ru^0$. 
+The updated hidden state $h_1$ is then given back to the GRU block along with the second element of the input sequence. This process is repeated for each element $\boldsymbol{\q_{in}^k}$ until all predictions are obtained.
+
+The network is intended to be used in a sampling-based tree planner, where local trajectories are concatenated to form a global one. 
+Thus, since the hidden state encodes and accumulates temporal information about the input sequence, the final hidden state $h_{N}$ of a local trajectory obtained after an iteration of a sampling-based tree planner can be saved and then given back as the initial hidden state $h_{0}$ for future local trajectories considered during the next iterations. 
+Therefore, in practice, this initial hidden state is generally not null.
+
 \subsection{Dataset}
+
+\begin{figure} [t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/learning_quadrotor/dataset_generation.png}%
+    \caption{Dataset generation process. 
+    Starting from the hovering state $\q_{init}$, at each iteration a new state $\boldsymbol{q_{rand}}$ is randomly sampled and connected to the previous state $\boldsymbol{q_{prev}}$ until a total trajectory length ($T_F$) of 15s is reached.
+    Data annotation is performed by simulating the tracking of the generated trajectory under nominal parameters.
+    }%
+    \label{fig: data_generation}%
+\end{figure}
+
+In order to train the proposed neural network, we generated a dataset of trajectories computed in an obstacle-free environment 
+as depicted in Figure.\ref{fig: data_generation}.
+This ensures that the resulting learned model is totally independent of the environment and only depends on the system.
+Each global trajectory starts from the same initial hovering state ($\q_{init}$) initialized at zero velocities and accelerations\footnote{Note that this initialization does not hurt the generalizability of the model to different initial conditions and environments with obstacles (cf. Section~\ref{sec:qualitative results}).}.
+Based on the same principle as a sampling-based planner, the global trajectory is made up of local sub-trajectories until a total execution time length ($T_F$) of 15s is reached.
+Each local sub-trajectory is generated by uniformly sampling an arrival state ($\q_{rand}$) and connecting it to the previous sampled state ($\q_{prev}$) using a \emph{Kinosplines} steering method \cite{cKino}.
+These kinosplines have the advantage of enforcing the following kinodynamic constraints on the generated splines $[v_{max}, a_{max}, j_{max}, s_{max}]$, where $v_{max},a_{max},j_{max}$ and $s_{max}$ represent the maximum allowed velocity, acceleration, jerk and snap respectively.
+If the local trajectory (between $\boldsymbol{q_{rand}}$ and $\boldsymbol{q_{prev}}$) expected execution time is greater than a maximum local duration $T_l$, it is truncated to $T_l$. Similarly, when the total trajectory duration $T_F$ exceeds 15s after adding a new state, it is truncate at 15s.
+
+To generate the outputs, i.e. to annotate the data with uncertainty tubes and control inputs, the closed-loop dynamic and the sensitivity matrices are computed by simulating the tracking of the global trajectories using an integration time step $\Delta T$ which corresponds to the same time step used for collision checking in a sampling-based motion planner.
+
+\begin{figure} [t]
+    \centering
+    \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/vnorm_val2.png}
+    \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/vnorm_test.png}
+    \caption{Velocity norm distribution in the training (left) and test sets (right).}%
+    \label{fig: valvstest}%
+\end{figure}
+Using this mechanism, a training set composed of 8.000 trajectories and a validation set composed of 2.000 trajectories were generated, making sure that every trajectory in the dataset is different.
+These trajectories were generated considering a maximum local duration of $T_l = 1s$ and an integration time step $\Delta T = 0.05s$.
+
+The kinodynamic constraints enforced on the generated splines are $[v_{max}, a_{max}, j_{max}, s_{max}] = [5.0 \, m.s^{-1}, \allowbreak 1.5 \, m.s^{-2}, \allowbreak 15.0 \, m.s^{-3}, \allowbreak 30.0 \, m.s^{-4}]$. 
+The nominal values of the uncertain parameters presented in Sect.~\ref{sec: sensi} are $\p_{c}$ = $[1.113, \allowbreak0.0, \allowbreak0.0, \allowbreak0.015, \allowbreak0.015, \allowbreak0.007]^T$ and their associated uncertainty range used for the tubes computation are $\delta\p = [7\%, \allowbreak3cm, \allowbreak3cm, \allowbreak10\%, \allowbreak10\%, \allowbreak10\%]^T$, which represents the variation of the parameters w.r.t. their associated nominal value.
+The controller gains used are $\boldsymbol{k_x}=[20.0 \,, \allowbreak 20.0 \,, \allowbreak 25.0]$, $\boldsymbol{k_v}=[9.0 \,, \allowbreak 9.0 \,, \allowbreak 12.0]$, $\boldsymbol{k}_{R}=[4.6 \,, 4.6 \,, 0.8]$, $\boldsymbol{k_{\omega}}=[0.5 \,, \allowbreak 0.5 \,, \allowbreak 0.08]$.
+
+In order to show the reliability and generalizability of the learned model, a test set composed of 1.000 trajectories was generated in the same way, but considering a maximum local duration $T_l = 2s$.
+As a result, trajectories with higher velocities are encountered in the test set compared to the validation set, as depicted in Figure~\ref{fig: valvstest} where velocity norms can reach up to 7 m.s$^{-1}$ in the test set, compared with only 3 m.s$^{-1}$ in the validation set\footnote{Note that the velocity norms exceed the velocity limit $v_{max}$, this is expected since this limit applies to the components of the velocity vector rather than the norm.}.
+
+The data annotation was performed by computing and integrating (Equation~\ref{eq:dyna_ctrl}) and (Equation~\ref{eq:dyna_sensi}) by mean of the dopri5~\cite{cdopri5} \myglsentry{odes} solver along a desired trajectory. 
+Once $\bPi$ and $\bTheta$ had been computed, a simple projection was performed to recover the tubes thanks to (Eq.~\ref{eq:projection}).
+Note that the control inputs $\u$ are computed during the \myglsentry{odes} resolution.
+The mean and standard deviation values of the various components of the output vector for the validation and test sets generated by this setup are provided in Table~\ref{tab:datas_stats}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ | c | c || c |}
+\hline
+  \textbf{Output}  & \textbf{Validation set}  & \textbf{Test set} \\ \hline
+$\Rq$ & $1.0e^{-1} \pm 2.0e^{-2}$ & $1.1e^{-2} \pm 2.1e^{-2}$ \\ \hline
+$\u$ & $12469.3 \pm 861.6$ & $12476.8 \pm 1016.5$ \\ \hline
+$\Ru$ & $7782.6 \pm 3172.3$ & $7828.6 \pm 2845.7$ \\ \hline
+    
+\end{tabular}
+\caption{
+Mean and standard deviation of the output vector components norm after data annotation for the validation and test sets.
+$\Rq$ is expressed in \emph{m}, and $(\u, \Ru)$, are squared propeller angular velocities [(rad/s)²].}
+ \label{tab:datas_stats}
+\end{table}
 
 \section{Evaluation}
 \subsection{Metrics}
