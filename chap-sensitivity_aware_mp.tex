@@ -405,7 +405,7 @@ Furthermore, the results in Figure~\ref{fig:unic_tree} strongly suggest that by 
 \begin{figure} [ht]
     \centering
     \includesvg[width=0.8\linewidth]{figures/samp/profiling_unic.svg} 
-    \caption{Profiling }%
+    \caption{Profiling of vanilla planners and robust variants, illustrating the contributions of various procedures to the total planning time over 1.000 iterations for the differential drive robot case.}%
     \label{fig:profiling_unic}%
 \end{figure}
 
@@ -493,6 +493,7 @@ In the case of \myglsentry{lazysarrt*}, where maintaining an optimal tree is req
     The RobustReconnect procedure starts by adding $Q_{sol}^i$ in the set of infeasible parents of $Q_{sol}^{i+1}$ (i.e. $Q_{sol}^i$ will no longer be considered as a potential parent for the node $Q_{sol}^{i+1}$).
     \item Then, all the nodes of the tree from $Q_{sol}^i$ are disconnected, and for each of them, the vanilla Extend procedure is executed considering their associated $Q_{collide}$ set.
     As in the standard \myglsentry{rrtstar}, an optimal re-connection phase is first attempted.
+    Note that all nodes must be evaluated for optimal reconnection, as the sensitivity cost depends on the trajectory that has been taken to reach each node.
     \item If no re-connection is found for a node, then the node is deleted from the tree. 
     Otherwise, the rewiring phase is carried out considering the $Q_{collide}$ set.
 \end{itemize}
@@ -570,7 +571,7 @@ The values of this vector considered in the simulations are either $\delta\p_{lo
 Note that the tubes computed from $\delta\p_{low/high}$ remain an approximation, but that are accurate enough for well-chosen $\delta\p$ values. 
 Therefore, in this differential drive robot application, $\bPi \in \mathbb{R}^{13\times4}$, and $\bTheta \in \mathbb{R}^{4\times4}$.
 As a result, the computations necessary to find the uncertainty tubes involve solving 68 \myglsentry{odes}.
-The uncertainty tubes considered for this application are defined as $\Rq = [r_x, \, r_y, \, r_z]^T \in \mathbb{R}^3$, representing the uncertainty tubes along the \{x,y,z\}-axes of the state respectively, and $\Ru = [r_{u1}, \, r_{u2}]^T \in \mathbb{R}^4$, representing the uncertainty tubes along the four control input space axes.
+The uncertainty tubes considered for this application are defined as $\Rq = [r_x, \, r_y, \, r_z]^T \in \mathbb{R}^3$, representing the uncertainty tubes along the \{x,y,z\}-axes of the state respectively, and $\Ru = [r_{u1}, \, r_{u2}, \, r_{u3}, \, r_{u4}]^T \in \mathbb{R}^4$, representing the uncertainty tubes along the four control input space axes.
 Finally, the controller gains are set to $\boldsymbol{k}_{x} = [20.0, \, 20.0, \, 25.0]^T$, $\boldsymbol{k}_{v}= [9.0, \, 9.0, \, 12.0]^T$, $\boldsymbol{k}_{R}=[4.6, \, 4.6, \, 0.8]^T$, and $\boldsymbol{k}_{\omega}=[0.5, \, 0.5, \, 0.08]^T$, and the control inputs limits are set to $\u_{max} = [10.000, \, 10.000, \, 10.000, \, 10.000]^T$, corresponding to the maximum squared rotor speed expressed in (rad.s$^{-1})^2$.
 
 \paragraph{Planning}
