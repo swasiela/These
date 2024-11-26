@@ -2,6 +2,22 @@
 \markboth{Learning uncertainty tubes via recurrent neural networks}{}% To set left/right header
 % \localtableofcontents
 
+This chapter introduces the second major contribution of this thesis, by leveraging the sensitivity concept discussed in Chapter~\ref{chap:models}.
+The contribution of this chapter is twofold:
+\begin{enumerate}
+    \item Firstly, it addresses the generation of a desired trajectory with minimal sensitivity, ensuring that the closed-loop evolution of $\q(t)$ closely matches its nominal evolution, $\q_n(t)$. 
+    While previous work has explored sensitivity optimization for generating locally sensitivity-optimal trajectories \cite{cPi, cTh}, this approach has never been applied within a global sampling-based planning framework that accounts for obstacles. 
+    Therefore, the first contribution is to propose methods for efficiently performing global sensitivity-optimal motion planning.
+    \item Secondly, this chapter introduces, for the first time, the use of sensitivity-based uncertainty tubes to enforce constraints in both the state and input spaces. 
+    This enables the generation of intrinsically-robust motions (i.e. accounting for the controller behavior with respect to uncertainty) that ensures robustness to both the environment and the actuator limits.
+\end{enumerate}
+This chapter is organized as follows: it first presents in Section~\ref{sec:metrics} how the uncertainty tubes of Section~\ref{sec:tubes} are used to enforce robust constraints in the planning process, as well as the development of an appropriate cost function for performing global sensitivity optimization.
+Then, in Section~\ref{sec:unified}, a unified approach is presented, which allows for planning a robust trajectory with optimal sensitivity by directly incorporating the sensitivity computation into the optimal tree-building process (e.g., \myglsentry{rrtstar}). 
+This approach is tested on the robot models described in Chapter~\ref{chap:models} showing poor scalability to the system complexity.
+Finally, a decoupled approach that shows better efficiency for more complex systems, is introduced in Section~\ref{sec:decoupled}, followed by conclusions in Section~\ref{sec:concl}.
+
+This chapter is associated to the following publication in ECAI 2024: Wasiela, S., Giordano, P. R., Cortés, J., and Simeon, T. (2023, May). "A sensitivity-aware motion planner (samp) to generate intrinsically-robust trajectories." In IEEE International Conference on Robotics and Automation (ICRA) (pp. 12707-12713).\footnote{The results presented in this chapter slightly differ from those in the article due to improvements in implementation.}
+
 % Parallelization of ODE (Ordinary Differential Equations) solvers for systems like a quadrotor is indeed possible, but it comes with certain challenges due to the inherent sequential nature of ODE solvers. Each time step generally depends on the previous one, making it difficult to parallelize directly. However, various techniques and strategies can help in parallelizing ODEs, even for small time steps. Let's explore this in more detail.
 % 1. Parallelization in ODE Solvers
 
@@ -173,7 +189,7 @@ This section presents a multi-task learning neural network based on a GRU archit
 
 The goal is to train a neural network to approximate sensitivity-based uncertainty tubes, hence avoiding the computational cost of solving many \myglsentry{odes}. 
 Moreover, the model aims at predicting the control inputs that the system will exert to successfully track a desired trajectory, in addition to the uncertainty tubes on these control inputs. 
-Given a sequence of desired robot state vectors $\textbf{M} = \{\q_{d}^0, \q_{d}^1, ..., \q_{d}^n\}$ representing the desired robot's motion (i.e. a desired trajectory to follow), the task at hand is to learn a function $\boldsymbol{g}$ that estimates the radii of uncertainty tubes for each state $\q_{d}^k$ as well as the robot control inputs at this state such that:
+Given a sequence of desired robot state vectors $\textbf{M} = \{\q_{d}^0, \q_{d}^1, ..., \q_{d}^n\}$ representing the desired robot motion (i.e. a desired trajectory to follow), the task at hand is to learn a function $\boldsymbol{g}$ that estimates the radii of uncertainty tubes for each state $\q_{d}^k$ as well as the robot control inputs at this state such that:
 \begin{equation}\label{eq:prob_statement}
 \{\Rq^{k}, \Ru^{k},\u^{k}\} = \boldsymbol{g}(\q_{d}^0, \q_{d}^1, ... \q_{d}^{k-1})
 \end{equation}
@@ -190,18 +206,18 @@ Since evaluating the function $\boldsymbol{g}$ on $\q_{d}^k$ depends on all the 
 \end{figure}
 
 A representation of the neural network architecture is presented in Figure~\ref{fig: NN}.
-Blue blocks refer to the inputs of the model which are composed of an initial hidden state $h_{0}$ and of a sequence of desired robot states. 
-For the quadrotor case, in order to make the learned model independent of workspace boundaries used during planning (i.e. robot position and orientation bounds) and initial robot orientations, only the desired linear velocities, accelerations, and yaw angular velocities ($\Dot{\Psi}_d$), are kept as the network input components.
-Hence, the input to the neural network is a vector $\boldsymbol{\q_{in}^k} = [\boldsymbol{v_d} ,\, \boldsymbol{a_d} ,\, \Dot{\Psi}_d]^T$, where $k$ refers to the $k$-th state of the desired trajectory.
+Blue blocks refer to the inputs of the model which are composed of an initial hidden state $h_{0}$ and of a sequence of desired robot states evaluated along a desired trajectory denoted $\boldsymbol{\q_{in}^k}$, where $k$ refers to the $k$-th state of the desired trajectory. 
 
 The outputs of the neural network correspond to the green blocks.
-In the case of a quadrotor, it is composed of the predicted uncertainty tubes radii along the $\{x,y,z\}$-axis of the state $\Rq=$[$r_{x},\,r_{y},\,r_{z}]^T$, and the uncertainty tubes radii associated with the control inputs of the system $\Ru = [r_{u1},\,r_{u2},\,r_{u3},\,r_{u4}]^T$.
-Moreover, the control input values $\u = [u_1 ,\, u_2 ,\, u_3 ,\, u_4]^T$ are required for the motion planning algorithm, and their computation depends on ODE forward integration (as shown in (Eq.~\ref{eq:dyna_ctrl})). Since our approach aims at eliminating the need for solving ODEs, we need to train the neural network to also predict the control inputs.
-Finally, $h_{N}$ corresponds to the hidden state at the last point of our sequence (i.e., the last trajectory state).
+It is composed of the predicted uncertainty tubes radii along the state $\Rq$ and of the uncertainty tubes radii associated with the control inputs of the system $\Ru$.
+Moreover, the control input values $\u$ are required for the motion planning algorithm to perform robust feasibility checks, and their computation depends on \myglsentry{odes} forward integration (as shown in (Equation~\ref{eq:dyna_ctrl})). 
+Since the proposed approach aims at eliminating the need for solving \myglsentry{odes}, the neural network is also trained to predict the control inputs.
+Finally, $h_{N}$ corresponds to the hidden state at the last point of our sequence (i.e., the last desired trajectory state).
 
-At $k=0$, the first state in the input sequence $\boldsymbol{\q_{in}^0}$ and the initial hidden state $h_0$ are given to a single-layer GRU block with a hidden state size of 512, which outputs an updated hidden state $h_1$. 
-The latter is then fed to a 3-layer multi-layer perceptron (MLP), each layer followed by a ReLU activation function except the final one, to obtain the predicted control inputs $\u^0$, the state uncertainty tubes $\Rq^0$ as well as the control uncertainty tubes $\Ru^0$. 
-The updated hidden state $h_1$ is then given back to the GRU block along with the second element of the input sequence. This process is repeated for each element $\boldsymbol{\q_{in}^k}$ until all predictions are obtained.
+At $k=0$, the first state in the input sequence $\boldsymbol{\q_{in}^0}$ and the initial hidden state $h_0$ are given to a single-layer GRU block, which outputs an updated hidden state $h_1$. 
+The latter is then fed to a multi-layer perceptron (MLP), each layer followed by a ReLU activation function except the final one, to obtain the predicted control inputs $\u^0$, the state uncertainty tubes $\Rq^0$ as well as the control uncertainty tubes $\Ru^0$. 
+The updated hidden state $h_1$ is then given back to the GRU block along with the second element of the input sequence. 
+This process is repeated for each element $\boldsymbol{\q_{in}^k}$ until all predictions are obtained.
 
 The network is intended to be used in a sampling-based tree planner, where local trajectories are concatenated to form a global one. 
 Thus, since the hidden state encodes and accumulates temporal information about the input sequence, the final hidden state $h_{N}$ of a local trajectory obtained after an iteration of a sampling-based tree planner can be saved and then given back as the initial hidden state $h_{0}$ for future local trajectories considered during the next iterations. 
@@ -229,6 +245,10 @@ These kinosplines have the advantage of enforcing the following kinodynamic cons
 If the local trajectory (between $\boldsymbol{q_{rand}}$ and $\boldsymbol{q_{prev}}$) expected execution time is greater than a maximum local duration $T_l$, it is truncated to $T_l$. Similarly, when the total trajectory duration $T_F$ exceeds 15s after adding a new state, it is truncate at 15s.
 
 To generate the outputs, i.e. to annotate the data with uncertainty tubes and control inputs, the closed-loop dynamic and the sensitivity matrices are computed by simulating the tracking of the global trajectories using an integration time step $\Delta T$ which corresponds to the same time step used for collision checking in a sampling-based motion planner.
+
+\paragraph{Differential Drive Robot}
+
+\paragraph{Quadrotor}
 
 \begin{figure} [t]
     \centering
@@ -269,9 +289,20 @@ $\Rq$ is expressed in \emph{m}, and $(\u, \Ru)$, are squared propeller angular v
 \end{table}
 
 \section{Evaluation}
+
+In order to demonstrate the necessity of using a recurrent neural network due to the temporal dependencies of the predictions, a simple \textbf{MLP} baseline is implemented by substituting the recurrent layer with a single-layer linear encoder which takes as input a single element in the sequence and outputs its corresponding predictions.
+
+Also, in order to justify the choice of a \textbf{GRU} architecture, the proposed model is compared to two other versions which replace the GRU block by a basic RNN \cite{cRNN} and an LSTM \cite{cLSTM} block respectively.
+Note that an extensive comparison with Transformers \cite{cTrans} is not performed as they do not benefit from the hidden state when starting predictions from non zero values, and poorly generalize to longer sequences than those in the training set as it is briefly highlighted in Section~\ref{sec:nn_comparaison}.
+
+Finally, in order to measure the computational cost gain achieved by the proposed method and compare the inference time of the neural network to traditional methods, two known \myglsentry{odes} integrators are implemented for computing uncertainty tubes.
+The first is \textbf{dopri5}, which leverages the Runge Kutta-4 algorithm to numerically approximate the solutions to \myglsentry{odes}. 
+The second is the \textbf{Euler} method, which is known to be faster but yields less accurate results.
+
 \subsection{Metrics}
 
-The performance of the model is evaluated using the Mean Absolute Error (MAE) over the different outputs. Rather than comparing the results on each sub-component of the input (e.g $\{x, y, z\}$ for $r_q$), we combine them into a single metric in order to obtain simpler and more general comparisons, as follows:
+The performance of the model is evaluated using the Mean Absolute Error (MAE) over the different outputs. 
+Rather than comparing the results on each sub-component of the input (e.g $\{x, y, z\}$ for $r_q$ in the quadrotor case), they are combined into a single metric in order to obtain simpler and more general comparisons, as follows:
 \begin{itemize}
     \item $\mathbf{MAE_{\Rq}}$ : represents the mean absolute error on the norm of $\Rq$. 
     For a given datapoint, given the ground truth and predicted state uncertainty tubes $\Rq$ and $\mathbf{\hat{r}_q}$, their respective norms $\|\Rq\|$ and $\|\mathbf{\hat{r}_q}\|$, are computed. 
@@ -282,17 +313,52 @@ The performance of the model is evaluated using the Mean Absolute Error (MAE) ov
     This metric is expressed in meters (m).
     \item $\mathbf{MAE_{u}}$ : represents the mean absolute error on the norm of $\u$. 
     The norms of the ground truth and predicted control inputs, $|\u|$ and $|\hat{\u}|$, are computed. 
-    The mean absolute error, $\mathbf{MAE_{u}}$, is then calculated as the mean absolute error between these two norms. It is expressed in [(rad/s)²].
-    \item $\mathbf{MAE_{\Ru}}$ : represents the mean absolute error on the norm of $\Ru$. As for the two previous metrics, $\mathbf{MAE_{\Ru}}$ is defined as the mean absolute error between the norms $\|\Ru\|$ and $\|\mathbf{\hat{r}_u}\|$. This metric is expressed in [(rad/s)²].
+    The mean absolute error, $\mathbf{MAE_{u}}$, is then calculated as the mean absolute error between these two norms. 
+    It is expressed in [(rad/s)²] for the quadrotor case, and in [(rad/s)] for the differential drive robot one.
+    \item $\mathbf{MAE_{\Ru}}$ : represents the mean absolute error on the norm of $\Ru$. 
+    As for the two previous metrics, $\mathbf{MAE_{\Ru}}$ is defined as the mean absolute error between the norms $\|\Ru\|$ and $\|\mathbf{\hat{r}_u}\|$. 
+    This metric is expressed in [(rad/s)²] for the quadrotor case, and in [(rad/s)] for the differential drive robot one.
 \end{itemize}
 
-These metrics are averaged over all elements of a sequence, then averaged over all sequences in the validation and test sets. In addition, we use inference time as metric in order to evaluate the computational cost of our method compared to the defined baselines, as well as traditional uncertainty tubes computation methods involving an ODE solver. Time is denoted $T_{solver/NN}$ according to the model or solver used.
+These metrics are averaged over all elements of a sequence, then averaged over all sequences in the validation and test sets. 
+In addition, the inference time is also used as metric in order to evaluate the computational cost of the method compared to the defined baselines, as well as traditional uncertainty tubes computation methods involving an ODE solver. 
+Time is denoted $T_{solver/NN}$ according to the model or solver used.
+
+\subsection{Training}
+
+\subsubsection{Differential drive robot application}
+
+\subsubsection{Quadrotor application}
+
+As the proposed model aims to bypass solving the \myglsentry{odes}, which starts by computing the appropriate control inputs, a reasonable initial guess is to start the prediction using the same inputs as those used by the controller.
+In the quadrotor case, the controller inputs consist of the desired robot position, linear velocities, accelerations, yaw angle orientation, and yaw angular velocities, as shown in Equation~\ref{eq:desftau}. 
+However, in order to make the learned model independent of workspace boundaries used during planning (i.e. robot position and orientation bounds) and initial robot orientations, only the desired linear velocities, accelerations, and yaw angular velocities ($\Dot{\Psi}_d$), are kept as the network input components.
+Hence, the input to the neural network for the quadrotor case is a vector $\boldsymbol{\q_{in}^k} = [\boldsymbol{v_d} ,\, \boldsymbol{a_d} ,\, \Dot{\Psi}_d]^T$, where $k$ refers to the $k$-th state of the desired trajectory.
+
+The predicted outputs for the quadrotor case, are composed of the predicted uncertainty tubes radii along the $\{x,y,z\}$-axis of the state $\Rq=$[$r_{x},\,r_{y},\,r_{z}]^T$, and the uncertainty tubes radii associated with the control inputs of the system $\Ru = [r_{u1},\,r_{u2},\,r_{u3},\,r_{u4}]^T$.
+The control input values predicted by the model are $\u = [u_1 ,\, u_2 ,\, u_3 ,\, u_4]^T$, which correspond to the squared propeller speeds.
+
+Before training the neural network, the input features of the dataset (train, val, and test) were min-max scaled according to the maximum velocity and acceleration values used to generate the kinosplines (see Section~\ref{sec:dataset}) as it is guaranteed that the velocities and accelerations generated cannot exceed these values. 
+This ensures that all velocity values are in the interval $[-v_{max}, v_{max}]$, while all the acceleration values are in $[-a_{max}, a_{max}]$. 
+The annotations were also normalized using a standard scaling based on the mean and standard deviation values of the training set annotations.
+
+Finally, after data normalization, the neural networks were trained for 200 epochs using the Adam optimizer \cite{kingma2014adam} with an appropriate learning rate mentioned below and a batch size of 128. 
+The \textbf{RNN},\textbf{LSTM} and \textbf{GRU} models were trained with a hidden state size of 512, a \textbf{MLP} composed of 3 linear layers, and a learning rate of $1e^{-4}$ for the \textbf{RNN} case against $1e^{-3}$ for both the \textbf{LSTM} and \textbf{GRU} models.
+Note that an LSTM layer is composed of a hidden state and a cell state (contrarily to GRUs and RNNs which have a hidden state only), so the real LSTM latent state size is 2$\times$512.
+All used hyper-parameters were validated using a grid search.
+They were trained using the MSE (Mean Squared Error) loss function and evaluated continuously on the validation set. 
+The model weights achieving the best performance on the validation set were saved and used during the experiments.
 
 \subsection{Implementation details}
 
+The ODEs were implemented using the JiTCODE \cite{cJit} module which converts the equations to be integrated into C-compiled code.
+The \textbf{Euler} method or the \textbf{dopri5} integrator were then used to solve each ODE and take advantage of this compiled function.
+
+
+All following results were obtained on an Intel i9 CPU@2.6GHz processor with one RTX A3000 GPU. 
+
 \section{Simulation results}
-\subsection{Training}
-\subsection{Model comparison}
+\subsection{Model comparison}\label{sec:nn_comparaison}
 \subsection{Ablation study}
 \subsection{Qualitative results}
 

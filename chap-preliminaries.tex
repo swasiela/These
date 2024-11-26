@@ -31,9 +31,11 @@ where $\bxi\in \mathbb{R}^{n_{\xi}}$ are the internal states of the controller (
 
 In line with the previous definitions, the following sections of this thesis will then differentiate between three types of state vectors of key importance:
 \begin{enumerate}
-  \item $\q_d$: The \emph{desired} system state vector which refers to the desired values of the controllable system states. This state vector is typically the output of a motion planner. Note that the dimension of this vector may differ from that of the real system because the vector represents a simplified or abstracted model, which might omit certain physical aspects or constraints that are present in the actual system, particularly in the case of under-actuated systems, where not all degrees of freedom are controlled.
-  \item $\q_n$: The \emph{nominal} system state vector which represents the real state values of the system during the execution under nominal parameters (i.e. when the uncertain system parameters $\p$ perfectly match the parameter values used in the control loop $\p_n$). A distinction is made between the nominal states and the desired states, as they are generally not equal due to factors such as controller settings, transient behavior, etc.
-  \item $\q$: The \emph{uncertain} system state vector which refers to the real state values of the system during the execution, influenced by a set of uncertain parameters.
+  \item $\q_d$: The \emph{desired} system state vector which refers to the desired values of the controllable system states. 
+  This state vector is typically the output of a motion planner. Note that the dimension of this vector may differ from that of the real system because the vector represents a simplified or abstracted model, which might omit certain physical aspects or constraints that are present in the actual system, particularly in the case of under-actuated systems, where not all degrees of freedom are controlled.
+  \item $\q_n$: The \emph{nominal} system state vector which represents the real state values of the system during the execution under nominal parameters (i.e. when the uncertain system parameters $\p$ perfectly match the parameter values used in the control loop $\p_n$). 
+  A distinction is made between the nominal states and the desired states, as they are generally not equal due to factors such as controller settings (e.g. overshooting behavior).
+  \item $\q$: The \emph{uncertain} system state vector which refers to the behavior of the system when the values of real parameters are taken into account.
 \end{enumerate}
 Note that the same notations apply to the control input vector as well (e.g., $\u_n$ represents the "nominal" control input values, i.e., when $\p=\p_n$).
 
@@ -74,9 +76,9 @@ This optimization produces a trajectory s.t. the closed-loop evolution of $\q(t)
   \label{fig:ellips_radius}%
 \end{figure}
 
-Another important feature of these matrices is their utility in deriving \emph{uncertainty tubes}, that bounds the closed-loop system trajectory $\q(t)$/$\u(t)$ around its nominal trajectory $\q_n(t)$/$\u_n(t)$ as shown in~\cite{cTube} and illustrated in Figure~\ref{fig:tubes}.
-The following remind how to establish such bounds around the nominal state trajectory $\q_n(t)$ by focusing solely on the state-sensitivity matrix $\bPi(t)$ for clarity. 
-However, it is important to note that this same procedure can also be applied to compute bounds around the nominal input trajectory $\u_n(t)$ by leveraging the input-sensitivity matrix $\bTheta(t)$.
+Another important feature of the sensitivity matrices is that it is possible to derive the so-called \emph{uncertainty tubes}, that bounds the closed-loop system trajectory $\q(t)$/$\u(t)$ around its nominal trajectory $\q_n(t)$/$\u_n(t)$ as shown in~\cite{cTube} and illustrated in Figure~\ref{fig:tubes}.
+The rest of this section shows how to establish such bounds around the nominal state trajectory $\q_n(t)$ by focusing solely on the state-sensitivity matrix $\bPi(t)$ for clarity. 
+However, it is important to note that the same procedure can also be applied to compute bounds around the nominal input trajectory $\u_n(t)$ by leveraging the input-sensitivity matrix $\bTheta(t)$.
 
 The uncertainty tube for each component of the state is characterized by a \emph{radius} which bounds the state component evolution from its nominal value over time, i.e. for the $i$-th component of the state ($q_i(t)$) the tube radius $r_{q,i}(t)$ is defined s.t.:
 \begin{equation}\label{eq:bounds_q}
@@ -84,7 +86,7 @@ The uncertainty tube for each component of the state is characterized by a \emph
 \end{equation}
 
 Let $\Delta\q(t) = \q(t) - \q_n(t)$, representing the deviation of the perturbed trajectory from the nominal one, which we seek to bound.
-Assume that for each uncertain parameter $p_{i \in [1, n_p]}$ in $\p$, we have a bounded parameter deviation $\delta p_i \in \mathbb{R}$ s.t. 
+Assume that for each uncertain parameter $p_{i}, i \in [1, n_p]$ in $\p$, we have a bounded parameter deviation $\delta p_i \in \mathbb{R}$ s.t. 
 \begin{equation*}
   \forall i \in [1, n_p] ,p_i \in [p_{n_i}-\delta p_i, p_{n_i}+\delta p_i].
 \end{equation*}
@@ -121,12 +123,12 @@ Nevertheless, it has been shown in ~\cite{cTube} how to obtain the tube radius a
 where $\boldsymbol{n}_i$ is the unit-norm vector of the $i$-th state space component, and $\boldsymbol{K_{\Pi}}(t) = \boldsymbol{\Pi}(t)\boldsymbol{W}\boldsymbol{\Pi}(t)^T$ is the kernel matrix of Equation~(\ref{eq:q_ellipsoid}).
 It is important to note that the radius along the $i$-th component represents the maximum possible deviation in that direction and does not directly correspond to the semi-axes of the uncertainty ellipsoid as depicted in Figure~\ref{fig:ellips_radius}.
 
-Finally, it is important to remind that since the uncertainty tube radii depend on the state sensitivity $\boldsymbol{\Pi}(t)$, it is necessary to solve the set of \myglsentry{odes} represented by Equation~(\ref{eq:dyna}), Equation~(\ref{eq:ctrl}), and Equation~(\ref{eq:dyna_sensi}) beforehand.
+Finally, it is important to underline that since the uncertainty tube radii depend on the state sensitivity $\boldsymbol{\Pi}(t)$, it is necessary to solve the set of \myglsentry{odes} represented by Equation~(\ref{eq:dyna}), Equation~(\ref{eq:ctrl}), and Equation~(\ref{eq:dyna_sensi}) beforehand.
 Additionally, note how, in general, the tube radius does not necessarily increase monotonically due to the influence of feedback action as illustrated in Figure~\ref{fig:tubes}, despite the cumulative effect of uncertainties over time. 
 
 \section{Models considered in this thesis}
 
-To demonstrate the versatility of the approaches proposed in this thesis across various robots and controllers, a quadrotor and a differential drive robot are both considered in this manuscript, along with two distinct controllers and interpolation methods, which are detailed in the following sections.
+To demonstrate the versatility of the approaches proposed in this thesis across various robots and controllers, a quadrotor and a differential drive robot are considered in this manuscript, along with two distinct controllers and interpolation methods, which are detailed in the following sections.
 
 \subsection{Quadrotor robot} \label{sec:quad_model}
 
@@ -140,10 +142,10 @@ To demonstrate the versatility of the approaches proposed in this thesis across 
 \end{figure}
 
 Let the ENU (East North Up) world frame be defined as $F_W \allowbreak = \allowbreak \{O_W, \allowbreak X_W, \allowbreak Y_W, \allowbreak Z_W\}$ and $F_B = \allowbreak\{O_B, \allowbreak X_B, \allowbreak Y_B, \allowbreak Z_B\}$ be the quadrotor body frame attached to its geometric center ($O_B$).
-The state of the quadrotor is defined as $\boldsymbol{q} = [\boldsymbol{x}  \, \boldsymbol{v} \, \boldsymbol{\rho} \, \boldsymbol{\omega}]$ where $\boldsymbol{x} = [x \, y \,z] \in \mathbb{R}^{3}$ and $\boldsymbol{v} = [v_x \, v_y \,v_z] \in \mathbb{R}^{3}$ are respectively the linear position and linear velocity vector of $O_B$ expressed in $F_W$. The body orientation w.r.t. $F_W$ is represented by the unitary quaternion $\boldsymbol{\rho}$ and its angular velocity as $\boldsymbol{\omega} = [\omega_x \, \omega_y \, \omega_z] \in \mathbb{R}^{3}$. 
+The state of the quadrotor is defined as $\boldsymbol{q} = [\boldsymbol{x}  \, \boldsymbol{v} \, \boldsymbol{\rho} \, \boldsymbol{\omega}]$ where $\boldsymbol{x} = [x \, y \,z] \in \mathbb{R}^{3}$ and $\boldsymbol{v} = [v_x \, v_y \,v_z] \in \mathbb{R}^{3}$ are respectively the position and linear velocity vector of $O_B$ expressed in $F_W$. The body orientation w.r.t. $F_W$ is represented by the unitary quaternion $\boldsymbol{\rho}$ and its angular velocity as $\boldsymbol{\omega} = [\omega_x \, \omega_y \, \omega_z] \in \mathbb{R}^{3}$. 
 Finally, let $\boldsymbol{R(\rho)}$ be the rotation matrix associated to $\boldsymbol{\rho}$.
 
-Let the control input vector $\u = [\omega_{1}^2 \, \omega_{2}^2 \, \omega_{3}^2 \, \omega_{4}^2]^T$ represent the squared rotor speeds. 
+Let the control input vector $\u = [\omega_{1}^2 \, \omega_{2}^2 \, \omega_{3}^2 \, \omega_{4}^2]^T$ represents the squared rotor speeds. 
 The vector $\u$ is related to the total propeller thrust $f$ and torques $\boldsymbol{\tau}$ by mean of a standard allocation matrix $\boldsymbol{T}$ s.t.
 \begin{equation}\label{eq:alloc_mat}
   \begin{bmatrix}
@@ -151,8 +153,8 @@ The vector $\u$ is related to the total propeller thrust $f$ and torques $\bolds
     \boldsymbol{\tau}
     \end{bmatrix} = \boldsymbol{T}(l, k_f, k_{\tau}) \u,
 \end{equation}
-where $k_f$ and $k_{\tau}$ refer to the thrust and drag coefficients of the propellers respectively, and $l$ stands for the quadrotor arms length.
-Also, consider that the \myglsentry{com} is displaced from the robot geometric center of an offset $\boldsymbol{x_{c}} = [x_{cx} \, x_{cy} \, x_{cz}]$ expressed in $F_B$ as depicted in Figure~\ref{fig:quad}. 
+where $k_f$ and $k_{\tau}$ refer to the thrust and drag coefficients of the propellers respectively, and $l$ stands for the quadrotor arm length.
+Also, consider that the \gls{com} is displaced from the robot geometric center of an offset $\boldsymbol{x_{c}} = [x_{cx} \, x_{cy} \, x_{cz}]$ expressed in $F_B$ as depicted in Figure~\ref{fig:quad}. 
 This displacement can occur due to onboard sensors, the presence of a payload, or other factors.
 Under this consideration and according to Newton's second law, the total force ($\boldsymbol{f_{tot}}$) and torque ($\boldsymbol{\tau_{tot}}$) acting on the quadrotor can be expressed by taking an additional fictitious force due to the displaced \myglsentry{com} in $F_B$ s.t. 
 \begin{equation}\label{eq:quad_newton}
