@@ -1,0 +1,22 @@
+\begin{table*}[t]
+    \centering
+    \begin{tabular}{ | c | c  c  c | }
+    \hline
+    \multirow{2}{*}{\textbf{Method}} & \multicolumn{3}{c|}{\textbf{Validation set}} \\ \cline{2-4}
+        & \textbf{MAE$_{\Rq}$} $(m)$  & \textbf{MAE$_{\u}$} $[(rad/s)^2]$ & \textbf{MAE$_{\Ru}$} $[(rad/s)^2]$ \\ \hline
+    {\textbf{GRU$\boldsymbol{_V}$}} & $\boldsymbol{2.5e^{-4}}$ & $25.2$ & $74.6$ \\
+    {\textbf{GRU$\boldsymbol{_A}$}} & $2.6e^{-4}$ & $17.9$ & $77.6$ \\
+    {\textbf{GRU$_{\boldsymbol{V A}}$}} & $2.6e^{-4}$ & $\boldsymbol{17.3}$ & $\boldsymbol{64.5}$ \\
+    \hline
+        & \multicolumn{3}{c|}{\textbf{Test set}}\\ \cline{2-4}
+        & \textbf{MAE$_{\Rq}$} $(m)$  & \textbf{MAE$_{\u}$} $[(rad/s)^2]$ & \textbf{MAE$_{\Ru}$} $[(rad/s)^2]$ \\ \hline
+    {\textbf{GRU$\boldsymbol{_V}$}} & $\boldsymbol{1.0e^{-3}}$ & $92.8$ & $365.6$ \\
+    {\textbf{GRU$\boldsymbol{_A}$}} &  $1.3e^{-3}$ & $82.7$ & $418.5$ \\
+    {\textbf{GRU$_{\boldsymbol{V A}}$}} & $1.1e^{-3}$ & $\boldsymbol{71.0}$ & $\boldsymbol{279.8}$ \\
+    \hline
+        
+    \end{tabular}
+    \caption{
+    Results of the ablation study measured in term of MAE on the $\boldsymbol{r_q}$, $\boldsymbol{u}$ and $\boldsymbol{r_u}$ components of the output vector. $V, A$ refer to the different inputs considered (linear and angular velocities, accelerations respectively). The presence of one as a subscript to the \textbf{GRU} model means that it is used as an input (e.g. $\boldsymbol{GRU_{A}}$ takes as input the acceleration only).}
+     \label{tab:ablation}
+\end{table*}

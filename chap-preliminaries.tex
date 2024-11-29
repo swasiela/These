@@ -307,7 +307,7 @@ The principle of this trajectory generation is illustrated by Figure~\ref{fig:ki
 Let the world frame be defined as $F_W \allowbreak = \allowbreak \{O_W, \allowbreak X_W, \allowbreak Y_W\}$ and $F_B = \allowbreak\{O_B, \allowbreak X_B, \allowbreak Y_B\}$ be the differential drive robot body frame attached to its geometric center ($O_B$).
 The robot state is defined as $\boldsymbol{q} = [\boldsymbol{x} \, \theta] \in \mathbb{R}^3$ where $\boldsymbol{x} = [x, \, y] \in \mathbb{R}^2$ are the linear positions of $O_B$ in $F_W$ and $\theta$ is the body heading (see Figure~\ref{fig:unicycle}).
 
-Define the control input vector $\u = [\omega_r \, \omega_l]^T \in \mathbb{R}^2$, where $(\omega_r, \, \omega_l)$ are respectively the right and left wheel angular velocity.
+Let define the control input vector as $\u = [\omega_r \, \omega_l]^T \in \mathbb{R}^2$, where $(\omega_r, \, \omega_l)$ are respectively the right and left wheel angular velocity.
 Let also the robot linear and angular velocities be denoted by $v$ and $\omega$, respectively.
 The aforementioned linear and angular velocities are related to the control input vector by mean of an allocation matrix $\boldsymbol{T}$ s.t.:
 \begin{equation}\label{eq:unic_alloc}
@@ -327,9 +327,9 @@ The aforementioned linear and angular velocities are related to the control inpu
   =
   \boldsymbol{T} \u,
 \end{equation}
-where $d$ stands for the length between the two wheels, and $r$ for wheel radius.
+where $d$ is the length between the two wheels, and $r$ is the wheel radius.
 
-The differential drive robot dynamic is then expressed as:
+The differential drive robot kinematic model can be expressed as:
 \begin{equation}\label{eq:unic_dyna}
   \Dot{\q} = 
   \begin{bmatrix}
@@ -345,7 +345,7 @@ The differential drive robot is an under-actuated system, which is why the headi
 
 To perform the tracking task, a \myglsentry{dfl} controller is used (e.g. see~\cite{cDFL}).
 This control strategy considers an extended desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$, where $\Dot{\boldsymbol{x}}_d(t) \in \mathbb{R}^2$ denote the desired linear velocities, and $\ddot{\boldsymbol{x}}_d(t) \in \mathbb{R}^2$ are the desired linear accelerations.
-This trajectory is tracked by mean of the following controller internal states $\boldsymbol{\xi} = [\xi_v \, \xi_x \, \xi_y]^T \in \mathbb{R}^3$, where $\xi_v$ stands for the dynamic extension of the differential drive robot linear velocity $v$ (see Figure~\ref{fig:unicycle}), and $(\xi_x, \, \xi_y)$ are integral actions. 
+This trajectory is tracked by mean of the following controller internal states $\boldsymbol{\xi} = [\xi_v \, \xi_x \, \xi_y]^T \in \mathbb{R}^3$, where $\xi_v$ is the dynamic extension of the differential drive robot linear velocity $v$ (see Figure~\ref{fig:unicycle}), and $(\xi_x, \, \xi_y)$ are integral actions. 
 
 By differentiating the robot positions twice, one obtains the following equations for the robot linear accelerations:
 \begin{equation*}
@@ -364,7 +364,7 @@ By differentiating the robot positions twice, one obtains the following equation
     \omega
   \end{bmatrix}
 \end{equation*}
-This differentiation is essential for formulating the kinematic relationships that enable efficient tracking of the desired positions.
+This differentiation is essential for formulating the dynamic relationships that enable efficient tracking of the desired positions.
 
 Let the following vectors:
 \begin{equation}\label{eq:unic_control_law}
@@ -399,7 +399,7 @@ where $\boldsymbol{T}_n$ represent the same allocation matrix as in Equation~\re
 \subsubsection{State interpolation}\label{sec:dubins}
 
 Now that the dynamic of the differential drive robot and its controller are defined, this section presents the local planner used to generate the desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$ that is tracked by the \myglsentry{dfl} controller.
-The trajectory generation problem is addressed using Dubins curves~\cite{cDubins}, which are differentiated twice. 
+The trajectory generation problem is addressed using Dubins curves~\cite{cDubins}. 
 
 This approach ensures smooth and continuous trajectories between two position $(x^0, y^0)$ and $(x^F, y^F)$ in the x-y plane for systems with constraints on turning radius and forward motion such as the differential drive robot.
 The method takes advantage of specified initial and final tangents to the curve (e.g. the differential drive robot heading angle $\theta$, in this case) to create smooth curves that respect the turning constraints.
@@ -408,7 +408,10 @@ Each segment is designed with an optimal distance, arranged to create the shorte
 This configuration results in one of six possible combinations of segments (e.g., left-straight-right), producing a smooth, continuous path that meets the system turning and heading requirements.
 
 In this thesis, the robot state used to compute such path is defined as $\boldsymbol{\gamma} = [x \, y \, \theta] \in \mathbb{R}^3$.
-Once the path is computed, the x and y components are discretized using a given time step and then differentiated to obtain the corresponding desired velocities and accelerations required by Equation~\ref{eq:unic_control_law}.
+Once the path is computed, the x and y components are discretized using a specified time step and a constant velocity magnitude denoted $v_{magn}$.
+The corresponding velocities along the x- and y-axes are then computed using the finite difference method. 
+However, while the resulting velocities are continuous, they are generally not differentiable.
+Therefore, in this thesis, the desired accelerations required by Equation~(\ref{eq:unic_control_law}) are set to be zero.
 Note that, although the heading is not directly controlled, a desired heading is specified to satisfy the tangent constraints.
 
 \begin{figure} [t]

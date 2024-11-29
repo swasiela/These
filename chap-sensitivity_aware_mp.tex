@@ -44,7 +44,7 @@ Extending this procedure to account for robot state uncertainty aims to verify t
 In this thesis, such bounding volume is computed by considering only the uncertainty in the position subspace for simplicity (i.e., the $x,y,z$ subspace for the quadrotor or the $x,y$ subspace for the differential drive robot).
 Several strategies are evaluated based on their computational efficiency, conservatism, and library capabilities:
 \begin{enumerate}
-    \item The simplest method to account for position uncertainty in collision checking is to compare the distance between the current robot AABB and the nearest obstacle, incorporating the maximum possible deviations by using the worst-case uncertainty tube radius from Equation~\ref{eq:radius} (see~\ref{chap:appendixA} for proof).
+    \item The simplest method to account for position uncertainty in collision checking is to compare the distance between the current robot AABB and the nearest obstacle, incorporating the maximum possible deviations by using the worst-case uncertainty tube radius from Equation~(\ref{eq:radius}) (see~\ref{chap:appendixA} for proof).
     This check corresponds to a uniform scaling of the AABB by the maximum uncertainty radius as depicted in Figure~\ref{fig:CC1}. 
     Since the C PyBullet library does not support re-scaling an existing collision shape on the fly, a new shape must be created whenever scaling is required. 
     By using this straightforward distance check, one can avoid the need to create new shapes.
@@ -348,7 +348,7 @@ The controller gains are set to $\k_c = [1.5, \, 8.0, \, 0.2]^T$, and the contro
 
 \paragraph{Planning setup}
 
-Remind that the local planning method used is the Dubins path planner (see Section~\ref{sec:dubins}). 
+Remind that the local planning method used is the Dubins path planner (see Section~\ref{sec:dubins}) with $v_{magn} = 1.0 m.s^{-1}$. 
 Using the true cost-to-go as the distance metric is known to be computationally inefficient. 
 However, as the cost of Equation~(\ref{eq:cost_function}) is strongly correlated to the trajectory length through the integral term, the length of the Dubins curves is used as the distance function heuristic. 
 
@@ -388,7 +388,7 @@ The perturbations are uniformly sampled within an ellipsoid with semi-axis defin
 First note that \myglsentry{sarrt*}, and \myglsentry{sasst*} variants have a significantly greater robustness compared to their respective standard, non-robust implementations.
 This robustness is also illustrated in Figure~\ref{fig:robust_unic}, where the vanilla \myglsentry{rrtstar} is able to find the shortest solution which pass through a narrow corridor, however, this solution is not robust to the presence of uncertain parameters, leading to a poor robustness.
 On the other hand, the \myglsentry{sarrt*}, is able to find the shortest trajectory under robust constraints, leading to a 100\% success rate.
-It is important to note that this success rate is assessed based on both robust collision avoidance and robust control input saturation.
+It is important to note that this success rate is assessed based on both robust collision avoidance and robust control inputs saturation.
 
 However, this robustness comes at the cost of computational efficiency, as highlighted by the significantly higher planning times of the two robust sensitivity-aware variants when compared to their standard counterparts that focus on optimizing trajectory length.
 This is correlated to the time spent solving the \myglsentry{odes}, as depicted in Figure~\ref{fig:profiling_unic}, where the two variants that rely on sensitivity computation spend approximately 80\% of their total computation time solving the \myglsentry{odes}. 

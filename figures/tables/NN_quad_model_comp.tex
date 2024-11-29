@@ -1,0 +1,40 @@
+\begin{table}[t]
+\centering
+\begin{tabular}{ | c | c  c  c | }
+\hline
+    \multirow{2}{*}{\textbf{Method}} & \multicolumn{3}{c|}{\textbf{Validation set}} \\ \cline{2-4}
+    & \textbf{MAE$_{\Rq}$} $(m)$  & \textbf{MAE$_{\u}$} $[(rad/s)^2]$ & \textbf{MAE$_{\Ru}$} $[(rad/s)^2]$ \\ \hline
+{\textbf{MLP}} & $8.9e^{-3}$ & $559.6$ & $2079.0$ \\ 
+{\textbf{RNN}} & $4.5e^{-4}$ & $35.8$ & $166.4$ \\ 
+{\textbf{LSTM}} & $3.1^{-4}$ & $17.7$ & $\boldsymbol{58.7}$ \\ 
+{\textbf{GRU}} & $\boldsymbol{2.6e^{-4}}$ & $\boldsymbol{17.3}$ & $64.5$ \\ 
+\hline
+    & \multicolumn{3}{c|}{\textbf{Test set}}\\ \cline{2-4}
+    & \textbf{MAE$_{\Rq}$} $(m)$  & \textbf{MAE$_{\u}$} $[(rad/s)^2]$ & \textbf{MAE$_{\Ru}$} $[(rad/s)^2]$ \\ \hline
+{\textbf{MLP}} & $9.5e^{-3}$ & $608.5$ & $2050.9$ \\ 
+{\textbf{RNN}} &  $1.4e^{-3}$ & $103.3$ & $544.8$ \\ 
+{\textbf{LSTM}} & $1.4e^{-3}$ & $79.7$ & $308.1$ \\ 
+{\textbf{GRU}} & $\boldsymbol{1.1e^{-3}}$ & $\boldsymbol{71.0}$ & $\boldsymbol{279.8}$ \\ 
+\hline
+    
+\end{tabular}
+\caption{
+MAE on the $\boldsymbol{r_q}$, $\boldsymbol{u}$ and $\boldsymbol{r_u}$ components of the output vector computed on the validation and test sets for a trained RNN, GRU, and LSTM model.}
+    \label{tab:NN_results_table_Q}
+\end{table}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{ | c | c  c  c | }
+\hline
+    \textbf{Time (ms)} & 100 states  & 200 states & 300 states \\ \hline
+    $T_{euler}$ & $63.9 \pm 18.3$ & $136.7 \pm 29.9$ & $260.5 \pm 38.0$ \\ 
+$T_{dopri5}$ & $251.7 \pm 17.3$ & $537.2 \pm 29.8$ & $755.6 \pm 34.5$ \\ 
+$T_{RNN}$ & $\boldsymbol{0.9} \pm 0.3$ & $\boldsymbol{1.8} \pm 0.3$ & $\boldsymbol{2.2} \pm 0.5$ \\ 
+$T_{LSTM}$ & $2.5 \pm 0.3$ & $4.8 \pm 0.3$ & $7.7 \pm 0.8$ \\ 
+$T_{GRU}$(ours) & $2.1 \pm 0.2$ & $4.3 \pm 0.3$ & $5.8 \pm 0.4$  \\ \hline
+\end{tabular}
+\caption{
+Average prediction time (ms) over 100 predictions on trajectories composed of 100 states, 200 states and 300 states, for an \textbf{RNN}, \textbf{GRU}, \textbf{LSTM}, the \textbf{Euler} integrator, and the \textbf{dopri5} integrator.}
+    \label{tab:timepred}
+\end{table}
