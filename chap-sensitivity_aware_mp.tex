@@ -342,7 +342,7 @@ Although the Euler method is less accurate than a Runge-Kutta 4-based method (e.
 This section presents results for the differential drive robot model depicted in Section~\ref{sec:unic_model}, with the following set of uncertain parameters $\p = [r, \, d]^T \in \mathbb{R}^{2}$.
 The nominal value vector is set to $\p_n = [0.1m, \, 0.4m]^T$, with an associated uncertainty range of $\delta\p = [3\%, \, 3\%]^T$, representing the percentage deviation from their corresponding nominal values.
 Therefore, in this differential drive robot application, $\bPi \in \mathbb{R}^{3\times2}$, $\bPixi\in \mathbb{R}^{3\times2}$, and $\bTheta \in \mathbb{R}^{2\times2}$.
-As a result, the computations necessary to find the uncertainty tubes involve solving 19 \myglsentry{odes}.
+As a result, the computations necessary to find the uncertainty tubes involve solving 16 \myglsentry{odes}.
 The uncertainty tubes considered for this application are defined as $\Rq = [r_x, \, r_y]^T \in \mathbb{R}^2$, representing the uncertainty tubes along the x,y-axes of the state respectively, and $\Ru = [r_{u1}, \, r_{u2}]^T \in \mathbb{R}^2$, representing the uncertainty tubes along the two control input space axes ($\omega_r$ and $\omega_l$).
 The controller gains are set to $\k_c = [1.5, \, 8.0, \, 0.2]^T$, and the control inputs limits are set to $\u_{max} = [60, \, 60]^T$, corresponding to the maximum speed of the two wheels expressed in rad.s$^{-1}$.
 

@@ -14,6 +14,7 @@ Finally, Section~\ref{sec:nn_results} presents the results for the quadrotor and
 
 This chapter is associated to the following publication in ECAI 2024: Wasiela, S., Bouhsain, S. A., Cognetti, M., Cortés, J., and Simeon, T. (2024, October). "Learned Uncertainty Tubes via Recurrent Neural Networks for Planning Robust Robot Motions." In 27th European Conference on Artificial Intelligence (ECAI) (pp. 4385-4392).\footnote{The results presented in this chapter slightly differ from those in the article due to improvements in implementation.}
 
+For clarity, in the following sections of this chapter, methods are referred to in non-bold, and models are referred to in bold (e.g., \textbf{GRU} refers to the proposed GRU-based architecture, and GRU refers to the Gated Recurrent Unit method).
 % Parallelization of ODE (Ordinary Differential Equations) solvers for systems like a quadrotor is indeed possible, but it comes with certain challenges due to the inherent sequential nature of ODE solvers. Each time step generally depends on the previous one, making it difficult to parallelize directly. However, various techniques and strategies can help in parallelizing ODEs, even for small time steps. Let's explore this in more detail.
 % 1. Parallelization in ODE Solvers
 
@@ -178,12 +179,13 @@ This chapter is associated to the following publication in ECAI 2024: Wasiela, S
 \section{ODEs parallelization and learning techniques}\label{sec:learning_overview}
 
 This section begins with an overview of parallelization techniques for \myglsentry{odes}, such as the parareal algorithm~\cite{cParareal}, which aims to accelerate computations by distributing the workload across multiple processors. 
-It then explores "standard" learning approaches related to \myglsentry{odes}, including \gls{pinns} and NeuralODEs, which incorporate the structure and dynamics of differential equations into the learning process. 
+It then explores learning approaches related to \myglsentry{odes}, including \gls{pinns} and NeuralODEs, which incorporate the structure and dynamics of differential equations into the learning process. 
 Finally, the section introduces \myglsentry{rnn}, emphasizing their structural similarities to \myglsentry{odes} and their potential for efficiently modeling temporal and sequential data in the context of dynamical systems.
 
 \subsection{ODEs parallelization}
 
 This section discusses various techniques used to parallelize the computation of \myglsentry{odes}, such as the parareal algorithm~\cite{cParareal}, which divides the solution process into multiple steps to be processed in parallel, improving efficiency.
+
 
 
 While ODE parallelization methods can be useful for speeding up large-scale simulations or off-line computations (such as in scientific simulations), they are generally not well-suited for real-time control applications due to concerns about stability, synchronization, and numerical accuracy. In control systems, it's often more important to focus on stability-preserving numerical integration and real-time performance rather than trying to parallelize the solution of ODEs.
@@ -197,6 +199,7 @@ This section explores learning techniques that directly incorporate the structur
     \item NeuralODEs: A method that treats ODE solvers as neural networks to learn dynamic systems.
     Neural ODEs are useful when we don’t know the system dynamics and want a flexible, data-driven method to model them.
     \item PINNs: A learning framework that embeds the physics governing differential equations into the training process.
+    \item RL: e.g. MPC tube 
 \end{itemize}
 
 \subsection{Learning sequences of data}
@@ -205,6 +208,7 @@ This section discusses learning methods suited for modeling sequences of data, s
 
 \begin{itemize}
     \item Transformers
+    Note that an extensive comparison with Transformers \cite{cTrans} is not performed as they do not benefit from the hidden state when starting predictions from non-zero values, and poorly generalize to longer sequences than those in the training set.
     \item RNNs
 \end{itemize}
 
@@ -275,7 +279,7 @@ The control input values predicted by the neural network are $\u = [u_1 ,\, u_2 
     \centering
     \includegraphics[width=0.9\linewidth]{figures/learning_quadrotor/dataset_generation.png}%
     \caption{Dataset generation process. 
-    Starting from the hovering state $\q_{init}$, at each iteration a new state $\boldsymbol{q_{rand}}$ is randomly sampled and connected to the previous state $\boldsymbol{q_{prev}}$ until a total trajectory length ($T_F$) of 15s is reached.
+    Starting from the hovering state $\q_{init}$, at each iteration a new state $\boldsymbol{q_{rand}}$ is randomly sampled and connected to the previous state $\boldsymbol{q_{prev}}$ until a total distance ($D_T$) equal to $D_{max}$ is reached.
     Data annotation is performed by simulating the tracking of the generated trajectory under nominal parameters.
     }%
     \label{fig: data_generation}%
@@ -291,7 +295,7 @@ Based on the same principle as a sampling-based planner, the global trajectory i
 Each local sub-trajectory is generated by uniformly sampling an arrival state ($\q_{rand}$) and connecting it to the previous sampled state ($\q_{prev}$) using an appropriate local planner, based on the robot being considered.
 If the local trajectory (between $\boldsymbol{q_{rand}}$ and $\boldsymbol{q_{prev}}$) distance (according to the state space metric) is greater than a maximum local distance $d_l$, it is truncated to $d_l$. 
 This maximum local distance refers to the planner maximum local distance (see Section~\ref{sec:samp_simu}).
-Similarly, when the total trajectory distance exceeds $D_{max}$ after adding a new state, it is truncate at $D_{max}$.
+Similarly, when the total distance exceeds $D_{max}$ after adding a new state, it is truncate at $D_{max}$.
 
 To generate the outputs, i.e. to annotate the data with uncertainty tubes and control inputs, the closed-loop dynamic and the sensitivity matrices are computed by simulating the tracking of the global trajectories using an integration time step $\Delta T$ which corresponds to the controller time step.
 The data annotation was performed by computing and integrating the set of \myglsentry{odes} composed of Equation~(\ref{eq:dyna}), Equation~(\ref{eq:ctrl}), and Equation~(\ref{eq:dyna_sensi}) by mean of the Euler \myglsentry{odes} solver along a desired trajectory. 
@@ -307,13 +311,13 @@ Using this mechanism, a training set composed of 8.000 trajectories and a valida
     \begin{tabular}{ | c | c || c |}
     \hline
       \textbf{Output}  & \textbf{Validation set}  & \textbf{Test set} \\ \hline
-    $\Rq$ & $1.0e^{-1} \pm 2.0e^{-2}$ & $1.1e^{-2} \pm 2.1e^{-2}$ \\ \hline
-    $\u$ & $12469.3 \pm 861.6$ & $12476.8 \pm 1016.5$ \\ \hline
-    $\Ru$ & $7782.6 \pm 3172.3$ & $7828.6 \pm 2845.7$ \\ \hline
+    $\Rq$ & $5.8e^{-2} \pm 2.2e^{-2}$ & $6.1e^{-2} \pm 2.3e^{-2}$ \\ \hline
+    $\u$ & $15.1 \pm 1.3$ & $15.7 \pm 1.4$ \\ \hline
+    $\Ru$ & $2.0e^{-1} \pm 7.8e^{-2}$ & $2.0e^{-1} \pm 8.1e^{-2}$ \\ \hline
 \end{tabular}
 \caption{
 Mean and standard deviation of the output vector components norm after data annotation for the validation and test sets for the differential drive robot case.
-$\Rq$ is expressed in \emph{m}, and $(\u, \Ru)$, are squared propeller angular velocities [(rad/s)].}
+$\Rq$ is expressed in \emph{m}, and $(\u, \Ru)$, are wheel angular velocities [(rad/s)].}
  \label{tab:datas_stats_unic}
 \end{table}
 
@@ -327,7 +331,8 @@ The controller gains are $\k_c = [1.5, \, 8.0, \, 0.2]^T$.
 To demonstrate the reliability and generalizability of the learned model, a test set comprising 1.000 trajectories was generated using the same procedure, but with a velocity magnitude of $v_{magn} = 1.1 m.s^{-1}$ for the Dubins curve parametrization. 
 Consequently, the test set includes trajectories with higher velocities than those in the validation set.
 
-The mean and standard deviation values of the various components of the output vector for the validation and test sets generated by this setup are provided in Table~\ref{tab:datas_stats_unic}.
+The mean and standard deviation values of the various components of the output vector for both the validation and test sets generated by this setup are presented in Table~\ref{tab:datas_stats_unic}. 
+These values indicate a slight increase in the norms of all components due to the higher velocities.
 
 \subsubsection{Quadrotor}\label{sec:dataset_quad}
 
@@ -344,7 +349,7 @@ The mean and standard deviation values of the various components of the output v
     \begin{tabular}{ | c | c || c |}
     \hline
       \textbf{Output}  & \textbf{Validation set}  & \textbf{Test set} \\ \hline
-    $\Rq$ & $1.0e^{-1} \pm 2.0e^{-2}$ & $1.1e^{-2} \pm 2.1e^{-2}$ \\ \hline
+    $\Rq$ & $1.0e^{-1} \pm 2.0e^{-2}$ & $1.1e^{-1} \pm 2.1e^{-2}$ \\ \hline
     $\u$ & $12469.3 \pm 861.6$ & $12476.8 \pm 1016.5$ \\ \hline
     $\Ru$ & $7782.6 \pm 3172.3$ & $7828.6 \pm 2845.7$ \\ \hline
 \end{tabular}
@@ -371,9 +376,7 @@ The mean and standard deviation values of the various components of the output v
 \section{Evaluation}\label{sec:nn_eval}
 
 In order to demonstrate the necessity of using a recurrent neural network due to the temporal dependencies of the predictions, a simple \textbf{MLP} baseline is implemented by substituting the recurrent layer with a single-layer linear encoder which takes as input a single element in the sequence and outputs its corresponding predictions.
-
 Also, in order to justify the choice of a \textbf{GRU} architecture, the proposed model is compared to two other versions which replace the GRU block by a basic RNN \cite{cRNN} and an LSTM \cite{cLSTM} block respectively.
-Note that an extensive comparison with Transformers \cite{cTrans} is not performed as they do not benefit from the hidden state when starting predictions from non zero values, and poorly generalize to longer sequences than those in the training set as it is briefly highlighted in Section~\ref{sec:nn_comparaison_unic}.
 
 Finally, in order to measure the computational cost gain achieved by the proposed method and compare the inference time of the neural network to traditional methods, two known \myglsentry{odes} integrators are implemented for computing uncertainty tubes.
 The first is \textbf{dopri5}, which leverages the Runge Kutta-4 algorithm to numerically approximate the solutions to \myglsentry{odes}. 
@@ -415,7 +418,7 @@ The annotations were also normalized using a standard scaling based on the mean 
 
 Finally, after data normalization, the neural networks were trained for 100 epochs using the Adam optimizer \cite{kingma2014adam} with an appropriate learning rate mentioned below and a batch size of 128. 
 The \textbf{RNN},\textbf{LSTM} and \textbf{GRU} models were trained with a hidden state size of 128, a \textbf{MLP} composed of 3 linear layers, and a learning rate of $1e^{-3}$ for the \textbf{RNN}, the \textbf{LSTM} and \textbf{GRU} models.
-Note that an LSTM layer is composed of a hidden state and a cell state (contrarily to GRUs and RNNs which have a hidden state only), so the real LSTM latent state size is 2$\times$64.
+Note that an LSTM layer is composed of a hidden state and a cell state (contrarily to GRUs and RNNs which have a hidden state only), so the real LSTM latent state size is 2$\times$128.
 All used hyper-parameters were validated using a grid search.
 They were trained using the MSE (Mean Squared Error) loss function and evaluated continuously on the validation set. 
 The model weights achieving the best performance on the validation set were saved and used during the experiments.
@@ -437,6 +440,8 @@ The model weights achieving the best performance on the validation set were save
 
 The ODEs were implemented using the JiTCODE \cite{cJit} module which converts the equations to be integrated into C-compiled code.
 The \textbf{Euler} method or the \textbf{dopri5} integrator were then used to solve each ODE and take advantage of this compiled function.
+Note that the \textbf{Euler} method is the one used to solve the \myglsentry{odes} during planning (see Chapter~\ref{chap:samp} and Chapter~\ref{chap:sampNN}).
+Additionally, the \textbf{dopri5} integrator is also considered as a baseline for comparison, as it is a widely used implementation of the Runge-Kutta 4 method.
 
 All following results were obtained on an Intel i9 CPU@2.6GHz processor with one RTX A3000 GPU. 
 
@@ -446,9 +451,67 @@ All following results were obtained on an Intel i9 CPU@2.6GHz processor with one
 
 \subsubsection{Model comparison}\label{sec:nn_comparaison_unic}
 
+Table~\ref{tab:NN_results_table_Q_unic} reports the MAE for the different output vector components on the validation and test sets. 
+Firstly, one can note how the simple \textbf{MLP} model provides poor prediction accuracy across all components in both the validation and test sets.
+This suggests that the \textbf{MLP} struggles to capture the strong temporal dependencies between inputs and outputs.
+Consequently, the \textbf{MLP} shows the highest deviation from the ground truth values, as reported in Table~\ref{tab:datas_stats}, with deviations reaching up to 30\% for the $\Rq$ component in the validation set, and 32\% for the $\Ru$ component in the test set.
+
+As for recurrent networks, the \textbf{RNN} demonstrates the poorest performance, with errors reaching up to 7\% on the validation set and 11\% on the $\Ru$ components of the test set.
+The \textbf{GRU} and \textbf{LSTM} models exhibit comparable accuracy overall. 
+However, the \textbf{GRU} slightly outperforms on the validation set, achieving only a 1\% deviation on both the $\Rq$ and $\Ru$ components, compared to the \textbf{LSTM}, which shows a 2\% deviation on $\Ru$.
+While the \textbf{LSTM} generalizes better on $\Ru$ according to the results over the test set, the \textbf{GRU} achieves superior generalization on $\Rq$ and $\u$, making it the most robust model overall.
+It is worth noting that the deviations observed on the test set are a bit high, reaching up to 6\% for the \textbf{GRU}. 
+This indicates a slight overfitting of the model to the validation set.
+
+Nevertheless, in a sampling-based context, the model accuracy alone is not sufficient as a performance metric.
+As discussed in Section~\ref{sec:metric}, it is also essential to compare the inference time of the various models with the time required to integrate the \myglsentry{odes} using standard methods.
+Table~\ref{tab:timepred_unic} shows the results obtained on trajectories of several hundred states. 
+Note that with the current system, the number of ordinary equations solved for each element in the sequence (i.e. trajectory state) is equal to 16.
+The results indicate that the average prediction gain time for neural networks is approximately of an order of magnitude compared to the \textbf{Euler} and \textbf{dopri5} methods. 
+Additionally, note that even if the inference time appears to scale linearly with the number of time steps to be integrated, the time savings become increasingly significant with the number of states. 
+Specifically, the \textbf{GRU} achieves a speedup of 15 times compared to \textbf{Euler} for 100 states, and this advantage grows to 35 times for 300 states.
+
+In conclusion, the \textbf{GRU} emerges as the most suitable model for sampling-based applications, offering the best balance between accuracy and inference time. 
+While the \textbf{RNN} is the fastest, its accuracy is the lowest among the three recurrent architectures. 
+On the other hand, the \textbf{LSTM} achieves accuracy comparable to the \textbf{GRU} but is slower in terms of inference speed.
+
 \input{figures/tables/NN_unic_model_comp.tex}
 
 \subsubsection{Qualitative results}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.99\linewidth]{figures/learning_unic/all_models_labeled.jpg} 
+    \caption{Comparison of predictions obtained using the different recurrent neural network architectures as well as the \textbf{MLP} on a 300-state trajectory of the test set for the differential drive robot case. 
+    $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. 
+    True values are displayed in black, \textbf{GRU} predictions in blue, \textbf{MLP} predictions in purple, \textbf{LSTM} outputs in yellow, and basic \textbf{RNN} predictions are in red.}
+    \label{fig:all_models_pred_val_unic}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \begin{minipage}{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/learning_unic/pred_val_1_labeled.jpg}
+    \end{minipage}
+    \begin{minipage}{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/learning_unic/pred_val_2_labeled.jpg}
+    \end{minipage}\\
+    \caption{Example of \textbf{GRU} predictions on a 300-state trajectory of the validation set. 
+    Predicted outputs are displayed in blue against true values in black. $r_{x}, r_{y}$ are expressed in $m$, and control input associated values ($u_{i},r_{ui}$) are wheel angular velocities [(rad/s)].}
+    \label{fig:pred_val_unic}
+\end{figure}
+
+This section presents qualitative results for differential drive robot.
+Firstly, Figure~\ref{fig:all_models_pred_val_unic} illustrates the predictions of the \textbf{RNN}, \textbf{GRU}, \textbf{LSTM}, and \textbf{MLP} models on a 300-state trajectory from the test set.
+It is noticeable that the \textbf{MLP} model provides poor accuracy, as discussed in Section~\ref{sec:nn_comparaison_unic}.
+However, one can note its averaging behavior.
+Additionally, the \textbf{GRU} and \textbf{LSTM} models perform similarly across all tasks, while the \textbf{RNN} shows lower performance and tends to underestimate the variations.
+However, a slight resulting offset can be observed on the \textbf{GRU} and \textbf{LSTM} predictions, denoting of the slight overfitting as mentioned in Section~\ref{sec:nn_comparaison_unic} due to higher speed encountered in the test set.
+
+However, this slight overfitting is not an issue for the proposed model application, since in the sampling-based context the trajectories encountered are more likely to match those of the validation set rather than those of the test set.
+Figure~\ref{fig:pred_val_unic} shows the predictions for all output components independently, for a 300-state trajectory from the validation set.
 
 \subsection{Quadrotor}\label{sec:nn_results_quad}
 
@@ -457,7 +520,7 @@ All following results were obtained on an Intel i9 CPU@2.6GHz processor with one
 \input{figures/tables/NN_quad_model_comp.tex}
 
 Table~\ref{tab:NN_results_table_Q} reports the MAE for the different output vector components on the validation and test sets. 
-First of all, note that the \textbf{MLP} provides a poor performance, confirming the need for a recurrent neural network.
+First of all, note that the \textbf{MLP} again demonstrates a poor performance, as previously shown in Section~\ref{sec:nn_results_unic}, confirming the need for a recurrent neural network.
 A deviation of up to 30\% from the average expected values (cf. Table~\ref{tab:datas_stats}) is observed in the validation and test sets.
 
 Among recurrent models, \textbf{RNN} offers the least accurate predictions, with up to 7\% error on the $\boldsymbol{r_u}$ components of the test set.
@@ -472,18 +535,17 @@ Moreover, the latter shows a better generalization to unseen trajectories that a
 
 In order to choose the most advantageous model or method for computing uncertainty tubes in terms of prediction time, the methods/models are applied to trajectories of different lengths (i.e. made up of a certain number of desired states). 
 Table~\ref{tab:timepred} shows the results obtained on trajectories of several hundred states. 
-Note that with the current system, the number of ordinary equations solved for each element in the sequence (i.e. trajectory state) is equal to 91 (see Sect.~\ref{sec: sensi}).
-We observe that the greater the length of the trajectory to be integrated, the greater the gap between ODEs solver methods and neural networks in average prediction time.
-Results show that as the number of states in the trajectory increases, the time gain reaches two orders of magnitude using recurrent neural network architectures.
-We also note that among these models, \textbf{RNN} is the fastest to perform the predictions, which is explained by the fact that the network size is smaller than \textbf{LSTM}, and the \textbf{RNN} cell performs fewer internal operations than the \textbf{GRU} cell.
-In a robust sampling-based motion planning context, the neural network is meant to be queried tens of thousands of times on multi-states trajectories.
-Hence, these observed gains can be exponential depending on the number of trajectories to be evaluated.
+Note that with the current system, the number of ordinary equations solved for each element in the sequence (i.e. trajectory state) is equal to 91.
+The results indicate that the average prediction time for neural networks is an order of magnitude faster compared to the \textbf{Euler} method and over ten times faster than the \textbf{dopri5} integrator. 
+Additionally, the computing times for all methods exhibit an approximately linear relationship with the number of states in the trajectory.
+Also note that among these models, \textbf{RNN} is the fastest to perform the predictions, which is explained by the fact that the network size is smaller than \textbf{LSTM}, and the \textbf{RNN} cell performs fewer internal operations than the \textbf{GRU} cell.
+In the context of robust sampling-based motion planning, where the neural network needs to be queried tens of thousands of times for multi-state trajectories, the observed gains in computation time can become much more significant as the number of trajectories to be evaluated increases.
 
 Finally, even if \textbf{RNN} excels in inference time when making predictions; its accuracy is noticeably lower when contrasted with that of \textbf{GRU}.
 As for the \textbf{LSTM}, it provides the slowest inference time and less accurate predictions than the \textbf{GRU}, except for the $\Ru$ component of the validation set.
 Additionally, its hidden state implementation results in twice as many parameters having to be saved per sampling-based motion planner iteration compared to \textbf{GRU}, which translates by a higher memory cost when growing trees or graphs with thousands of nodes.
-Therefore, based on the models implementation details and results presented above, the use of \textbf{GRU} is recommended in the context of a sampling-based motion planner.
-Indeed, the latter is much faster than methods based on ODEs solvers while offering the most accurate predictions, thus offering the best trade-off between inference time and accuracy.
+Therefore, based on the model implementation details and results presented above, the use of \textbf{GRU} is recommended in the context of a sampling-based motion planner for the quadrotor application.
+Indeed, the latter is much faster than methods based on \myglsentry{odes} solvers while offering the most accurate predictions, thus offering the best trade-off between inference time and accuracy.
 
 \subsubsection{Ablation study}
 
@@ -516,7 +578,7 @@ Another dynamical system might need a different set of inputs to obtain accurate
 
 \subsubsection{Qualitative results}
 
-\begin{figure}[b]
+\begin{figure}[t]
     \centering
     \includegraphics[width=0.99\linewidth]{figures/learning_quadrotor/long_pred.png}
     \caption{Example of \textbf{GRU} predictions on a 600-state trajectory generated in the same way as the test set. $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. Predicted outputs are displayed in blue against true values in black. $||\Rq||$ is expressed in $m$, and control input associated values ($||\u||,||\Ru||)$ are squared propeller angular velocities [(rad/s)²].}
@@ -525,28 +587,37 @@ Another dynamical system might need a different set of inputs to obtain accurate
 
 \begin{figure}[t]
     \centering
-    \begin{subfigure}{0.49\linewidth}
-         \centering
-    \includegraphics[width=\linewidth]{figures/learning_quadrotor/pred_u.png}
-    \includegraphics[width=\linewidth]{figures/learning_quadrotor/pred_rx.png}
-    \end{subfigure}
-    \begin{subfigure}{0.49\linewidth}
-         \centering
-    \includegraphics[width=\linewidth]{figures/learning_quadrotor/pred_ru.png}
-    \includegraphics[width=\linewidth]{figures/learning_quadrotor/pred_ry.png}
-    \end{subfigure}
-    \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/pred_rz.png}
+    \begin{minipage}{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/learning_quadrotor/pred_u.jpg}\\
+        \includegraphics[width=\linewidth]{figures/learning_quadrotor/pred_rx.jpg}
+    \end{minipage}
+    \begin{minipage}{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/learning_quadrotor/pred_ru.jpg}\\
+        \includegraphics[width=\linewidth]{figures/learning_quadrotor/pred_ry.jpg}
+    \end{minipage}\\
+    \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/pred_rz.jpg}
     \caption{Example of \textbf{GRU} predictions on a 300-state trajectory of the test set. 
     Predicted outputs are displayed in blue against true values in black. $r_{x}, r_{y}, r_{z}$ are expressed in $m$, and control input associated values ($u_{i},r_{ui}$) are squared propeller angular velocities [(rad/s)²].}
     \label{fig:pred_test}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=0.8\linewidth]{figures/learning_quadrotor/all_models.png}
+    \includesvg[width=0.99\linewidth]{figures/learning_quadrotor/all_models.svg} 
     \caption{Comparison of predictions obtained using the different recurrent neural network architectures as well as the \textbf{MLP} on a 300-state trajectory of the test set. $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. 
     True values are displayed in black, \textbf{GRU} predictions in blue, \textbf{MLP} predictions in purple, \textbf{LSTM} outputs in yellow, and basic \textbf{RNN} predictions are in red.}
     \label{fig:MLP_pred_val}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.99\linewidth]{figures/learning_quadrotor/non_zero_hidden.jpg} 
+    \caption{Example of \textbf{GRU} predictions on a 150-state trajectory of the test set starting from a non-zero hidden state.
+    $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. 
+    True values are displayed in black and \textbf{GRU} predictions in blue.}
+    \label{fig:non_zero_hidden}
 \end{figure}
 
 The robust generalization of the \textbf{GRU} model to the test set is highlighted in Figure~\ref{fig:pred_test}, depicting predictions for all the components of the output vector for a trajectory composed of 300 states (i.e. $T_F=15s$).
@@ -558,12 +629,17 @@ In addition to the results discussed in Section~\ref{sec:nn_comparaison_quad}, F
 In comparison, the \textbf{GRU} model is able to accurately predict the control inputs and the uncertainty tube across the whole trajectory. 
 Also note a close performance between \textbf{GRU} and \textbf{LSTM} on all tasks, while \textbf{RNN} lags behind and tends to underestimate large variations of control uncertainty tubes $\Ru$.
 
-Finally, in order to show the stability of the proposed method, Figure~\ref{fig:long_test} depicts the norm of predicted vectors for a 600-state trajectory generated in the same way as the test set but considering a total length of 30s (i.e. $T_F=30s$).
+In order to show the stability of the proposed method, Figure~\ref{fig:long_test} depicts the norm of predicted vectors for a 600-state trajectory generated in the same way as the test set but considering a total length of 30s (i.e. $T_F=30s$).
 Note that this trajectory is twice as long as those used in training, validation and test sets.
 The results show the same behavior in transient phases where higher velocities are encountered.
 However, one can observe that the model is consistent throughout longer sequences even with a different distribution from the one it was trained one. 
+
+Finally, Figure~\ref{fig:non_zero_hidden} highlights the ability of the proposed model to provide predictions with good accuracy when starting from non-zero hidden state. 
 This is convenient in a sampling-based motion planning context, where successive local trajectories must be evaluated.
 Note that, in the dataset all trajectories start from a hovering state (i.e., null velocities and accelerations). 
 Hence, in order to generalize to trajectories where initial velocities and accelerations are not null one can simply append a planned sub-trajectory arriving at this initial state and starting from the hovering state.
 
 \section{Conclusion} \label{sec:NN_concl}
+
+
+Cool but depend to robot models, a good between may be GPU acceleration to investigate.

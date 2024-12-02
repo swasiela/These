@@ -16,7 +16,6 @@
 {\textbf{LSTM}} & $4.3e^{-3}$ & $5.6e^{-1}$ & $\boldsymbol{9.4e^{-3}}$ \\ 
 {\textbf{GRU}} & $\boldsymbol{3.3e^{-3}}$ & $5\boldsymbol{.0e^{-1}}$ & $1.4e^{-2}$ \\ 
 \hline
-    
 \end{tabular}
 \caption{
 MAE on the $\boldsymbol{r_q}$, $\boldsymbol{u}$ and $\boldsymbol{r_u}$ components of the output vector computed on the validation and test sets for a trained RNN, GRU, and LSTM model, for the differential drive robot.}
@@ -28,11 +27,11 @@ MAE on the $\boldsymbol{r_q}$, $\boldsymbol{u}$ and $\boldsymbol{r_u}$ component
 \begin{tabular}{ | c | c  c  c | }
 \hline
     \textbf{Time (ms)} & 100 states  & 200 states & 300 states \\ \hline
-    $T_{euler}$ & $63.9 \pm 18.3$ & $136.7 \pm 29.9$ & $260.5 \pm 38.0$ \\ 
-$T_{dopri5}$ & $251.7 \pm 17.3$ & $537.2 \pm 29.8$ & $755.6 \pm 34.5$ \\ 
-$T_{RNN}$ & $\boldsymbol{0.9} \pm 0.3$ & $\boldsymbol{1.8} \pm 0.3$ & $\boldsymbol{2.2} \pm 0.5$ \\ 
-$T_{LSTM}$ & $2.5 \pm 0.3$ & $4.8 \pm 0.3$ & $7.7 \pm 0.8$ \\ 
-$T_{GRU}$(ours) & $2.1 \pm 0.2$ & $4.3 \pm 0.3$ & $5.8 \pm 0.4$  \\ \hline
+    $T_{euler}$ & $6.1 \pm 0.1$ & $12.0 \pm 0.1$ & $19.3 \pm 0.5$ \\ 
+$T_{dopri5}$ & $8.5 \pm 0.4$ & $16.8 \pm 0.6$ & $23.9 \pm 0.6$ \\ 
+$T_{RNN}$ & $\boldsymbol{3.2e^{-1}} \pm 4.9e^{-1}$ & $\boldsymbol{3.7e^{-1}} \pm 4.7e^{-1}$ & $\boldsymbol{4.7e^{-1}} \pm 5.2e^{-1}$ \\ 
+$T_{LSTM}$ & $4.1e^{-1} \pm 4.6e^{-1}$ & $6.9e^{-1} \pm 5.1e^{-1}$ & $9.2e^{-1} \pm 4.9e^{-1}$ \\ 
+$T_{GRU}$ & $3.9e^{-1} \pm 6.4e^{-1}$ & $4.4e^{-1} \pm 5.5e^{-1}$ & $5.6e^{-1} \pm 5.9e^{-1}$  \\ \hline
 \end{tabular}
 \caption{
 Average prediction time (ms) over 100 predictions on trajectories composed of 100 states, 200 states and 300 states, for an \textbf{RNN}, \textbf{GRU}, \textbf{LSTM}, the \textbf{Euler} integrator, and the \textbf{dopri5} integrator, for the differential drive robot.}
