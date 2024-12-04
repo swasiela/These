@@ -4,217 +4,107 @@
 
 This chapter introduces the second major contribution of this thesis: a deep learning approach for rapidly and accurately estimating sensitivity-based uncertainty tubes. 
 As demonstrated in Chapter~\ref{chap:samp}, the computation of such tubes using \myglsentry{odes} considerably reduces the efficiency of sampling-based methods, particularly for complex systems.
-To overcome this limitation, this chapter introduces a method based on \gls{rnn} to eliminate the dependency on solving \myglsentry{odes}.
-By leveraging structural similarities between \myglsentry{odes} and \myglsentry{rnn}, the proposed neural network architecture achieves significantly faster predictions of uncertainty tubes compared to traditional solvers, thereby improving computational efficiency while maintaining accuracy.
+To overcome this limitation, this chapter introduces a method based on \gls{rnns} to eliminate the dependency on solving \myglsentry{odes}.
+By leveraging structural similarities between \myglsentry{odes} and \myglsentry{rnns}, the proposed neural network architecture achieves significantly faster predictions of uncertainty tubes compared to traditional solvers, thereby improving computational efficiency while maintaining accuracy.
 
 This chapter is organized as follows: Section~\ref{sec:learning_overview} begins with an overview of parallelization techniques for \myglsentry{odes} and learning methods for \myglsentry{odes}.
 Section~\ref{sec:method} details the proposed method, including the neural network architecture and dataset generation process. 
 Evaluation metrics, training procedures, and implementation details are discussed in Section~\ref{sec:nn_eval}. 
 Finally, Section~\ref{sec:nn_results} presents the results for the quadrotor and differential drive robot, while Section~\ref{sec:concl} concludes the chapter.
 
-This chapter is associated to the following publication in ECAI 2024: Wasiela, S., Bouhsain, S. A., Cognetti, M., Cortés, J., and Simeon, T. (2024, October). "Learned Uncertainty Tubes via Recurrent Neural Networks for Planning Robust Robot Motions." In 27th European Conference on Artificial Intelligence (ECAI) (pp. 4385-4392).\footnote{The results presented in this chapter slightly differ from those in the article due to improvements in implementation.}
-
 For clarity, in the following sections of this chapter, methods are referred to in non-bold, and models are referred to in bold (e.g., \textbf{GRU} refers to the proposed GRU-based architecture, and GRU refers to the Gated Recurrent Unit method).
-% Parallelization of ODE (Ordinary Differential Equations) solvers for systems like a quadrotor is indeed possible, but it comes with certain challenges due to the inherent sequential nature of ODE solvers. Each time step generally depends on the previous one, making it difficult to parallelize directly. However, various techniques and strategies can help in parallelizing ODEs, even for small time steps. Let's explore this in more detail.
-% 1. Parallelization in ODE Solvers
 
-% ODE solvers like Runge-Kutta, Euler, or Adams-Bashforth typically compute solutions in a time-stepping manner, where each step depends on the solution from the previous step. This sequential dependency makes it hard to directly parallelize time integration.
-
-% However, some strategies can parallelize parts of the problem:
-% 1.1 Parallelizing the Evaluation of Derivatives
-
-% The right-hand side (RHS) of the ODE system (i.e., the function that describes the system's dynamics) can often be parallelized if it involves multiple independent computations. For example, in a quadrotor, if the dynamics involve complex matrix operations, vector algebra, or sensor models, these computations can be parallelized across multiple cores or even on a GPU.
-% 1.2 Domain Decomposition for Parallelization
-
-% This approach involves splitting the physical domain or the variables of the system and solving them in parallel. For a quadrotor, domain decomposition may not apply as easily as it would for a large physical domain problem (like fluid dynamics), but it could still be used if the quadrotor's dynamics are complex and involve interacting subsystems. For instance, rotor dynamics, attitude control, and position dynamics could potentially be solved in parallel if they are weakly coupled.
-% 1.3 Multiple Shooting or Parareal Algorithms
-
-% These methods introduce parallelization by splitting the time domain into multiple intervals and solving the ODE in parallel on each subinterval.
-
-%     Parareal Algorithm: This method allows for parallel time integration by solving coarse approximations over large time intervals in parallel, followed by corrections using fine time steps. While the fine steps remain sequential, the coarse steps can be parallelized. The Parareal method is well-suited for large-scale systems but might be overkill for small systems like a quadrotor, especially with small time steps.
-
-%     Multiple Shooting: In this technique, the time domain is divided into smaller intervals, and the ODE is solved independently in each interval. The solutions are then stitched together using boundary conditions. This method is typically used for stiff ODE problems or optimization-based control (like Model Predictive Control).
-
-% 1.4 Parallel Integration of Different States
-
-% In some cases, the state variables of a system might evolve independently or with weak coupling, allowing for parallel integration of different states. For a quadrotor, some aspects of the dynamics (e.g., attitude and position) could potentially be integrated separately in parallel, especially if the time scales are slightly different.
-% 2. Time-Stepping Constraints and Relaxation
-
-% You mentioned time-step constraints. In ODE solvers, especially explicit solvers like Runge-Kutta or Euler, the time step size is usually limited by stability constraints (e.g., Courant-Friedrichs-Lewy (CFL) condition for PDEs or step size for stiff ODEs).
-
-%     Relaxing Time-Step Constraints: Parallelization techniques like Parareal introduce time-step relaxation by allowing coarse-grain parallel computations over larger time intervals, then correcting with smaller steps sequentially. This is useful for accelerating convergence in large-scale simulations with longer time horizons.
-
-%     Using Small Time Steps in Parallelization: If your goal is to maintain small time steps (e.g., for accuracy, stability, or real-time control in a quadrotor), relaxation-based methods might not be as helpful. However, parallelization can still help in other ways:
-%         Task-based Parallelism: Use parallel computing resources to speed up the evaluation of forces, torques, control inputs, sensor models, or optimization procedures (if using real-time control).
-%         Predictor-Corrector Methods: These methods can use a fast, coarse-grained predictor step, followed by parallel corrections that refine the solution. The corrections can be done in parallel with small time steps, making it more suitable for small time steps.
-%         Parallelization of Subsystems: Parallelizing distinct components of the quadrotor's dynamics (e.g., thrust dynamics, rotational dynamics, or environmental interactions) can improve computational efficiency while keeping the same small time steps.
-
-% 3. Maintaining Small Time Steps in Parallelization
-
-% To directly answer your question, you can use parallelization techniques while keeping small time steps, but the degree of parallelization might be more limited compared to approaches where time steps are relaxed. The most promising approaches in this scenario would be:
-
-%     Parallel evaluation of the system's dynamics: Evaluating the dynamics (i.e., the forces and moments) in parallel could reduce computation time significantly, especially if your quadrotor model involves complex dynamics (e.g., aerodynamic drag, rotor dynamics, etc.).
-
-%     Task-level parallelism: In real-time control applications, parallelizing sensor fusion, state estimation, and control computations (while maintaining small time steps) can improve performance.
-
-%     Multiple shooting methods: Even with small time steps, the multiple shooting method can potentially parallelize certain segments of the time domain, but you'd need to stitch together the results carefully, ensuring stability.
-
-% Conclusion
-
-% While parallelization techniques like Parareal or Multiple Shooting often involve relaxing time-step constraints, it is still possible to parallelize certain parts of the quadrotor's ODE solver without relaxing the small time-step constraints. You can achieve this by focusing on parallelizing the evaluation of the system's dynamics, using task-level parallelism, or exploiting weakly coupled subsystems. However, the benefit of parallelization will likely be more constrained compared to systems where time-step constraints are relaxed.
-
-% 3. Challenges of Using Parareal for Control Stability
-
-% The Parareal method works by first running a coarse-grained simulation with larger time steps, followed by corrections using finer time steps. If the coarse solver uses large time steps, it could violate the control stability requirements during the initial stages of the Parareal iterations. This would make it unsuitable for real-time control if the initial approximation (coarse solver) is far from accurate, as the control system relies on frequent updates.
-
-
-
-% Your GRU (Gated Recurrent Unit) neural network might be faster than other methods for solving an ODE on a CPU for several reasons related to its structure and the way neural networks handle data. The efficiency of GRU in this context largely depends on the number of operations it performs and how well it's optimized for CPU computations. Let's break it down:
-% Why GRU is Faster for ODE Solving on CPU:
-
-%     Fewer Parameters: GRUs are known for their simplicity compared to other recurrent neural networks (RNNs) like LSTMs. GRUs have fewer gates and parameters, making them computationally cheaper.
-%         GRUs have only two gates (reset and update), while LSTMs have three gates (input, forget, output), which translates to fewer matrix multiplications per time step.
-%         Fewer parameters also mean less memory consumption, which reduces the computational load when training or running the model.
-
-%     Parallelism: Neural networks, including GRUs, can be structured in such a way that they process multiple data points (or time steps) in parallel, especially during training or inference. This can make GRUs more efficient than traditional methods for solving ODEs, such as Runge-Kutta, which might be more sequential in nature.
-
-%     Reduced Complexity of Time-Stepping:
-%         Numerical methods for solving ODEs, such as Runge-Kutta or implicit methods, often involve multiple function evaluations at each time step. GRUs, however, learn a representation of the system's dynamics, effectively "learning" a function approximation, which can be faster at runtime.
-%         GRUs can use a single pass per time step (or batch of time steps), while traditional solvers may require many steps or iterations at each point.
-
-
-% Model Type	Inference Time	Remarks
-% RNN (GRU, LSTM)	Faster	Efficient for discrete, regular time steps; fixed computation per time step
-% Neural ODE	Slower	Inference depends on ODE solver complexity and system dynamics
-
-% In most practical scenarios, RNNs (GRUs, LSTMs) will offer faster inference compared to Neural ODEs due to the absence of ODE solvers and the simpler, more direct nature of their computations. Neural ODEs are more suited for scenarios where continuous dynamics are the priority, but this often comes at the cost of slower inference times.
-
-% Time Steps vs. ODE Solver Integration:
-
-%     In RNNs, the number of time steps is fixed, and you perform one forward pass per time step.
-%     In Neural ODEs, the time steps are determined by the ODE solver, which can be adaptive. The solver may take many small steps or fewer large steps, depending on the system's complexity.
-
-%     RNNs (GRU, LSTM, etc.):
-
-%     RNNs are designed to handle discrete time sequences. They take input in the form of a time series with fixed time steps (e.g., t1,t2,t3,...) and learn to map these discrete states over time.
-%     RNNs operate by passing hidden states from one time step to the next, effectively modeling the temporal correlations in the data.
-%     LSTMs and GRUs are specific variants of RNNs that improve on the basic RNN structure by addressing the problem of vanishing/exploding gradients in long sequences. They do this using gating mechanisms that control the flow of information through time.
-%     Since RNNs work with fixed time steps, they model time as discrete, and handling continuous dynamics requires fine-tuning, such as choosing a time step size.
-
-% Neural ODEs:
-
-%     Neural ODEs, on the other hand, model continuous-time dynamics. They replace the discrete sequence of states (as in RNNs) with a differential equation for the hidden states:
-%     dh(t)dt=f(h(t),t,θ)
-%     dtdh(t)=f(h(t),t,θ) where ff is a neural network and θθ are its parameters. The dynamics evolve continuously over time, and you can evaluate the state at any arbitrary time tt, not just at predefined discrete steps.
-%     Neural ODEs use ODE solvers to numerically integrate the system over time, allowing for flexible handling of varying time steps and even irregular or non-uniform time intervals.
-
-
-% The use of a simple GRU architecture instead of Neural ODEs or Physics-Informed Neural Networks (PINNs) to approximate ODE solutions in the context of the paper by Wasiela et al. likely stems from several practical advantages that GRUs offer, particularly in the domain of real-time robot motion planning and control. Here are the key reasons and advantages of this choice:
-%     1. Efficiency and Simplicity in Real-Time Applications
-    
-%     GRUs are known for their computational efficiency, especially in real-time applications like robotics where fast decision-making is crucial. A GRU-based model can be trained relatively easily and deployed quickly for inference, allowing the robot to plan and adjust its motions on the fly.
-    
-%         Fewer Parameters: Compared to models like Neural ODEs or more complex recurrent architectures, GRUs have a simpler structure and fewer parameters, making them faster and more efficient during inference. This makes GRUs particularly well-suited for tasks where real-time performance is required, such as robot motion planning.
-    
-%     2. Handling Sequential Data with Temporal Dependencies
-    
-%     GRUs are designed to handle sequential data and are efficient at modeling temporal dependencies, which are common in dynamical systems. In the context of approximating ODEs for robot motion, where states evolve over time, GRUs can track the evolving state of the robot and make predictions about future states efficiently.
-    
-%         Unlike Neural ODEs, which require solving differential equations iteratively through a solver, GRUs can directly approximate the state transitions (i.e., how the system evolves in time) in a single forward pass per time step, making them faster for inference.
-    
-%     3. Avoiding the Complexity of ODE Solvers
-    
-%     Neural ODEs, while powerful, often rely on the use of ODE solvers during training and inference, which can be computationally expensive and require adaptive step sizes. These solvers often need to balance accuracy with computational speed, which can become a bottleneck in real-time applications.
-    
-%         GRUs, in contrast, do not require iterative solvers to propagate forward in time. Once trained, a GRU can generate the next state in the sequence in a single step, leading to much faster performance, especially in resource-constrained environments like robotics.
-    
-%     4. Flexibility and Generalization
-    
-%     GRUs are flexible in terms of what kind of sequential data they can handle. Unlike Physics-Informed Neural Networks (PINNs), which integrate physical constraints directly into the learning process (requiring knowledge of the system’s physics and explicit boundary conditions), GRUs can approximate ODEs without needing explicit knowledge of the underlying physical laws.
-    
-%         This makes GRUs a more flexible and practical choice when the goal is to approximate the system’s behavior based on empirical data, rather than being strictly bound to physical laws or differential equations. This is especially useful in real-world scenarios where the system dynamics may be complex or partially unknown.
-    
-%     5. Data-Driven Approach with Learned Dynamics
-    
-%     In applications where data-driven approaches are preferred (such as when the robot's environment is highly dynamic or uncertain), GRUs can learn to model the system’s dynamics based purely on input-output data without needing a detailed mathematical model.
-    
-%         Neural ODEs and PINNs require knowledge of the system’s governing equations (or their differential form), which may not always be available or easy to define in the context of robot motion planning with uncertainties. A GRU can capture complex non-linear dynamics without needing to explicitly model the differential equations.
-    
-%     6. Handling Uncertainty and Robustness
-    
-%     In the paper, the GRU is used to model Learned Uncertainty Tubes, which suggests that the authors are dealing with uncertain environments and need a way to account for this uncertainty in planning robust robot motions. GRUs are good at capturing uncertainty in sequential predictions because of their inherent ability to model and propagate information over time.
-    
-%         GRUs can be trained to model not just the system's trajectory, but also the potential deviations or uncertainties in future states. This allows the GRU-based model to handle uncertain environments more robustly and efficiently, which may be harder to achieve with Neural ODEs or PINNs due to the complexity of integrating uncertainty into those frameworks.
-    
-%     7. Empirical Success and Ease of Implementation
-    
-%     Another reason for choosing GRUs could simply be their empirical success in time-series forecasting and modeling dynamic systems. They are widely used and have proven to work well in practice. Additionally, GRUs are easier to implement and train compared to Neural ODEs or PINNs, which often require more sophisticated training setups, custom loss functions, and solvers.
-%     Summary of Advantages of Using GRUs over Neural ODEs or PINNs:
-    
-%         Faster inference: GRUs don't need iterative ODE solvers, making them more efficient for real-time applications.
-%         Simplicity: GRUs are simpler to implement and require fewer resources compared to Neural ODEs or PINNs.
-%         Good at handling sequential data: GRUs excel at modeling time-series data and can approximate temporal dependencies effectively.
-%         Data-driven and flexible: GRUs can approximate the dynamics of a system without needing a detailed mathematical model of the underlying physics.
-%         Handling uncertainty: GRUs are well-suited for modeling uncertainty in robot motion planning, as they can track evolving dynamics and uncertainties over time.
-    
-%     By using GRUs, the authors likely balance between achieving real-time performance, modeling complex dynamics, and managing uncertainties—all essential for robust robot motion planning.
-
-%     You're absolutely right. Since the authors in the mentioned paper want to bypass the ODEs and avoid calling traditional solvers (like Euler, Runge-Kutta, etc.), Neural ODEs (NODEs) are not suitable because NODEs inherently rely on ODE solvers during inference. Let's now consider whether Physics-Informed Neural Networks (PINNs) could be an alternative, given the situation.
-%     Why PINNs Might Not Be the Right Fit in This Context
-    
-%     Even though PINNs integrate known ODEs into the learning process, there are several reasons why they might not be the best choice for this particular case where the authors want to completely bypass the ODEs:
-    
-%     2. PINNs May Not Be as Efficient in Real-Time
-    
-%         PINNs often require more computational resources and longer training times because they solve ODEs in a way that enforces the governing equations (through residuals and constraints). This can lead to slower inference times compared to using something like a GRU, which is purely data-driven and bypasses both the explicit and implicit use of ODEs.
-    
-%         In the context of robot motion planning—which requires fast, real-time predictions—PINNs might be overkill or too computationally demanding for the purpose, especially when the focus is on efficient approximation of motion without solving differential equations explicitly.
-    
-%     3. PINNs Are Better Suited When Physics Constraints Are Critical
-    
-%         PINNs excel when you want to incorporate physical constraints or laws explicitly during learning, particularly when data is sparse or noisy. However, in the case where the authors want to approximate the ODEs using a simple data-driven approach (like a GRU), it suggests that they are prioritizing speed and simplicity over strict adherence to the physics.
-    
-%         If the authors are confident that the GRU can capture the dynamics without relying on the exact physical laws during inference, then the use of PINNs—which are designed to enforce those physical laws—becomes unnecessary.
+This chapter is associated to the following publication in ECAI 2024: Wasiela, S., Bouhsain, S. A., Cognetti, M., Cortés, J., and Simeon, T. (2024, October). "Learned Uncertainty Tubes via Recurrent Neural Networks for Planning Robust Robot Motions." In 27th European Conference on Artificial Intelligence (ECAI) (pp. 4385-4392).\footnote{The results presented in this chapter slightly differ from those in the article due to improvements in implementation.}
 
 \section{ODEs parallelization and learning techniques}\label{sec:learning_overview}
 
-This section begins with an overview of parallelization techniques for \myglsentry{odes}, such as the parareal algorithm~\cite{cParareal}, which aims to accelerate computations by distributing the workload across multiple processors. 
+This section begins with an overview of parallelization techniques for \myglsentry{odes}, such as the Parareal algorithm~\cite{cParareal}, which aims to accelerate computations by distributing the workload across multiple processors. 
 It then explores learning approaches related to \myglsentry{odes}, including \gls{pinns} and NeuralODEs, which incorporate the structure and dynamics of differential equations into the learning process. 
-Finally, the section introduces \myglsentry{rnn}, emphasizing their structural similarities to \myglsentry{odes} and their potential for efficiently modeling temporal and sequential data in the context of dynamical systems.
+Finally, the section introduces \myglsentry{rnns}, emphasizing their structural similarities to \myglsentry{odes} and their potential for efficiently modeling temporal and sequential data in the context of dynamical systems.
+
+The set of \myglsentry{odes} that has to be computationally speed up has the following intrinsic structure within a single time step: Equation~(\ref{eq:ctrl}) computes the control inputs, Equation~(\ref{eq:dyna}) updates the robot state, and Equation~(\ref{eq:dyna_sensi}) computes the sensitivity matrices before projecting them to derive the uncertainty tubes (see Equation~(\ref{eq:radius})). 
 
 \subsection{ODEs parallelization}
 
-This section discusses various techniques used to parallelize the computation of \myglsentry{odes}, such as the parareal algorithm~\cite{cParareal}, which divides the solution process into multiple steps to be processed in parallel, improving efficiency.
+This section discusses various techniques used to parallelize the computation of \myglsentry{odes}, such as the Parareal algorithm~\cite{cParareal}, which divides the solution process into multiple steps to be processed in parallel, improving efficiency.
 
+\begin{itemize}
+    \item The first and most straightforward approach to parallelizing the \myglsentry{odes} is to compute each equation in parallel across different threads, exploiting the decoupling between the equations. 
+    However, in the current set, each equation depends on the outputs of the preceding one within a single time step.
+    Additionally, certain robot dynamics exhibit inherent coupling (e.g., for a quadrotor).
+    These dependencies make parallelization inefficient in this context, as the computation cannot be fully decoupled across threads. 
+    \item Another well-known method for parallelizing the computation of \myglsentry{odes} is the Parareal algorithm~\cite{cParareal}.
+    The approach involves dividing the time domain into smaller intervals, which can then be computed in parallel using different processors for each interval. 
+    The Parareal algorithm works by initially approximating the solution of each sub-interval using a coarse solver, followed by a more accurate fine solver that is applied in parallel. 
+    The iterative process allows the fine solver to correct discrepancies between the coarse solutions, ultimately improving the overall accuracy of the solution.
+    However, its effectiveness can be limited by the coupling between different parts of the \myglsentry{odes}, as seen in the current case.
+    This coupling limits the potential for Parareal method.
+    Furthermore, since the current case involves control application, the first step of the algorithm, which consist of a coarse solver, might struggle to converge to a sufficiently accurate solution, making it difficult to refine it further in subsequent iterations.
+\end{itemize}
 
-
-While ODE parallelization methods can be useful for speeding up large-scale simulations or off-line computations (such as in scientific simulations), they are generally not well-suited for real-time control applications due to concerns about stability, synchronization, and numerical accuracy. In control systems, it's often more important to focus on stability-preserving numerical integration and real-time performance rather than trying to parallelize the solution of ODEs.
-
+While \myglsentry{odes} parallelization methods can be useful for speeding up large-scale simulations or off-line computations, they are not well-suited for the current set of \myglsentry{odes} considered in this thesis.
+Their application is limited due to the intrinsic coupling between different parts of the \myglsentry{odes}, and numerical accuracy. 
 
 \subsection{Learning with embedded dynamic}
 
-This section explores learning techniques that directly incorporate the structure of dynamical systems into the learning process, facilitating accurate predictions of system behavior.
+This section explores learning techniques that directly incorporate the \myglsentry{odes} structure into the learning process, facilitating accurate predictions of system dynamics.
 
 \begin{itemize}
-    \item NeuralODEs: A method that treats ODE solvers as neural networks to learn dynamic systems.
-    Neural ODEs are useful when we don’t know the system dynamics and want a flexible, data-driven method to model them.
-    \item PINNs: A learning framework that embeds the physics governing differential equations into the training process.
-    \item RL: e.g. MPC tube 
+    \item Neural \myglsentry{odes}: Neural \myglsentry{odes}~\cite{cNeuralodes} offer a powerful approach to learning dynamic systems by treating ODE solvers as neural networks. 
+    This method is particularly valuable in situations where the system dynamics are not explicitly known and a flexible, data-driven approach is required to model the system behavior.
+    In robotics, Neural \myglsentry{odes} have shown potential for tasks such as system identification, control, and trajectory prediction. 
+    For instance, they have been used to model and predict dynamic in cases where the exact physical models are hard to derive due to complex non-linear behavior~\cite{cNeuralodes}. 
+    Additionally, they have been applied to predict robust motions of robotic systems (e.g. under disturbances that are difficult to model~\cite{cNODEmotion}).
+    However, in the current case, since the system dynamic is already known, the goal is to bypass the need to model the dynamic entirely. 
+    Therefore, the proposed approach in this chapter contrasts with Neural \myglsentry{odes}, which aim to learn the system dynamic when they are not explicitly defined.
+    \item Physics-Informed Neural Networks (\myglsentry{pinns}): \myglsentry{pinns}~\cite{cPinns} are a class of neural networks that integrate physical laws directly into the learning process, enabling the solution of differential equations with fewer data requirements. 
+    Unlike Neural \myglsentry{odes}, which learn the system dynamic from data to approximate ODE solutions, \myglsentry{pinns} enforce the physical constraints within the network architecture itself. 
+    The use of PINNs in robotics has gained significant interest, with applications ranging from developing PINN-based controllers~\cite{cPinnControl1, cPinnControl2}, improving robot parameter estimation~\cite{cPinnDyna}, to solving trajectory optimization problems~\cite{cPinnMotion}.
+    These approaches enable more accurate and efficient modeling of robotic systems under complex constraints, facilitating better control and motion planning in real-time scenarios.
+    However, \myglsentry{pinns} are more of a learning process than a specific neural network architecture.
+    They require knowledge of the system governing equations (or their differential form), which may not always be available or easily defined.
+    Although \myglsentry{pinns} are designed for high prediction accuracy, in the current context, where uncertainty tubes are approximations, computational resources spent on their training process may be unnecessary.
+    However, it should be noted that while \myglsentry{pinns} are not considered in the remainder of this chapter, they can still be leveraged to achieve better prediction accuracy if necessary.
+    \item Some methods aim to learn the equation dynamics without relying on the previously mentioned approaches, such as the work in~\cite{cTubeMPCLearning}, which focuses on learning the uncertainty tube dynamics.
+    However, this differs from the proposed approach of this chapter, as it learns the tube dynamic equations rather than directly predicting the tube values. 
+    Additionally, the referenced work operates at the time step and control level, while the proposed method works across an entire desired trajectory.
 \end{itemize}
 
 \subsection{Learning sequences of data}
 
-This section discusses learning methods suited for modeling sequences of data, such as time series or trajectories, which are common in dynamical systems.
+This section discusses learning methods suited for modeling sequences of data, such as time series or trajectories, which are common while dealing with dynamic systems.
 
 \begin{itemize}
-    \item Transformers
-    Note that an extensive comparison with Transformers \cite{cTrans} is not performed as they do not benefit from the hidden state when starting predictions from non-zero values, and poorly generalize to longer sequences than those in the training set.
-    \item RNNs
+    \item Recurrent Neural Networks (\myglsentry{rnns}): \myglsentry{rnns} are well known for their excellent application to temporal data sequences, and more specifically in this case, to trajectories.
+    Their application in motion planning frameworks has rapidly grown in recent years, e.g., to predict trajectories in sampling-based algorithms \cite{cRNNTraj1,cRNNTraj2}.
+    Furthermore, because of their time-series nature and their ability to handle dependencies between time steps, they can take advantage of the \myglsentry{odes} structure \cite{cNODE} or approximate their solutions directly \cite{crnnodes}.
+    Among the most effective are \gls{rnn}~\cite{cRNN}, \gls{lstm}~\cite{cLSTM} and \gls{gru}~\cite{cGRU} with their respective cell depicted in Figure~\ref{fig:rnns}.
+    The three methods differ in their gating mechanisms for updating and retaining information, but they all depend on the same \emph{hidden state} $h$ to propagate information across iterations.
+    This structure is notably similar to \myglsentry{odes}, where the update mechanism corresponds the ODE function, and the hidden state is analogous to initial conditions, establishing a parallel between iterative updates in neural networks and dynamic systems modeling.
+    \item Transformers: Transformers~\cite{cTrans} have recently emerged as powerful models for sequential data processing and have shown potential in robotics.
+    One of its current main application is its use for interpreting and explaining robot states through sequences of tokenized representations via Generative Pre-Trained Transformers (GPTs)(e.g.~\cite{cGPTRobotics}).
+    However, unlike \myglsentry{rnns}, Transformers do not inherently model temporal dependencies directly through recurrent connections. 
+    Instead, temporal information is incorporated using positional encodings, which may be less effective for certain tasks where explicit temporal progression is crucial.
+    Furthermore, using Transformers starting from non-zero initial conditions is not at straightforward as in the \myglsentry{rnns}.
+    Finally, Transformers poorly generalize to longer sequences than those in the training set because the self-attention mechanism processes fixed-sized segments of data and positional encodings may not adequately capture relationships in much longer contexts.
 \end{itemize}
+
+\begin{figure} [t]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/learning_quadrotor/cells.png}%
+    \caption{Representation of a \myglsentry{rnn} cell (left), a \myglsentry{gru} cell (center), and a \myglsentry{lstm} cell (right).
+    The three models (RNN, LSTM, and GRU) feature different update mechanisms (inside the blue box). They each take as input a hidden state $h$ (with LSTM also taking a cell state $c$) and a current state from the sequence $x$, and output the updated hidden state.
+    }%
+    \label{fig:rnns}%
+\end{figure}
 
 \section{Method} \label{sec:method}
 
 This section presents a multi-task learning neural network based on a GRU architecture, which takes as input the desired states of the dynamic system and outputs the nominal control inputs $\u_n$, as well as the uncertainty tubes around the states $\Rq$ and the control inputs $\Ru$. 
+
+The resulting predictor, denoted as $\boldsymbol{g}$, aims at bypasses the intrinsic structure of the original set of \myglsentry{odes} considered in this thesis. 
+These dependencies arise from the structure of the equations: Equation~(\ref{eq:ctrl}) computes the control inputs, Equation~(\ref{eq:dyna}) updates the robot state, and Equation~(\ref{eq:dyna_sensi}) computes the sensitivity matrices before projecting them to derive the uncertainty tubes (see Equation~(\ref{eq:radius})). 
+Note that each equation depends on the outputs of the preceding one within a single time step.
 
 \subsection{Problem statement}
 
@@ -443,6 +333,8 @@ The \textbf{Euler} method or the \textbf{dopri5} integrator were then used to so
 Note that the \textbf{Euler} method is the one used to solve the \myglsentry{odes} during planning (see Chapter~\ref{chap:samp} and Chapter~\ref{chap:sampNN}).
 Additionally, the \textbf{dopri5} integrator is also considered as a baseline for comparison, as it is a widely used implementation of the Runge-Kutta 4 method.
 
+All the neural networks were implemented using the PyTorch library~\cite{cPytorch} and the lightning module.
+
 All following results were obtained on an Intel i9 CPU@2.6GHz processor with one RTX A3000 GPU. 
 
 \section{Simulation results}\label{sec:nn_results}
@@ -470,6 +362,7 @@ Note that with the current system, the number of ordinary equations solved for e
 The results indicate that the average prediction gain time for neural networks is approximately of an order of magnitude compared to the \textbf{Euler} and \textbf{dopri5} methods. 
 Additionally, note that even if the inference time appears to scale linearly with the number of time steps to be integrated, the time savings become increasingly significant with the number of states. 
 Specifically, the \textbf{GRU} achieves a speedup of 15 times compared to \textbf{Euler} for 100 states, and this advantage grows to 35 times for 300 states.
+This result suggests that the intrinsic structure of the original \myglsentry{odes}, as discussed in Section~\ref{sec:method}, has been reformulated into a simplified representation.
 
 In conclusion, the \textbf{GRU} emerges as the most suitable model for sampling-based applications, offering the best balance between accuracy and inference time. 
 While the \textbf{RNN} is the fastest, its accuracy is the lowest among the three recurrent architectures. 
@@ -641,5 +534,19 @@ Hence, in order to generalize to trajectories where initial velocities and accel
 
 \section{Conclusion} \label{sec:NN_concl}
 
+This chapter has presented a \textbf{GRU}-based neural network architecture to predict uncertainty tubes and control inputs along sequences of desired states for any dynamical system.
+Results on a quadrotor and differential drive robot use cases show that leveraging recurrent neural network architectures is of key importance due to the temporal dependency of the predictions.
+Furthermore, it has been shown that a \textbf{GRU} is more appropriate in a sampling-based tree planner context than \textbf{RNN} or \textbf{LSTM} as it proposes the best compromise between prediction accuracy, generalizability, inference time and memory cost.
+By directly correlating the inputs and outputs of the neural network, the proposed predictor $\boldsymbol{g}$ eliminates the need for sequential computation inherent in the \myglsentry{odes} addressed in this thesis. 
+This design simplifies the process and reduces the computational burden, making it more efficient than the traditional \myglsentry{odes} framework while maintaining a good accuracy.
 
-Cool but depend to robot models, a good between may be GPU acceleration to investigate.
+Additionally, great care was taken to develop a learning process that ensures the learned models are independent of the environment, enabling their application to motion planning problems. 
+However, the GRU-based approach still relies on robot model parameters, such as system nominal parameters and controller gains. 
+To further address these dependencies, future investigations could explore strategies such as:
+\begin{itemize}
+    \item GPU acceleration; a technique that leverage massive parallelization thanks to computational power of modern GPUs.
+    \item Transfer learning; a method that allows a model to apply knowledge gained from one task or dataset to a new, related task, reducing the need for extensive retraining.
+    \item Ensemble learning; a technique that involves combining multiple models to improve prediction accuracy and generalized performance.
+\end{itemize}
+
+Despite these potential areas for improvement, the remainder of this thesis will focus on incorporating the GRU-based architecture into sampling-based motion planners to plan robust robot motions against parametric uncertainties in a more efficient way than what was proposed in Chapter~\ref{chap:samp}.

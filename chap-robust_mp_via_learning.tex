@@ -33,6 +33,8 @@ Fig.~\ref{fig: Missed and succes} illustrates the application to a quadrotor mod
 
 \section{Robust and accurate planning framework}\label{sec:RASAMP}
 
+THe learnin has to be mitigate: first we use Libtorch C implementation that does not support GPU computation but only CPU, thanks to small model size it is still good, secondly, the learning bypass the 2 final equation, sensi matrices and tubes, but we still need to compute the nominal state and solve small odes
+
 The method consists of two stages: $(i)$ first, it generates a robust trajectory based on a Robust Sensitivity-Aware Motion Planner (R-SAMP) -- explained in Sect.~\ref{sec:RSAMP} -- that utilizes the GRU-based computation of the uncertainty tubes; $(ii)$ second, it optimizes the accuracy at some given states along this trajectory by minimizing the size of the uncertainty tubes at these locations.
 The motivation behind the second stage is to improve the accuracy of the planned robust trajectory for tasks -- e.g., pick-and-place or insertion tasks -- where minimizing the deviation from the nominal trajectory is important only at specific designed locations, as for picking the ring in Fig.~\ref{fig: Missed and succes}.
 

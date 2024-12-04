@@ -28,6 +28,8 @@ Also, assume the presence of a controller $\boldmu$ of any form whose aim is to 
    \right .
 \end{equation}
 where $\bxi\in \mathbb{R}^{n_{\xi}}$ are the internal states of the controller (e.g., an integral action), $\k_{c}\in \mathbb{R}^{n_{k}}$ the controller gains, and $\p_{n}\in{\mathbb{R}^{n_{p}}}$ is the vector of "nominal" system parameters used in the control loop, i.e. the estimated nominal values of $\p$.
+It is important to note that, in this thesis, the system state $\q$ is assumed to be perfectly known, as no sensor models are considered.
+Consequently, the simulations and subsequent sensitivity computations are performed using the true system state $\q$, than the usual estimation of this state $\hat{\q}$.
 
 In line with the previous definitions, the following sections of this thesis will then differentiate between three types of state vectors of key importance:
 \begin{enumerate}
