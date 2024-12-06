@@ -21,76 +21,99 @@ Finally, these contributions are experimentally validated in Section~\ref{sec:Ex
 The scenarios include: (i) robust navigation through a narrow window, and (ii) an in-flight ring-catching task. 
 These experiments highlight the robustness and accuracy of the proposed framework under parameter uncertainties in the robot model.
 
-This chapter is associated to the following publication in RA-L 2024~\cite{cRAL}: Wasiela, S., Cognetti, M., Giordano, P. R., Cortés, J., and Simeon, T. (2024). "Robust Motion Planning with Accuracy Optimization based on Learned Sensitivity Metrics." In IEEE Robotics and Automation Letters (RA-L).\footnote{The results presented in this chapter differ from those in the article due to improvements in implementation.}
+This chapter is associated to the following publication in RA-L 2024~\cite{cRAL}: Wasiela, S., Cognetti, M., Giordano, P. R., Cortés, J., and Simeon, T. (2024). "Robust Motion Planning with Accuracy Optimization based on Learned Sensitivity Metrics." In IEEE Robotics and Automation Letters (RA-L).
 
 \section{Robust and accurate planning framework}\label{sec:RASAMP}
 
-THe learnin has to be mitigate: first we use Libtorch C implementation that does not support GPU computation but only CPU, thanks to small model size it is still good, secondly, the learning bypass the 2 final equation, sensi matrices and tubes, but we still need to compute the nominal state and solve small odes
+This section presents the workflow of the meta-algorithm used to plan robust trajectories, which are then locally optimized for accuracy at specified desired states. 
+The method consists of two stages: 
+\begin{enumerate}
+    \item First, it generates a robust trajectory based on a Deep learning-based Sensitivity-Aware Motion Planner (DeepSAMP) -- explained in Sect.~\ref{sec:RSAMP} -- that utilizes the GRU-based computation of the uncertainty tubes.
+    \item Second, it optimizes the accuracy at some given states along this trajectory by minimizing the size of the uncertainty tubes at these locations.
+\end{enumerate}
 
-The method consists of two stages: $(i)$ first, it generates a robust trajectory based on a Robust Sensitivity-Aware Motion Planner (R-SAMP) -- explained in Sect.~\ref{sec:RSAMP} -- that utilizes the GRU-based computation of the uncertainty tubes; $(ii)$ second, it optimizes the accuracy at some given states along this trajectory by minimizing the size of the uncertainty tubes at these locations.
-The motivation behind the second stage is to improve the accuracy of the planned robust trajectory for tasks -- e.g., pick-and-place or insertion tasks -- where minimizing the deviation from the nominal trajectory is important only at specific designed locations, as for picking the ring in Fig.~\ref{fig: Missed and succes}.
+The motivation behind the second stage is to improve the accuracy of the planned robust trajectory for tasks -- e.g., pick-and-place or insertion tasks -- where minimizing the deviation from the nominal trajectory is important only at specific designed locations, as for picking the ring in Figure~\ref{fig: Missed and succes}.
 
-The pseudo-code of RA-SAMP (Robust and Accurate Sensitivity-Aware Motion Planner) is presented in Alg.\ref{alg:RA-SAMP}. 
+The workflow of the method is presented in Algorithm~\ref{alg:RA-SAMP}. 
 It takes as input (line 1) a list of desired states $list_{d} = (q_{d}^0, \dots, q_{d}^n)$ for which the accuracy should be optimized, and the initial controller gains vector $k_{c}^{init}$ considered constant all along the trajectory.
+The role of the controller gains are further discussed in Section~\ref{sec:AOptim}.
 
 \begin{algorithm}[h]
-\caption{RA-SAMP [$list_{d}, k_{c}^{init}$]}\label{alg:RA-SAMP}
+\caption{Robust and Accuracy Optimization [$list_{d}, k_{c}^{init}$]}\label{alg:RA-SAMP}
 \begin{algorithmic}[1]
-\State $\pi_d^{tot} \gets \emptyset;$
+\State $\q_d^{tot} \gets \emptyset;$
 \For {($i=1;\ i< len(list_{d});\ i=i+1$)}
-    \State $\pi_d^{tot} \gets \pi_d^{tot} + $R-SAMP$(list_{d}(i-1),list_{d}(i));$
+    \State $\q_d^{tot} \gets \q_d^{tot} + $DeepSAMP$(list_{d}(i-1),list_{d}(i));$
 \EndFor
-\State $\left \{ \pi_d^{tot}, k_{c}^{opt} \right \} \gets $A-Optim$(list_{d},\pi_d^{tot}, k_{c}^{init});$
-\State \textbf{return} $\left \{ \pi_d^{tot}, k_{c}^{opt}  \right \}$;
+\State $\left \{ \q_d^{tot}, k_{c}^{opt} \right \} \gets $A-Optim$(list_{d},\q_d^{tot}, k_{c}^{init});$
+\State \textbf{return} $\left \{ \q_d^{tot}, k_{c}^{opt}  \right \}$;
 \end{algorithmic}
 \end{algorithm}
 
-The first step of the algorithm consists of generating robust trajectories ($\pi_d^i$) between successive desired states in the list (line 3 of Alg.~\ref{alg:RA-SAMP}) by means of a robust sensitivity-aware motion planner called R-SAMP (explained in Sect.~\ref{sec:RSAMP}) that uses our learning approach.
-These trajectories are concatenated into a global one $\pi_d^{tot}$, connecting all the desired states of $list_{d}$ (lines 2-5 in Alg.~\ref{alg:RA-SAMP}). 
+The first step of the algorithm consists of generating robust trajectories between successive desired states in the list (line 3 of Algorithm~\ref{alg:RA-SAMP}) by means of a deep learning-based sensitivity-aware motion planner variant called DeepSAMP (explained in Section~\ref{sec:RSAMP}) that uses the learning approach presented in Chapter~\ref{chap:NN}.
+These trajectories are concatenated into a global one $\q_d^{tot}$, connecting all the desired states of $list_{d}$ (lines 2-5 in Algorithm~\ref{alg:RA-SAMP}). 
 
-The trajectory from R-SAMP is locally modified by A-Optim (line 6 in Alg.~\ref{alg:RA-SAMP}), aiming at optimizing the accuracy at specific desired states along the trajectory. 
-This algorithm iteratively samples both the trajectory from R-SAMP and the controller gains, adjusting the former to minimize uncertainty at these states. 
-Indeed, as demonstrated in \cite{AliIROS}, optimizing both factors concurrently results in minimizing the uncertainty.
-The algorithm produces two offline outputs: $(i)$ a robust desired trajectory $\pi_d^{tot}$ optimized for accuracy at the desired states, and $(ii)$ the optimized controller gains vector $k_{c}^{opt}$, considered constant throughout the trajectory.
+The trajectory from DeepSAMP is locally modified by A-Optim (line 6 in Algorithm~\ref{alg:RA-SAMP}), aiming at optimizing the accuracy at specific desired states along the trajectory. 
+This algorithm iteratively samples both the trajectory from DeepSAMP and the controller gains, adjusting the former to minimize uncertainty at these states. 
+Indeed, as demonstrated in~\cite{AliIROS}, optimizing both factors concurrently results in minimizing the uncertainty.
+The algorithm produces two offline outputs: $(i)$ a robust desired trajectory $\q_d^{tot}$ optimized for accuracy at the desired states, and $(ii)$ the optimized controller gains vector $k_{c}^{opt}$, considered constant throughout the trajectory.
 
-\subsection{Robust Sensitivity-Aware Motion Planner}\label{sec:RSAMP}
+\subsection{Deep Sensitivity-Aware Motion Planner (DeepSAMP)}\label{sec:RSAMP}
 
-This section explains how the learned uncertainty tubes can be incorporated into any sampling-based tree planner in order to obtain a robust sensitivity-aware motion planner (R-SAMP).
+For clarity in the pseudo-code, the temporal notation is omitted in this section. 
+Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent instantaneous vectors (e.g., $q^{rand}$ denotes a random state, and $h_0$ represents the initial hidden state of the GRU at a given state vector, etc.).
+
+\subsubsection{General method}
+
+This section explains how the deep learning method presented in Chapter~\ref{chap:NN} can be incorporated into any sampling-based tree planner in order to create \gls{deepsamp} variants, which use the learned model to predict uncertainty tubes.
 As highlighted before, a key challenge in computing such tubes for a given trajectory lies in the high computational cost of numerically integrating the dynamics of $\bPi(t)$ and $\bTheta(t)$.
-Additionally, when extending the tree and computing these sensitivity matrices, various initial conditions (e.g. initial control input, $\bPi_0$, etc.) must be embedded in the tree nodes.
+Additionally, when extending the tree and computing these sensitivity matrices, various initial conditions (such as the initial control input, $\bPi_0$, etc.) need to be incorporated into the tree nodes (as outlined in Chapter~\ref{chap:samp}).
 
-We solve this problem thanks to the GRU network, which naturally encodes  this information in its ``memory'' terms, i.e., the so-called hidden state (see \cite{cGRU}).
-An interesting feature of the algorithm is to leverage this latent state to embed the initial conditions into each node. This enables the reuse of the updated initial conditions for predictions in future extensions.
-Note that a hidden state $h$ is unique according to its parent.
+This problem is addressed thanks to the GRU network, which naturally encodes this information in its ``memory'' terms, i.e., the so-called hidden state (see~\cite{cGRU}).
+An interesting feature of the \myglsentry{deepsamp} variants is to leverage this latent state to embed the initial conditions into each node analogous to the \myglsentry{odes} initial conditions mentioned in Chapter~\ref{chap:samp}. 
+This enables the reuse of the updated initial conditions for predictions in future extensions.
+Note that a hidden state $h$ is unique according to its parent as the \myglsentry{odes} initial conditions.
 Therefore, its use is only applicable to tree-based planners, where each node has a single parent.
-We show in Alg.~\ref{alg:ExtensionExample} how to incorporate this hidden state and tube predictions for the case of a standard RRT planner \cite{cRRT} with the pseudocode of the R-SARRT algorithm, as a particular instance of an R-SAMP planner. 
-Note that the use of this hidden state and tube predictions can be similarly applied to other tree-based planners. For instance, in the results presented in Sect.~\ref{sec:RobustPlanSimu}, we used a robust RRT$^*$ implementation denoted R-SARRT$^*$.
 
-First, R-SARRT performs the standard RRT procedure (lines 1-5) that produces a local desired trajectory $\pi_d$ between a sampled state (${q}^{rand}$) and its nearest state (${q}^{near}$) in the tree. 
-Then, as the tubes are only valid around the nominal trajectories, which may differ from the desired ones depending on the controller performance, the nominal trajectory ($\pi_{n}$) is computed by the SimulateExecution function (line 6).
-It corresponds to the simulated tracking in closed-loop of the desired trajectory ($\pi_d$) to be robustly checked by the system under the nominal parameters (i.e. $\p = \p_c$).
-Next, the starting hidden state (as for $h_{0}$ of the GRU) is recovered from the tree node (line 7).
-Such initial condition is used together with the above-mentioned nominal trajectory by the GRU that returns all the radii and the control inputs profiles ($\Rq,\Ru,\u$), together with the final hidden state $h_{F}$ to be reused as initial condition in subsequent iterations (line 8).
-Then, for each state of the nominal trajectory $\pi_{n}$, the function \emph{IsRobust} (line 9) performs a robust collision checking by using the uncertainty radii, and tests if the inputs are within the admissible bounds that the system can exert.
+\subsubsection{Deep Sensitivity-Aware RRT (DeepSARRT)}
+
+This section proposes a deep learning-based sensitivity-aware variant of the \myglsentry{rrt}~\cite{cRRT}, denoted \gls{deepsarrt} as a particular instance of \myglsentry{deepsamp}, and presented in Algorithm~\ref{alg:ExtensionExample}. 
+It demonstrates how to integrate the GRU hidden state and tube predictions within a standard RRT planner~\cite{cRRT}.
+It is important to note that this approach, using GRU hidden state and tube predictions, can be similarly applied to other tree-based planners. 
+For instance, in the results presented in Section~\ref{sec:RobustPlanSimu}, a deep learning-based sensitivity-aware variant of the \myglsentry{rrtstar}~\cite{cRRTstar} implementation, denoted \myglsentry{deepsarrt*}, leverage the same principle presented here.
+
+First, \myglsentry{deepsarrt} performs the standard RRT procedure (lines 1-5) that produces a local desired trajectory $\q_d$ between a sampled state (${q}^{rand}$) and its nearest state (${q}^{near}$) in the tree. 
+Then, the starting hidden state (as for $h_{0}$ of the GRU) is recovered from the tree node (line 6).
+Such initial condition is used together with the above-mentioned desired trajectory by the GRU that returns all the radii and the control inputs profiles ($\Rq,\Ru,\u$), together with the final hidden state $h_{F}$ to be reused as initial condition in subsequent iterations (line 7).
+Next, an initial filter is applied using the predicted control inputs and uncertainty tubes, with a robust control input check for saturation (line 8).
+The nominal trajectory is then computed (line 9). 
+At this stage, the control inputs are recomputed in a closed-loop manner w.r.t. the desired trajectory $\q_d$, even though these control inputs were initially predicted by the GRU.
+However, directly using the predicted control inputs in an open-loop manner could lead to unsuitable nominal trajectories due to the accumulation of prediction errors over time in the simulation process.
+Then, for each state of the nominal trajectory $\q_{n}$, the function \emph{IsStateRobust} (line 10) performs a robust collision checking by using the uncertainty radii.
 If the extension is valid, the final state of the desired trajectory is inserted in the tree as a new node, embedding at the same time the final hidden state $h_{F}$ to be reused as initial condition in next iterations (line 10-12).
 Finally, the algorithm returns a global trajectory connecting ${q}^{init}$ and ${q}^{goal}$ if one exists in the tree (lines 15).
 
+Note that, unlike the \myglsentry{samp} variants discussed in Chapter~\ref{chap:samp}, which perform the robust feasibility check in a single step, the operation is decoupled here. 
+This approach first leverages the predicted control inputs and associated tubes to apply an initial filtering stage, as this step is less computationally expensive than the subsequent nominal trajectory simulation and robust collision checking.
+
 \begin{algorithm}[t]
-\caption{R-SARRT [$q^{init}, q^{goal}$]}\label{alg:ExtensionExample}
+\caption{\myglsentry{deepsarrt} [$q^{init}, q^{goal}$]}\label{alg:ExtensionExample}
 \begin{algorithmic}[1]
-\State $T \gets$ InitTree$({q^{init}});$
+\State $T \gets$ InitTree$({q^{init}, q^{goal}});$
 \While{\textbf{not} StopCondition$(T, {q^{goal}})$}  
-\State ${q^{rand}} \gets $Sample()$;$
-\State ${q^{near}} \gets$ Nearest$(T,{q^{rand}});$
-\State $\pi_d \gets$ Steer$({q^{near}},{q^{rand}});$
-\State $\pi_{n} \gets $SimulateExecution$(\pi_d);$
-\State $h_{0} \gets $GetNodeConditions$({q^{near}});$
-\State $\left \{\Rq,\Ru,\u, h_{F} \right \} \gets $GRU$(\pi_d,h_{0});$
-\If {$IsRobust(\Rq,\Ru,\u, \pi_{n})$}
-        \State SetNodeConditions$({q^{rand}}, h_{F});$
-        \State AddNewNode$(T, {q^{rand}});$
-        \State AddNewEdge$(T, {q^{near}}, {q^{rand}});$
-\EndIf
+    \State ${q^{rand}} \gets $Sample()$;$
+    \State ${q^{near}} \gets$ Nearest$(T,{q^{rand}});$
+    \State $\q_d \gets$ Steer$({q^{near}},{q^{rand}});$
+    \State $h_{0} \gets $GetNodeConditions$({q^{near}});$
+    \State $\left \{\Rq,\Ru,\u, h_{F} \right \} \gets $GRU$(\q_d,h_{0});$
+    \If {$IsControlRobust(\Ru,\u)$}
+        \State $\q_{n} \gets $SimulateExecution$(\q_d);$
+        \If {$IsStateRobust(\Rq,\q_{n})$}
+                \State SetNodeConditions$({q^{rand}}, h_{F});$
+                \State AddNewNode$(T, {q^{rand}});$
+                \State AddNewEdge$(T, {q^{near}}, {q^{rand}});$
+        \EndIf
+    \EndIf
 \EndWhile
 \State \textbf{return} GetTrajectory$(T, q^{init}, q^{goal})$;
 \end{algorithmic}
@@ -98,17 +121,21 @@ Finally, the algorithm returns a global trajectory connecting ${q}^{init}$ and $
 
 \subsection{Robust local accuracy optimization \emph{(A-Optim)} }\label{sec:AOptim}
 
+This section introduces robust local optimizer variants, highlighting their capability to address accuracy-related costs effectively.
+
 \subsubsection{Cost function}
 
 The application of a local optimization method at this level is justified by the cost function considered in order to optimize the accuracy at desired states. 
-Indeed, the cost of a trajectory $\pi$ is defined as:
+Indeed, the cost of a desired trajectory $\q_d$ is defined as:
 \begin{equation}\label{eq: cost}
-    c(\pi) = w_1\mathbb{E}[L] + w_2\mathbb{V}[L], \quad L = \left[\lambda_{0} ... \lambda_n \right]
+    c(\q_d) = w_1\mathbb{E}[L] + w_2\mathbb{V}[L], \quad L = \left[\lambda_{0} ... \lambda_n \right]
 \end{equation}
-with $\mathbb{E}[L]$ and $\mathbb{V}[L]$ the mean and the variance of $L$, where $\lambda_k$ is the p-norm of the radii of interest in the $k$-th state in the $list_{d}$ of Sect.\ref{sec:RASAMP}, and $w_1, w_2$ are user-defined weigths.
+with $\mathbb{E}[L]$ and $\mathbb{V}[L]$ the mean and the variance of $L$, where $\lambda_k$ is the p-norm of the radii of interest in the $k$-th state in the $list_{d}$ of Section~\ref{sec:RASAMP}, and $w_1, w_2$ are user-defined weights.
 The variance is considered in this cost function so that the minimization of a radius at a given point does not lead to the growth of another radius at another waypoint.
-This function is neither additive (i.e., considering two trajectories ($\pi_{1}, \pi_{2}$), the cost of their concatenation $c(\pi_{1}|\pi_{2}) \neq c(\pi_{1}) + c(\pi_{2})$), nor monotonic. Therefore, it is unsuitable for global optimization using sampling-based motion planners like \cite{cRRT,cRRTstar}, since they require additive and monotonic objective functions.
-Given that we do not have the analytic expression of the cost function derivatives, the accuracy optimization of A-Optim has to be performed by a derivative-free method. In this work, we simply used a robust version of the random shortcut algorithm~\cite{cShortcut} that performs robust collision checks (as in Alg.~\ref{alg:ExtensionExample}) to maintain the robustness of the initial trajectory computed by the R-SAMP planner.
+As the cost function of Chapter~\ref{chap:samp}, this function is neither additive (i.e., considering two trajectories ($\q_{d,1}(t), \q_{d,2}(t)$), the cost of their concatenation $c(\q_{d,1}(t)|\q_{d,2}(t)) \neq c(\q_{d,1}(t)) + c(\q_{d,2}(t))$), nor monotonic. 
+Therefore, it is unsuitable for global optimization using sampling-based motion planners like~\cite{cRRT,cRRTstar}, since they require additive and monotonic objective functions.
+Given that the analytical expression of the cost function derivatives is unavailable, the accuracy optimization in A-Optim must be conducted using a derivative-free method.
+In the following section several robust variant derivative-free algorithms are proposed to maintain the robustness of the initial trajectory computed by the \myglsentry{deepsamp} variant.
 
 \subsubsection{Methods}
 
@@ -132,10 +159,13 @@ and accurate trajectories for the two experimental scenarios illustrated in Fig.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Quadrotor setup} \label{sec:quad_setup}
 
-Considering that the quadrotor hovering state is achieved for control inputs values around 5.000 $(rad.s^{-1})^2$, equivalent to propeller speed of approximately 70 $rad.s^{-1}$, the input limits are set to twice this values, which means propelelr speed of 140, which induced 20.000 $(rad.s^{-1})^2$.
+Considering that the quadrotor hovering state is achieved for control inputs values around 5.000 $(rad.s^{-1})^2$, equivalent to propeller speed of approximately 70 $rad.s^{-1}$, the input limits are set to propeller speed 100 $rad.s^{-1}$, which induced 10.000 $(rad.s^{-1})^2$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Learning-based tube computation} \label{sec:NNresult}
+
+THe learnin has to be mitigate: first we use Libtorch C implementation that does not support GPU computation but only CPU, thanks to small model size it is still good, secondly, the learning bypass the 2 final equation, sensi matrices and tubes, but we still need to compute the nominal state and solve small odes
+However, 13\% of trajetcories are filtered only by control inputs.
 
 The performance of the method presented in Chap.~\ref{chap:NN} and apply to a sampling based algorithm is illustrated in Fig.~\ref{fig: NN pred} that depicts the norm of predicted vector components for a 300-state trajectory part of the tree.
 \todomarker[]{POlish: Note that the predictions are only valid for the parameter maximum range $\delta\p$ chosen during the generation of the training set, and that the model is trained for given values of the controller gains.
