@@ -1,6 +1,6 @@
 \chapter{Robust Motion Planning with Global Sensitivity Optimization}\label{chap:samp}
 \markboth{Robust Motion Planning with Global Sensitivity Optimization}{}% To set left/right header
-% \localtableofcontents
+\localtableofcontents \newpage
 
 This chapter introduces the first major contribution of this thesis, by leveraging the sensitivity concept discussed in Chapter~\ref{chap:models}.
 The contribution of this chapter is twofold:
@@ -22,7 +22,7 @@ This chapter is associated to the following publication in ICRA 2023~\cite{cSAMP
 
 This section first presents how the uncertainty tubes from Section~\ref{sec:tubes} are used to perform robust feasibility checks, followed by the selection of an appropriate cost function for global sampling-based sensitivity optimization.
 
-\subsubsection{Robust feasibility check}\label{sec:robust_CC}
+\subsection{Robust feasibility check}\label{sec:robust_CC}
 
 As previously mentioned in Chapter~\ref{chap:related_work}, sampling-based algorithms generate global trajectories by combining multiple continuous local trajectories.
 During the process, each of these local trajectories are subject to collision checks to determine their feasibility.
@@ -30,7 +30,7 @@ However, in this thesis, the collision check is extended to include a more gener
 This extension ensures that the generated trajectories are not only free from obstacles but also prevent control inputs from reaching saturation. 
 Additionally, it accounts for uncertainty in both the state and control input spaces, further enhancing the robustness of the trajectories.
 The following section describes how these extended feasibility check is performed to ensure the robustness of each local trajectory in this context.
-It is important to note that these test is not continuous; rather, they it is performed along a discrete representation of the local trajectories.
+It is important to note that these test is not continuous; rather, it is performed along a discrete representation of the local trajectories.
 
 \paragraph{Robust collision checking}
 In this thesis, collision detection is performed using the widely used C implementation of PyBullet~\cite{cBullet}, which operates as follows: 
@@ -41,7 +41,7 @@ In this thesis, collision detection is performed using the widely used C impleme
 \end{enumerate}
 
 Extending this procedure to account for robot state uncertainty aims to verify that the resulting extended bounding volume, which the robot may occupy due to the uncertainty, is clear of obstacles.
-In this thesis, such bounding volume is computed by considering only the uncertainty in the position subspace for simplicity (i.e., the $x,y,z$ subspace for the quadrotor or the $x,y$ subspace for the differential drive robot).
+In this thesis, such bounding volume is computed by considering only the uncertainty in the position subspace for simplicity (i.e., the $\{x,y,z\}$-subspace for the quadrotor or the $\{x,y\}$-subspace for the differential drive robot).
 Several strategies are evaluated based on their computational efficiency, conservatism, and library capabilities:
 \begin{enumerate}
     \item The simplest method to account for position uncertainty in collision checking is to compare the distance between the current robot AABB and the nearest obstacle, incorporating the maximum possible deviations by using the worst-case uncertainty tube radius from Equation~(\ref{eq:radius}) (see~\ref{chap:appendixA} for proof).
@@ -120,7 +120,7 @@ Note that this simple test is less costly than the robust collision checking one
     \label{fig:invalid_inputs}%
 \end{figure}
 
-\subsubsection{Cost function}\label{sec:sensi_cost}
+\subsection{Cost function}\label{sec:sensi_cost}
 
 First of all, generating a sensitivity-optimal trajectory requires identifying an appropriate sensitivity-based cost function.
 The approaches in~\cite{cPi, cTh} proposed leveraging the Frobenius norm of the sensitivity matrices (Equation~\ref{eq:sensi}).

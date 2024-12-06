@@ -1,35 +1,27 @@
-\chapter{Robust motion planning with accuracy optimization via learned sensitivity metrics}[]\label{chap:sampNN}
+\chapter{Robust motion planning with accuracy optimization via learned sensitivity metrics}\label{chap:sampNN}
 \markboth{Robust MP with accuracy optimization via learned sensitivity metrics}{}% To set left/right header
-% \localtableofcontents
+\localtableofcontents \newpage
 
-To overcome some of the aforementioned problems, the sensitivity-aware motion planner (SAMP) proposed in~\cite{cSAMP} exploits the derivation of uncertainty tubes of \cite{cTube}, based on the so-called \emph{closed-loop sensitivity}~\cite{cPi,cTh}.
-This approach is applicable to any controller and robot model, taking into account parametric uncertainties. 
-However, this planner suffers from the high computational cost of computing the uncertainty tubes.
-Moreover, SAMP and the aforementioned methods focus on computing robust trajectories but do not consider the problem of \emph{also} minimizing uncertainty tubes at a desired location for increasing the accuracy of specific tasks (e.g., insertion, grasping).
+This last contribution introduces an enhanced version of the sensitivity-aware variants from Chapter~\ref{chap:samp}, incorporating the GRU-based architecture from Chapter~\ref{chap:NN} to mitigate the computational cost of solving thousands of \myglsentry{odes} in sampling-based contexts. 
+Moreover, methods from Chapter~\ref{chap:samp} and the ones in the literature focus on computing robust trajectories but do not consider the problem of \emph{also} minimizing uncertainty tubes at a desired location for increasing the accuracy of specific tasks (e.g., insertion, grasping).
+Therefore, in this chapter, a novel sensitivity-based cost function is introduced, differing from the one in Chapter~\ref{chap:samp}. 
+Instead of minimizing sensitivity along the entire trajectory, it focuses on minimizing the radius of uncertainty tubes in relevant directions at desired states for the task at hand. 
+Additionally, unlike Chapter~\ref{chap:samp}, where trajectory states were the sole optimization variables, this chapter also considers controller gains as optimization variables during the planning process.
 
-\begin{figure} [t]
-    \centering
-    \subfloat[\centering Robust motion planning]{{\includegraphics[width=0.4\linewidth]{figures/robust_accurate/topFig_tube.png} }\label{fig: fig1robust}}%
-    \subfloat[\centering Accuracy optimization]{{\includegraphics[width=0.4\linewidth]{figures/robust_accurate/ring_success.png} } \label{fig: fig1acc}}%
-    \caption{
-    Two scenarios considered for the experimental validation of the proposed method:
-    (a) Robust navigation of a drone through a narrow window. (b) Precision in-flight `ring catching' task, where the uncertainty on the position of the perch end-effector is minimized to successfully accomplish the task.
-    A video of the experiments is available at: \href{https://laas.hal.science/hal-04642257}{https://laas.hal.science/hal-04642257}}%
-    \label{fig: Missed and succes}%
-\end{figure}
+With respect to these considerations, the contribution of this chapter is twofold:
+\begin{enumerate}
+    \item A computationally efficient version of the \myglsentry{samp} variants (see Chapter~\ref{chap:samp}) is proposed, relying on a Gated Recurrent Unit neural network (GRU)\cite{cGRU} (see Chapter~\ref{chap:NN}), which quickly and accurately estimates time-varying uncertainty tubes and control input profiles along trajectories.
+    A general method for incorporating this network into a sampling-based tree planners is presented to predict uncertainty tubes and control inputs along trajectories.
+    \item Based on this new planner variants, a comprehensive framework is proposed that plans robust trajectories and locally optimizes them, along with the controller gains, to maximize accuracy at desired states of the planned trajectory for any system/controller.
+\end{enumerate}
 
-With respect to these considerations, the contribution of this paper is twofold:
-(i) We propose a computationally efficient version of the SAMP algorithm,
-relying on a Gated Recurrent Unit neural network (GRU)\cite{cGRU} (see Chap.~\ref{chap:NN}), which quickly and accurately estimates time-varying uncertainty tubes and control input profiles along trajectories.
-We present a general way of incorporating this type of network into a sampling-based tree planner in order to predict the uncertainty tubes and control inputs along trajectories. 
-(ii) On the basis of this new planner, 
-we propose a comprehensive framework that not only plans robust trajectories but also locally optimizes them together with the controller gains to maximize accuracy at some desired states of the planned trajectory for any system/controller.
+This chapter is structured as follows: Section~\ref{sec:RASAMP} introduces the integration of the GRU-based architecture within sampling-based planners and details the process of accuracy optimization.
+Then, Section~\ref{sec:SimuResults} demonstrates the approach efficiency through simulation results.
+Finally, these contributions are experimentally validated in Section~\ref{sec:Experimental} through two challenging scenarios illustrated in Figure~\ref{fig: Missed and succes}, which demonstrate the application to a quadrotor model in experimental settings involving uncertain parameters. 
+The scenarios include: (i) robust navigation through a narrow window, and (ii) an in-flight ring-catching task. 
+These experiments highlight the robustness and accuracy of the proposed framework under parameter uncertainties in the robot model.
 
-Fig.~\ref{fig: Missed and succes} illustrates the application to a quadrotor model in two different experimental scenarios involving uncertain parameters affecting the robot model (see Sect.~\ref{sec:SimuResults}): (i) a robust navigation through a narrow window;
-(ii) an in-flight ring-catching task demonstrating the robustness and accuracy of the proposed framework. 
-
-% Sect.~\ref{sec:RASAMP} provides an overview of our planning framework to generate robust and accurate trajectories.
-% Sect.~\ref{sec:RSAMP} shows how to integrate the sensitivity learning method within a sampling-based motion planner, while Sect.~\ref{sec:AOptim} explains the accuracy optimization stage.
+This chapter is associated to the following publication in RA-L 2024~\cite{cRAL}: Wasiela, S., Cognetti, M., Giordano, P. R., Cortés, J., and Simeon, T. (2024). "Robust Motion Planning with Accuracy Optimization based on Learned Sensitivity Metrics." In IEEE Robotics and Automation Letters (RA-L).\footnote{The results presented in this chapter differ from those in the article due to improvements in implementation.}
 
 \section{Robust and accurate planning framework}\label{sec:RASAMP}
 
@@ -134,8 +126,13 @@ Sampling for ExtendedShortcut maybe adaptive according to the difficulty of the 
 \section{Simulation results} \label{sec:SimuResults}
 
 This section first presents results showing the quality of the learning-based uncertainty tubes prediction and its high efficiency when used for robust motion planning. 
-Then, we show the ability of the proposed R-SAMP\footnote{Code available at: \href{https://gitlab.laas.fr/CAMP}{https://gitlab.laas.fr/CAMP}} planning approach to generate robust 
+Then, we show the ability of the proposed R-SAMP planning approach to generate robust 
 and accurate trajectories for the two experimental scenarios illustrated in Fig.~\ref{fig: Missed and succes}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Quadrotor setup} \label{sec:quad_setup}
+
+Considering that the quadrotor hovering state is achieved for control inputs values around 5.000 $(rad.s^{-1})^2$, equivalent to propeller speed of approximately 70 $rad.s^{-1}$, the input limits are set to twice this values, which means propelelr speed of 140, which induced 20.000 $(rad.s^{-1})^2$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Learning-based tube computation} \label{sec:NNresult}
@@ -249,6 +246,20 @@ At each iteration of this method, a shortcut is attempted between two states of 
 Fig.\ref{fig: Acc opti} motivates why we optimized both the trajectory and the controller gains at the same time in the A-Optim function in order to minimize uncertainty for a given point, as mentioned in Sec.\ref{sec:RASAMP}. In fact, these results corroborate the findings of \cite{AliIROS}, but this time by employing a sampling-based motion planner that considers obstacles in the environment.
 
 \section{Experimental validation} \label{sec:Experimental}
+
+This section provides an experimental validation of both the deep learning-based robust motion planning variants, and the accuracy optimization stage in two challenging scenarios depicted in Figure~\ref{fig: Missed and succes}.
+
+\begin{figure} [h]
+    \centering
+    \subfloat[\centering Robust motion planning]{{\includegraphics[width=0.4\linewidth]{figures/robust_accurate/topFig_tube.png} }\label{fig: fig1robust}}%
+    \subfloat[\centering Accuracy optimization]{{\includegraphics[width=0.4\linewidth]{figures/robust_accurate/ring_success.png} } \label{fig: fig1acc}}%
+    \caption{
+    Two scenarios considered for the experimental validation of the proposed method:
+    (a) Robust navigation of a drone through a narrow window. (b) Precision in-flight `ring catching' task, where the uncertainty on the position of the perch end-effector is minimized to successfully accomplish the task.
+    A video of the experiments is available at: \href{https://laas.hal.science/hal-04642257}{https://laas.hal.science/hal-04642257}}%
+    \label{fig: Missed and succes}%
+\end{figure}
+
 \subsection{Robust planning} \label{sec:RobustPlanExp}
 
 \subsection{Accuracy optimization} \label{sec:AccOptExp}

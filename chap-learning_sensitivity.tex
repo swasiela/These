@@ -1,6 +1,6 @@
 \chapter{Learning uncertainty tubes via recurrent neural networks} \label{chap:NN}
 \markboth{Learning uncertainty tubes via recurrent neural networks}{}% To set left/right header
-% \localtableofcontents
+\localtableofcontents \newpage
 
 This chapter introduces the second major contribution of this thesis: a deep learning approach for rapidly and accurately estimating sensitivity-based uncertainty tubes. 
 As demonstrated in Chapter~\ref{chap:samp}, the computation of such tubes using \myglsentry{odes} considerably reduces the efficiency of sampling-based methods, particularly for complex systems.
@@ -14,7 +14,7 @@ Finally, Section~\ref{sec:nn_results} presents the results for the quadrotor and
 
 For clarity, in the following sections of this chapter, methods are referred to in non-bold, and models are referred to in bold (e.g., \textbf{GRU} refers to the proposed GRU-based architecture, and GRU refers to the Gated Recurrent Unit method).
 
-This chapter is associated to the following publication in ECAI 2024: Wasiela, S., Bouhsain, S. A., Cognetti, M., Cortés, J., and Simeon, T. (2024, October). "Learned Uncertainty Tubes via Recurrent Neural Networks for Planning Robust Robot Motions." In 27th European Conference on Artificial Intelligence (ECAI) (pp. 4385-4392).\footnote{The results presented in this chapter slightly differ from those in the article due to improvements in implementation.}
+This chapter is associated to the following publication in ECAI 2024~\cite{cECAI}: Wasiela, S., Bouhsain, S. A., Cognetti, M., Cortés, J., and Simeon, T. (2024, October). "Learned Uncertainty Tubes via Recurrent Neural Networks for Planning Robust Robot Motions." In 27th European Conference on Artificial Intelligence (ECAI) (pp. 4385-4392).\footnote{The results presented in this chapter slightly differ from those in the article due to improvements in implementation.}
 
 \section{ODEs parallelization and learning techniques}\label{sec:learning_overview}
 
@@ -44,6 +44,7 @@ This section discusses various techniques used to parallelize the computation of
 
 While \myglsentry{odes} parallelization methods can be useful for speeding up large-scale simulations or off-line computations, they are not well-suited for the current set of \myglsentry{odes} considered in this thesis.
 Their application is limited due to the intrinsic coupling between different parts of the \myglsentry{odes}, and numerical accuracy. 
+Furthermore, although some parts of the set of \myglsentry{odes} can be parallelized, the techniques will still be constrained by the limited number of CPU threads available, given the large number of equations that need to be processed in parallel.
 
 \subsection{Learning with embedded dynamic}
 
@@ -133,6 +134,8 @@ The outputs of the neural network correspond to the green blocks.
 It is composed of the predicted uncertainty tubes radii along the state $\Rq$ and of the uncertainty tubes radii associated with the control inputs of the system $\Ru$.
 Moreover, the control input values $\u$ are required for the motion planning algorithm to perform robust feasibility checks, and their computation depends on \myglsentry{odes} forward integration (as shown in Section~\ref{sec:tubes}). 
 Since the proposed approach aims at eliminating the need for solving \myglsentry{odes}, the neural network is also trained to predict the control inputs.
+However, note that the nominal states are intentionally not included in the learning process, as doing so would significantly increase the number of outputs and complicate the training process. 
+Nevertheless, the control inputs are learned, as they enable efficient and fast filtering of infeasible trajectories in the motion planning context, as discussed in Chapter~\ref{chap:sampNN}.
 Finally, $\boldsymbol{h}_{N}$ corresponds to the hidden state at the last point of our sequence (i.e., the last desired trajectory state).
 
 At $k=0$, the first state in the input sequence $\boldsymbol{\q_{in}^0}$ and the initial hidden state $\boldsymbol{h}_0$ are given to a single-layer GRU block, which outputs an updated hidden state $\boldsymbol{h}_1$. 
@@ -312,6 +315,7 @@ Note that an LSTM layer is composed of a hidden state and a cell state (contrari
 All used hyper-parameters were validated using a grid search.
 They were trained using the MSE (Mean Squared Error) loss function and evaluated continuously on the validation set. 
 The model weights achieving the best performance on the validation set were saved and used during the experiments.
+The resulting learning curves can be found in appendix~\ref{chap:appendixB}.
 
 \subsubsection{Quadrotor}\label{sec:train_quad}
 
@@ -325,6 +329,7 @@ Note that an LSTM layer is composed of a hidden state and a cell state (contrari
 All used hyper-parameters were validated using a grid search.
 They were trained using the MSE (Mean Squared Error) loss function and evaluated continuously on the validation set. 
 The model weights achieving the best performance on the validation set were saved and used during the experiments.
+The resulting learning curves can be found in appendix~\ref{chap:appendixB}.
 
 \subsection{Implementation details}
 
@@ -496,7 +501,7 @@ Another dynamical system might need a different set of inputs to obtain accurate
     \label{fig:pred_test}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[b]
     \centering
     \includesvg[width=0.99\linewidth]{figures/learning_quadrotor/all_models.svg} 
     \caption{Comparison of predictions obtained using the different recurrent neural network architectures as well as the \textbf{MLP} on a 300-state trajectory of the test set. $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. 
@@ -504,7 +509,7 @@ Another dynamical system might need a different set of inputs to obtain accurate
     \label{fig:MLP_pred_val}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[b]
     \centering
     \includegraphics[width=0.99\linewidth]{figures/learning_quadrotor/non_zero_hidden.jpg} 
     \caption{Example of \textbf{GRU} predictions on a 150-state trajectory of the test set starting from a non-zero hidden state.
