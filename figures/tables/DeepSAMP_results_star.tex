@@ -1,0 +1,14 @@
+\begin{table*}[htp]
+    \centering
+    \begin{tabular}{l|llll|}
+    \cline{2-5} & \multicolumn{4}{c|}{Optimal Planners} \\ \cline{2-5} 
+        & \multicolumn{1}{c|}{RRT*} & \multicolumn{1}{c|}{SARRT*} & \multicolumn{1}{c|}{LazySARRT*} & \multicolumn{1}{c|}{DeepSARRT*} \\ \hline
+    \multicolumn{1}{|c|}{Success (\%)} & \multicolumn{1}{c|}{56.5}  &  \multicolumn{1}{c|}{\textbf{100.0}} &  \multicolumn{1}{c|}{\textbf{100.0}}  &  \multicolumn{1}{c|}{\textbf{100.0}}   \\ \hline
+    \multicolumn{1}{|c|}{Plan time (s)} & \multicolumn{1}{c|}{\textbf{308.7} $\pm$ 235.7}  &   \multicolumn{1}{c|}{ 5459.5 $\pm$ 817.5} &   \multicolumn{1}{c|}{834.3 $\pm$ 380.0}  &  \multicolumn{1}{c|}{584.3 $\pm$ 394.7}    \\ \hline
+    \end{tabular}
+
+    \caption{
+    \label{tab:Robust window star}
+    Average planning time and robust feasibility success rates of the simulated motions planned using standard non-robust RRT*, \myglsentry{sarrt*} (see Chapter~\ref{chap:samp}), \myglsentry{lazysarrt*} (see Chapter~\ref{chap:samp}) and the DeepSARRT* variant, all of them optimizing trajectory length.
+    The results are averaged over 20 plans and 30 simulations per plan, except for the \myglsentry{sarrt*}, which values are averaged over 3 runs and 30 rollouts per plan due to long planning time.}
+\end{table*}

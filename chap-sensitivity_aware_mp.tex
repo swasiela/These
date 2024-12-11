@@ -42,6 +42,8 @@ In this thesis, collision detection is performed using the widely used C impleme
 
 Extending this procedure to account for robot state uncertainty aims to verify that the resulting extended bounding volume, which the robot may occupy due to the uncertainty, is clear of obstacles.
 In this thesis, such bounding volume is computed by considering only the uncertainty in the position subspace for simplicity (i.e., the $\{x,y,z\}$-subspace for the quadrotor or the $\{x,y\}$-subspace for the differential drive robot).
+Also note, that the collision tests presented in this thesis are generic to the robots presented in Chapter~\ref{chap:models}. 
+One can consider less conservative approaches for each robot specifically (e.g. considering a bounding sphere for each propeller of the quadrotor only).
 Several strategies are evaluated based on their computational efficiency, conservatism, and library capabilities:
 \begin{enumerate}
     \item The simplest method to account for position uncertainty in collision checking is to compare the distance between the current robot AABB and the nearest obstacle, incorporating the maximum possible deviations by using the worst-case uncertainty tube radius from Equation~(\ref{eq:radius}) (see~\ref{chap:appendixA} for proof).
@@ -57,7 +59,7 @@ Several strategies are evaluated based on their computational efficiency, conser
     While this method more accurately approximates the true extended collision shape than the two first approaches, it requires multiple calls to the collision-checking function for each robot state tested.
 \end{enumerate}
 
-\begin{figure}[t]
+\begin{figure}[htp]
     \centering
     % Row 1
     \begin{subfigure}{0.4\textwidth}
@@ -113,7 +115,7 @@ This test is performed by checking that the tube associated with each control in
 An example of infeasible input for the quadrotor case is presented in Figure.\ref{fig:invalid_inputs}, where the tube (green) around the nominal control input of the first actuator (blue) exceeds the maximum allowed input (red).
 Note that this simple test is less costly than the robust collision checking one, it is therefore performed first by mean of computational efficiency. 
 
-\begin{figure} [t]
+\begin{figure} [htp]
     \centering
     \includegraphics[width=0.8\linewidth]{figures/samp/Invalid_Inputs.png} 
     \caption{Non-robust nominal control input profile for the first rotor of a quadrotor (blue) along a specified trajectory, depicted with its uncertainty tube (green) and the control input limits (red).}%
@@ -122,7 +124,7 @@ Note that this simple test is less costly than the robust collision checking one
 
 \subsection{Cost function}\label{sec:sensi_cost}
 
-First of all, generating a sensitivity-optimal trajectory requires identifying an appropriate sensitivity-based cost function.
+First, generating a sensitivity-optimal trajectory requires identifying an appropriate sensitivity-based cost function.
 The approaches in~\cite{cPi, cTh} proposed leveraging the Frobenius norm of the sensitivity matrices (Equation~\ref{eq:sensi}).
 However, this formulation does not exploit the available information on the uncertainty ranges, $\delta \p$.
 
@@ -140,7 +142,7 @@ The total cost function $c(\q_d(t))$ for a desired trajectory $\q_d(t)$ is then 
 \end{equation}
 Minimization of this cost will minimize the largest deviation of the state tube along the whole motion.
 
-\begin{figure} [t]
+\begin{figure} [htp]
     \centering
     \includegraphics[width=0.7\linewidth]{figures/samp/non_monotoic.png} 
     \caption{Non monotonic p-norm profile along a 70-state trajectory for a quadrotor example.}%
@@ -175,7 +177,7 @@ Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a de
 
 \subsubsection{Sensitivity-Aware RRT* (SARRT*)}
 
-\begin{algorithm}[t]
+\begin{algorithm}[htp]
     \caption{SARRT$^* [q^{init}, q^{goal}]$}\label{alg:SARRT*}
     \begin{algorithmic}[1]
         \State $T \gets$ InitTree$({q^{init}, q^{goal}});$
@@ -197,7 +199,7 @@ Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a de
     \end{algorithmic}
 \end{algorithm}
 
-\begin{algorithm}[t]
+\begin{algorithm}[htp]
     \caption{RobustOptimalConnection$[T, Q^{near}, q^{rand}, q^{min}]$}\label{alg:RobustOptimalConnect}
     \begin{algorithmic}[1]
         \State $c^{min} \gets$ Cost$(q^{rand});$
@@ -217,7 +219,7 @@ Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a de
     \end{algorithmic}
 \end{algorithm}
 
-\begin{algorithm}[t]
+\begin{algorithm}[htp]
     \caption{RobustRewire$[T, Q^{near}, q^{min}]$}\label{alg:RobustRewire}
     \begin{algorithmic}[1]
         \For {each $q^{near} \in Q^{near} \backslash \{q^{min}\}$}
@@ -293,7 +295,7 @@ The \myglsentry{sasst*} variant, detailed in Algorithm~\ref{alg:SASST*}, operate
 
 Note that in this implementation the \myglsentry{odes} need to be solved only once per iteration compared to the \myglsentry{sarrt*} implementation.
 
-\begin{algorithm}[t]
+\begin{algorithm}[htp]
     \caption{SASST$^* [q^{init}, q^{goal}, N_0, \delta_{BN,0}, \delta_{s,0}, \xi]$}\label{alg:SASST*}
     \begin{algorithmic}[1]
         \State $j \gets 0; N \gets N_0;$
@@ -361,12 +363,13 @@ This inefficiency, resulting from highly constrained problems, slows down tree g
 To address this, and following the approach used in the original \myglsentry{ompl} implementation, a maximum distance is introduced for local trajectories. 
 This adjustment does not compromise the algorithm properties, as longer trajectories can still be formed by chaining several shorter local trajectories. 
 While this approach requires more iterations to ensure adequate space coverage and cost convergence, it results in more efficient tree growth under robustness constraints, as illustrated in Figure~\ref{fig:unic_tree}.
+Note that the choice of this maximum local distance is critical for the applicability of the methods proposed in Chapter~\ref{chap:NN} and Chapter~\ref{chap:sampNN}.
 
 Consequently, throughout this thesis, a maximum local trajectory length of 1.0 (meters or seconds according to the local planner used) is also applied to the proposed \myglsentry{sarrt*} and \gls{sarrt} (see Chapter~\ref{chap:sampNN}) variants.
 
 Finally, all algorithms use a time step of 0.05s for the solving the \myglsentry{odes} and to perform the robust feasibility checks, and the algorithms stopping criterion is defined by a cost convergence threshold of 5\%.
 
-\begin{figure} [h]
+\begin{figure} [htp]
     \centering
     \subfloat[\centering Unbounded \myglsentry{rrtstar}]{{\includegraphics[width=0.4\linewidth]{figures/samp/rrtstar_unbounded.png} }}%
     \subfloat[\centering Bounded \myglsentry{rrtstar}]{{\includegraphics[width=0.4\linewidth]{figures/samp/rrtstar_bounded.png} }}%
@@ -407,20 +410,20 @@ Furthermore, the results in Figure~\ref{fig:unic_tree} strongly suggest that by 
 \begin{figure} [ht]
     \centering
     \includesvg[width=0.8\linewidth]{figures/samp/profiling_unic.svg} 
-    \caption{Profiling of vanilla planners and robust variants, illustrating the contributions of various procedures to the total planning time over 1.000 iterations for the differential drive robot case.}%
+    \caption{Profiling of vanilla planners and robust \myglsentry{samp} variants, illustrating the contributions of various procedures to the total planning time over 1.000 iterations for the differential drive robot case.}%
     \label{fig:profiling_unic}%
 \end{figure}
 
 \subsubsection{Quadrotor robot}
 
-\begin{figure} [h]
+\begin{figure} [htp]
     \centering
     \includesvg[width=0.7\linewidth]{figures/samp/sensi_cost_quad.svg} 
     \caption{Evolution of the sensitivity as a function of the planning time of a \myglsentry{sasst*} (green), and of \myglsentry{sarrt*} (red) for the quadrotor application.}%
     \label{fig:samp_quad_time}%
 \end{figure}
 
-\begin{figure} [h]
+\begin{figure} [htp]
     \centering
     \includesvg[width=0.8\linewidth]{figures/samp/profiling_quad.svg} 
     \caption{Profiling of vanilla planners and robust variants, illustrating the contributions of various procedures to the total planning time over 1.000 iterations for the quadrotor case.
@@ -448,7 +451,7 @@ This trajectory is then locally optimized for minimizing the cost function~(\ref
 
 \subsubsection{Lazy Sensitivity-Aware RRT* (LazySARRT*)}\label{sec:lazy_rrt*}
 
-\begin{algorithm}[h]
+\begin{algorithm}[htp]
     \caption{LazySARRT$^* [q^{init}, q^{goal}]$}\label{alg:LazySARRT*}
     \begin{algorithmic}[1]
         \State $T \gets$ InitTree$({q^{init}, q^{goal}});$
@@ -506,17 +509,17 @@ Therefore, its robustness can be further improved.
 
 \subsubsection{Sensitivity-Aware Shortcut}
 
-\begin{algorithm}[h]
+\begin{algorithm}[htp]
     \caption{SAShortcut [$\q_{d,SARRT^*}$]}\label{alg:SAshortcut}
     \begin{algorithmic}[1]
         \State $\{\q_{d,best}, cost_{best}\} \gets \{\q_{d,SARRT^*}, $Cost$(\q_{d,SARRT^*}) \};$
         \State $q_d^{init} \gets \q_{d,best}^0; q_d^{goal} \gets \q_{d,best}^F;$
         \While{\textbf{not} StopCondition$()$} 
             \State $\{q_d^{1}, q_d^{2}\} \gets$ SampleOnTraj$(\q_{d,best});$
-            \State $\q_{d,start} \gets $LocalPlan$(q_d^{init}, q_d^{1});$
-            \State $\q_{d,end} \gets $LocalPlan$(q_d^{2}, q_d^{goal});$
             \State $\q_{d,shct} \gets $LocalPlan$(q_d^{1}, q_d^{2});$
             \If{CollisionFree$(\q_{d,shct})$}
+                \State $\q_{d,start} \gets $LocalPlan$(q_d^{init}, q_d^{1});$
+                \State $\q_{d,end} \gets $LocalPlan$(q_d^{2}, q_d^{goal});$
                 \State $\q_{d,new} \gets \q_{d,start}+\q_{d,shct}+\q_{d,end};$
                 \State $S_0 \gets $GetNodeConditions$(q_d^{init});$
                 \State $\{\q_n, \u_n, \Rq, \Ru, S_F\}  \gets $SolveODEs$(\q_{d,new}, S_0);$
@@ -539,10 +542,10 @@ The algorithm is first initialized with the robust trajectory resulting from the
 It is important to note that the robustness of the initial trajectory is a crucial assumption, as the \myglsentry{SAshortcut} algorithm does not guarantee the generation of a robust trajectory if the initial trajectory is not robust.
 Nevertheless, the algorithm preserves this robustness throughout its local optimization process.
 Then, the algorithm randomly samples two states $\{q_d^{1}, q_d^{2}\}$, along the current best trajectory (line 4).
-Next, it computes the local trajectory between the two samples $\q_{d,shct}$ (line 7).
+Next, it computes the local trajectory between the two samples $\q_{d,shct}$ (line 5).
 To minimize the frequency of solving the \myglsentry{odes}, a lazy approach is employed.
-First, the algorithm ensures that the proposed shortcut is collision-free (line 8). 
-Unlike the classical shortcut method, which compares only the costs of the original and proposed trajectory segments, the entire trajectory is reevaluated to incrementally compute the sensitivity cost (lines 9–12).
+First, the algorithm ensures that the proposed shortcut is collision-free (line 6). 
+Unlike the classical shortcut method, which compares only the costs of the original and proposed trajectory segments, the entire trajectory is reevaluated to incrementally compute the sensitivity cost (lines 7–12).
 It is important to note that both the cost and uncertainty tubes are derived from the \myglsentry{odes}. 
 To avoid redundant computations, the \myglsentry{odes} are solved before performing the cost comparison.
 Finally, if the new solution has a lower sensitivity cost (line 13), then a robust feasibility check is performed before updating the trajectory portion in case of success (line 14-15).
@@ -552,7 +555,7 @@ Finally, if the new solution has a lower sensitivity cost (line 13), then a robu
 
 \input{figures/tables/lazySAMP_unic.tex}
 
-\begin{figure}[h]
+\begin{figure}[htp]
     \centering
     \includegraphics[width=0.7\linewidth]{figures/samp/sensi_cost_unic.png}
     \caption{Trajectory cost resulting of the decoupled approach (red, green, blue) for the differential drive robot, the dashed purple cost correspond to the sensitivity-optimal reference trajectory found by the \myglsentry{sasst*}.}
@@ -597,7 +600,7 @@ The mean values associated with \myglsentry{sasst*} were obtained over 3 runs (d
 
 \paragraph{2D U-Shape Environment} 
 
-\begin{figure}[h]
+\begin{figure}[htp]
     \centering
     \includegraphics[width=0.7\linewidth]{figures/samp/U_shape_3in1_before.png}
     \includegraphics[width=0.7\linewidth]{figures/samp/U_shape_3in1_after.png}
@@ -617,7 +620,7 @@ This is mainly due to the fact that in this case the time-optimal trajectory is 
 
 \paragraph{2D 2-way Environments} 
 
-\begin{figure}[h]
+\begin{figure}[htp]
     \centering
     \includegraphics[width=0.7\linewidth]{figures/samp/Contribution-example1.png}
     \includegraphics[width=0.7\linewidth]{figures/samp/Contribution-example2.png}
@@ -640,7 +643,7 @@ Finally, on can note that the \myglsentry{SAshortcut} computing time remains of 
 
 \paragraph{3D Environment} 
 
-\begin{figure}[h]
+\begin{figure}[htp]
 \centering
     \includegraphics[width=0.7\linewidth]{figures/samp/3D_full_view.png}
     \includegraphics[width=0.7\linewidth]{figures/samp/3D_ZYprofile.png}
