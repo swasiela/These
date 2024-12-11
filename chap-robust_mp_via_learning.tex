@@ -562,6 +562,9 @@ The RRT* does not use the A-Optim method to optimize accuracy while the DeepSARR
 The offline optimization in A-Optim aimed at minimizing the uncertainty at the location of the two rings.
 
 The first ring is weighted between 10 g and 50 g, so when it is caught, it becomes part of the drone and modifies the overall mass/inertia and center of mass of the system in an unmodeled way. 
+Note that the rings are recovered on the perch, which is located at the origin of the z-axis in the body frame. 
+Consequently, it is assumed that catching the rings does not introduce any uncertainties in the center of mass along the z-axis. 
+Therefore, this is why only shifts along the x and y axes are taken into account in the setup (see Section~\ref{sec:quad_setup}).
 Note that, to minimize the impact of catching the rings as a source of perturbation, the ring supports are oiled to reduce the friction when picking the rings.
 A success is characterized by the recovery of both rings, otherwise the execution is considered as a failure.
 
