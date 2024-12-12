@@ -470,7 +470,7 @@ This confirms the sensitivity of the algorithm to its hyperparameters.
 While the robust local optimizers compared above consider only the trajectory states as optimization variables, the work in~\cite{AliIROS} demonstrates that optimizing both the states and controller gains achieves the best accuracy performance.
 Therefore, \myglsentry{SAshortcut} has been implemented such that, at each iteration, a shortcut is attempted between two states of the input trajectory, randomly sampled along with controller gain values, which are chosen within 50\% to 150\% of their nominal values (see Section~\ref{sec:quad_setup}).
 Figure~\ref{fig: Acc opti} motivates why we optimized both the trajectory and the controller gains at the same time in the A-Optim function in order to minimize uncertainty for a given point, as mentioned in Section~\ref{sec:RASAMP}. 
-In fact, these results corroborate the findings of \cite{AliIROS}, but this time by employing a sampling-based motion planner that considers obstacles in the environment.
+In fact, these results corroborate the findings of~\cite{AliIROS}, but this time by employing a sampling-based motion planner that considers obstacles in the environment.
 
 \begin{figure} [htp]
     \centering
@@ -554,10 +554,12 @@ This scenario involves a challenging in-flight retrieval of two 2 cm radius ring
 Note that, unlike the first experimental scenario described earlier, the uncertainties in the system parameters in this case arise from the task itself, specifically during the recovery of the rings.
 
 The experimental setup is shown in Figure~\ref{fig: exp ring}, where the quadrotor is equipped with a perch of 50 cm length, aligned at a 45° angle relative to the body frame x and y axes.
+The perch is made of carbon fiber and 3D-printed parts, with a total mass of 20g. 
+As a result, its addition to the drone is considered negligible in terms of uncertainty.
+
 The positions and orientations of the rings are recovered before the planning process using a motion capture system, as depicted in Figure~\ref{fig: ring}.
 Based on the positions and orientations of the rings, desired quadrotor states (as for the states in $list_{d}$ in Section~\ref{sec:RASAMP}) is computed to ensure that the incidence angle of the perch is perpendicular to the rings during capture, with zero acceleration.
-
-10 trajectories were planned using a vanilla (non-robust) RRT* planner and the DeepSARRT* algorithm, both designed to optimize trajectory time, and then executed by the real quadrotor.
+Based on these informations, 10 trajectories were planned using a vanilla (non-robust) RRT* planner and the DeepSARRT* algorithm, both designed to optimize trajectory time, and then executed by the real quadrotor.
 The RRT* does not use the A-Optim method to optimize accuracy while the DeepSARRT* does, in addition to guaranteeing the robustness.
 The offline optimization in A-Optim aimed at minimizing the uncertainty at the location of the two rings.
 
@@ -578,14 +580,21 @@ Overall, the experimental results show a success rate of 90\% for DeepSARRT* aga
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion} \label{sec:Conclusion}
 
-This chapter has presented 
-
-We have presented a motion planner able to generate trajectories that are both robust and accurate in the presence of model uncertainties for a variety of robot/controller pair. The proposed planner leverages a GRU-based learning approach that quickly and accurately estimates the control inputs and the sensitivity-based uncertainty tubes of the state and of the inputs. 
+This chapter has presented a framework able to generate trajectories that are both robust and accurate in the presence of model uncertainties.
+By leveraging the GRU-based architecture introduced in Chapter~\ref{chap:NN}, more efficient robust sensitivity-aware variants were developed compared to those discussed in Chapter~\ref{chap:samp}.
 The results on a quadrotor robot confirm the efficiency of the proposed learning method and highlight the benefit of its integration within a motion planner, resulting in a significant reduction of the planning times. 
-Moreover, we showed that our framework is able to locally optimize the planned trajectory in order to minimize the size of the uncertainty tubes of the state at some desired locations, allowing the system to accurately perform a precision task. An experimental demonstration involving a quadrotor UAV in a ring-catching task allowed to validate the approach in real conditions. Future works will focus on considering uncertainties not only in the dynamic model, by extending the computation of the tubes for state estimation uncertainties. 
-Furthermore, we aim to expand the capabilities of the neural network to learn the optimal controller gains.
 
-Mentionned that maybe consider only a subpart of the trajectory before the accuracy waypoints might be better, only few time steps impact it.
-Sampling for ExtendedShortcut maybe adaptive according to the difficulty of the convergence.
+Moreover, several robust sensitivity-aware variants were proposed for local optimizers in order to minimize the size of the uncertainty tubes of the state at some desired locations, allowing the system to accurately perform a precision task.
+Extensive simulation results demonstrated that the \myglsentry{SAshortcut} method is the most suitable for this task in the quadrotor case.
+Additionally, the optimization variables were extended to include the controller gains, as simultaneously optimizing both the trajectory and the gains achieves the most effective minimization of the cost function.
+However, it is important to note that while the proposed deep learning-based sensitivity-aware variants leverage the neural network architecture described in Chapter~\ref{chap:NN}, the local optimizers cannot take advantage of this architecture, as the model is specific to the controller gains used during training.
 
-Also, learning optimal controller gains is left to future work, as it would require additional work on database generation and data annotation, the A-Optim method cannot benefit from it.
+Two experimental demonstrations involving a quadrotor navigating through a narrow window, and a ring-catching task allowed to validate the approach in real conditions. 
+It is worth noting that the experimental validation was made possible by the use of a motion capture system, ensuring that the assumption of a perfectly known system state (see Section~\ref{sec:sensi}) hold.
+Additionally, the experiments were conducted indoors, eliminating external disturbances and leaving only model uncertainties to affect the system.
+Therefore, it is crucial that future work consider uncertainties not only in the dynamic model, by extending the computation of the tubes for state estimation uncertainties and external disturbances. 
+
+Finally, a new local optimizer called \myglsentry{saextendedshct} has been proposed. 
+It leverages the \myglsentry{stomp} concept by generating noisy states around the initial trajectory, and combines it with the shortcut method to explore the vicinity of the initial trajectory while maintaining a low computational cost.
+Preliminary results have shown that the algorithm is sensitive to the sampling radius used to generate noisy states around the initial trajectory. 
+However, adaptive noise generation (i.e. using broader noise when the cost is trapped in local minima and narrower noise when the cost needs refinement) should be further explored as a potentially more efficient technique.
