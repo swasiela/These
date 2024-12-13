@@ -1,3 +1,18 @@
 \chapter*{Abstract}
 
-This thesis address 
+This thesis addresses the problem of generating robust and accurate trajectories taking into account uncertainties in the robot dynamic model. 
+Based on the notion of \emph{closed-loop sensitivity}, which quantifies deviations in the closed-loop trajectories of any robot/controller pair against uncertainties in the robot model parameters, so-called 'uncertainty tubes' can be derived for bounded parameter variations.
+Such tubes bound the system evolution both in the state and control input spaces.
+Based on the 'feedback motion planning' paradigm, this work leverage these 'uncertainty tubes' to enforce robust constraints within sampling-based planners.
+
+The first contribution of this thesis focuses on generating globally sensitivity-optimal trajectories while enforcing robust constraints thanks to uncertainty tubes.
+However, results show that computing these uncertainty tubes at each iteration of a sampling-based planner is a bottleneck for the method.
+Therefore, a lazy robust feasibility check is proposed to limit the frequency of computing uncertainty tubes, thus improving the computational efficiency of the framework.
+
+This thesis also explore deep learning neural network to speed up closed-loop sensitivity dynamic and subsequent tubes computation.
+By leveraging the structural similarity between ordinary differential equations and recurrent neural networks, a GRU-based architecture is proposed to directly link a planned trajectory with uncertainty tubes, achieving an order-of-magnitude improvement in computation time.
+
+This thesis demonstrates how to integrate GRU-based predictions into a sampling-based planner, resulting in a more computationally efficient planning framework. 
+Furthermore, while robust state-of-the-art methods primarily focus on satisfying robust constraints, this work leverages uncertainty tubes to define a cost function that enables the planning of task-specific, accurate trajectories.
+
+Finally, this work is experimentally validated on a 3D quadrotor in two challenging scenarios: a navigation through a narrow window, and an in-flight ``ring catching'' task that requires high accuracy. 

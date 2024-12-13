@@ -1,9 +1,59 @@
 \chapter{Résumé en Français}
 \label{app:fr_small}
 
-Nous fournissons ici un résumé en langue française des travaux présentés dans ce manuscrit de thèse.
+La planification du mouvement des robots est essentielle pour garantir un comportement robotique à la fois efficace et sûr.
+Cependant, les robots opérant dans des environnements réels font inévitablement face à des incertitudes, qu'il s'agisse de perturbations externes (e.g. le vent), d'inexactitudes dans les modèles, ou d'erreurs d'estimation d'état.
+Une approche efficace pour gérer la complexité d'évoluer and présences de ces incertitudes repose sur le paradigme de la "prévision/rétroaction" ou "planification/contrôle". 
+Ce processus se déroule en deux étapes principales :
+\begin{enumerate}
+    \item Phase de Planification (Prévision) : Une trajectoire de référence pour les états et commandes du robot est planifiée en se basant sur les informations disponibles, telles que les modèles du robot et de son environnement. 
+    Cette étape, généralement réalisée hors ligne, intègre des contraintes (e.g. évitement de collisions, limitations des actionneurs) et optimise des métriques comme la longueur de la trajectoire ou l'efficacité énergétique. 
+    Cependant, une exécution en boucle ouverte de cette trajectoire planifiée échoue souvent en pratique en raison des incertitudes qui affectent les références prévues.
+    \item Phase de Contrôle (Rétroaction) : Pour garantir une exécution robuste, un contrôleur de mouvement est employé pour fermer la boucle entre le mouvement planifié et le mouvement réel. 
+    Ce contrôleur compense les effets imprévus et les incertitudes qui n'ont pas été prises en compte lors de la planification.
+\end{enumerate} 
 
-\textbf{Résumé :}
-%%%%%%%%%%%%%%%%%%%%%% ATTENTION ! SI MODIFICATION => MODIF SUR ADUM AUSSI !!!
+Bien que cette approche séquentielle séparant planification et contrôle soit efficace, elle présente des limitations significatives :
 
-\todomarker{}
+\begin{itemize}
+    \item Les planificateurs modernes excellent à générer des trajectoires réalisables et globalement optimales pour des systèmes à haute dimension et des contraintes complexes. 
+    Cependant, ils ignorent généralement le rôle du contrôleur en temps réel, ce qui entraîne deux problèmes majeurs : (1) le contrôleur doit s’écarter de la trajectoire planifiée pour gérer les incertitudes et perturbations, compromettant ainsi rapidement la faisabilité et l’optimalité ; 
+    (2) le planificateur ne tient pas compte de la robustesse intrinsèque offerte par le contrôleur, manquant ainsi des opportunités pour produire des plans de mouvement plus robustes.
+    \item De nombreuses méthodes de contrôle adaptatif ou robuste (par exemple, H-infini, méthodes LPV) ont été conçues pour gérer efficacement les incertitudes et perturbations, mais elles sont souvent locales vis à vis de la trajectoire de référence. 
+    Ces méthodes peinent à relever des défis plus larges comme la faisabilité sous contraintes, l’optimalité globale et les performances, qui sont mieux gérés par des approches de planification globale.
+\end{itemize}
+    
+Pour combler l’écart entre ces deux communautés, plusieurs approches ont été introduites, notamment des contrôleurs plus globaux tels que le \gls{mpc}~\cite{cTMPC}. 
+De plus, la dernière décennie a vu émerger le concept de "planification de mouvement avec rétroaction" (feedback motion planning)~\cite{cControlAwareAerialManip, cContractThMP, cContractThOnlineMP, cMajundarLibrary, cFaSTrack, cRandUpRRT, cRandUP}. 
+Cependant, ces méthodes continuent de rencontrer des défis en termes de généralisabilité, d'efficacité en temps de calcul et de dépendance à des modèles potentiellement inexacts de la pair robot/contrôleur en raison des incertitudes sur les paramètres du modèle.
+
+Ainsi, ce travail, basé sur le paradigme de "planification de mouvement avec rétroaction" (ou "planification de mouvement consciente du contrôle"), exploite le concept de sensibilité en boucle fermée~\cite{cPi,cTh} (une extension de la notion de sensibilité qui incorpore le comportement du contrôleur vis-à-vis des incertitudes paramétriques) afin de créer des planificateurs robustes et conscients du contrôle pour une large classe de systèmes et de contrôleurs, tout en abordant les incertitudes dans leurs représentations modélisées.
+
+Cette thèse débute par une revue de la littérature au Chapitre~\ref{chap:related_work}, qui fournit un aperçu de l’état de l’art. 
+Elle se concentre d’abord sur les approches découplées pour la planification robuste de mouvement, en commençant par les méthodes de recherche de chemin et en progressant vers la planification kinodynamique de trajectoire associée à des stratégies de contrôle robuste. 
+La revue se poursuit avec des approches unifiées, présentant des méthodes de planification de mouvement robustes prenant en compte les incertitudes, ainsi que des techniques de planification consciente du contrôle. 
+Le chapitre se termine par une mise en avant des approches unifiées et robustes conscientes du contrôle, qui constituent le sujet principal de cette thèse.
+
+Les chapitres suivants explorent en détail les contributions principales de cette thèse, depuis l’introduction des concepts de sensibilité en boucle fermée jusqu’à leur application pratique via des planificateurs conscients du contrôle optimisés par apprentissage profond, démontrant leur efficacité dans des scénarios exigeant robustesse et précision élevées.
+
+Le chapitre~\ref{chap:samp} a présenté l'intégration du concept de sensibilité en boucle fermée et des tubes d'incertitude correspondants dans un cadre de planification global basé sur l'échantillonnage, répondant ainsi aux limitations des travaux antérieurs qui se concentraient principalement sur la génération locale de trajectoires. 
+Cette méthodologie a permis de générer des trajectoires globalement optimales en termes de sensibilité. 
+De plus, pour la première fois, les tubes d'incertitude basés sur la sensibilité ont été utilisés comme contraintes robustes dans le processus de planification, à la fois dans les espaces d'état et d'entrée de contrôle.
+
+Bien que le calcul de ces tubes d'incertitude soit peu coûteux, la charge de calcul globale reste élevée en raison du grand nombre de calculs nécessaires dans les applications basées sur l'échantillonnage. 
+Pour remédier à cela, une approche découplée s'appuyant sur une stratégie robuste et paresseuse a été explorée, réduisant considérablement les besoins en calcul, en particulier pour des systèmes de complexité croissante.
+
+Dans cette continuité, le chapitre~\ref{chap:NN} a abordé davantage les défis computationnels en exploitant la similarité structurelle entre le système d'\gls{odes} nécessaire au calcul des tubes et les \myglsentry{rnns}. 
+Le réseau de neuronne proposé a permis d'établire une corrélation directe entre la trajectoire planifiée et les tubes d'incertitude, éliminant ainsi le besoin de résoudre les ODEs. 
+La méthode a impliqué la génération d'un jeu de données basé sur une approche par échantillonnage adaptée à la tâche. 
+En utilisant une cellule simple de type \myglsentry{gru}, l'architecture proposée a atteint un compromis efficace entre la précision des prédictions et la vitesse d'inférence, réduisant le temps de calcul d'un ordre de grandeur par rapport aux solveurs d'ODEs traditionnels.
+
+Dans le chapitre~\ref{chap:sampNN}, cette architecture basée sur les GRU a été appliquée pour développer une alternative efficace à la stratégie ponctuelle de vérification robuste des collisions présentée dans le chapitre~\ref{chap:samp}. 
+Des variantes de planification conscient de la sensibilité basées sur l'apprentissage profond ont été proposées, démontrant leur efficacité pour générer des trajectoires robustes dans des temps de planification acceptables. 
+De plus, alors que le chapitre~\ref{chap:samp} se concentrait principalement sur la minimisation globale de la sensibilité tout au long du mouvement, les méthodes de ce chapitre se sont orientées vers l'optimisation de la précision. 
+Les tubes d'incertitude ont été appliqués de manière sélective à des segments spécifiques du mouvement en fonction des exigences de la tâche.
+
+Une campagne de simulation approfondie a permis d'identifier le meilleur optimiseur local pour cette fonction de coût spécifique, en optimisant à la fois les trajectoires et les gains du contrôleur. 
+Les méthodes proposées ont été validées expérimentalement dans deux scénarios exigeants: la navigation d'un quadrirotor à travers une fenêtre étroite et la capture en vol d'anneaux nécessitant une grande précision. 
+Ces tests ont mis en évidence l'efficacité des méthodes proposés dans un environnement intérieur. 
+Cependant, une validation supplémentaire est nécessaire pour évaluer son applicabilité à des systèmes plus complexes, tels que les manipulateurs aériens.

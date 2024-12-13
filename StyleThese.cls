@@ -733,6 +733,7 @@
     \noindent
     \hb@xt@1.8em{\hss\@makefnmark}#1}
 \newcommand\contentsname{Contents}
+\newcommand\listacronymname{List of Acronyms}
 \newcommand\listfigurename{List of Figures}
 \newcommand\listtablename{List of Tables}
 \newcommand\bibname{Bibliography}
