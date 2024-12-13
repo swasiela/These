@@ -2,9 +2,37 @@
 \markboth{Introduction}{}% To set left/right header
 % \localtableofcontents
 
-\section{Robust Control-Aware Motion Planning}
-
 \section{Context and Objectives}
+
+Robot motion planning is crucial for ensuring efficient and safe robot behavior.
+However, robots operating in real-world inevitably face uncertainties, including external disturbances (e.g., wind), model inaccuracies, and state estimation errors.
+
+An effective approach to managing the complexity of robots operating in uncertain real-world environments is the "feedforward/feedback" or "planning/control" paradigm. 
+This process involves two main steps:
+
+\begin{enumerate}
+  \item Planning Phase (Feedforward): A reference trajectory for the robot states and controls is planned based on available information, such as models of the robot and its environment.
+  This step, typically executed offline, incorporates constraints (e.g., collision avoidance, limited actuation) and optimizes metrics like trajectory length or energy efficiency. 
+  However, executing this planned trajectory in open-loop often fails in practice due to uncertainties affecting the planned reference.
+  \item Control Phase (Feedback): To ensure robust execution, a motion controller is employed to close the loop between the planned and actual motion, compensating for unforeseen effects and uncertainties that were not accounted for during planning.
+\end{enumerate}
+    
+While this sequential approach, which separates planning and control, has proven useful, it exhibits significant limitations:
+
+\begin{itemize}
+  \item Modern planners excel at generating feasible and globally optimal paths for high-dimensional systems and complex constraints. 
+  However, they typically ignore the role of the runtime feedback controller, leading to two key issues.
+  First, the controller must deviate from the planned trajectory to address uncertainties and disturbances, which can quickly compromise feasibility and optimality.
+  Then, the planner does not account for the robustness inherently provided by the controller, missing opportunities to generate more robust motion plans.
+  \item While many adaptive and robust control schemes (e.g., H-infinity, LPV methods) have been designed to handle uncertainties and disturbances effectively, they are local to the vicinity of a reference trajectory. 
+  These methods often fall short when it comes to addressing broader challenges such as feasibility under constraints, global optimality, and performance, which are better managed by global planning approaches.
+\end{itemize}
+    
+To bridge the gap between the two communities, several approaches have been introduced, including more global controllers such as the well-known \gls{mpc}~\cite{cTMPC}. 
+In addition, the past decade has seen the rise of so-called 'feedback motion planning'~\cite{cControlAwareAerialManip, cContractThMP, cContractThOnlineMP, cMajundarLibrary, cFaSTrack, cRandUpRRT, cRandUP}. 
+However, these methods still face challenges related to generalizability, computational efficiency, and their reliance on potentially inaccurate models of the robot/controller pair due to uncertainties in the knowledge of model parameters.
+
+Therefore, this work, based on the 'feedback motion planning' (or 'control-aware motion planning') paradigm shown in Figure~\ref{fig:ca_strat}, leverage the closed-loop sensitivity concept~\cite{cPi,cTh} (an extension of the sensitivity notion that incorporates the controller behavior with respect to parametric uncertainties), in order to create robust control-aware motion planners for a broad class of systems and controllers, while addressing uncertainties in their model representations.
 
 \begin{figure} [htp]
     \centering

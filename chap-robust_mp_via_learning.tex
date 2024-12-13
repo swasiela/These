@@ -346,7 +346,7 @@ A \myglsentry{deepsamp} variant of the \myglsentry{rrtstar}, denoted DeepSARRT*,
 These optimal planners compute near time-optimal trajectories and ran until the solution cost converged below a threshold of 15 seconds. 
 The RandUp-RRT was excluded from this comparison, as no optimal version of the algorithm exists.
 
-The comparison is based on the several planenrs planning time and success rate on the scenario depicted in Figure~\ref{fig: fig1robust}, using an Intel i9 CPU@2.6GHz and a RTX A3000 GPU for the GRU predictions.
+The comparison is based on the several planenrs planning time and success rate on the scenario depicted in Figure~\ref{fig: fig1robust}, using an Intel i9 CPU@2.6GHz.
 Table~\ref{tab:Robust window} and Table~\ref{tab:Robust window star} show comparative results for optimal and non-optimal planners, averaged for each planner over 20 trajectories and 30 simulations with uncertain parameters uniformly sampled in the range $\delta\p$ presented in Section~\ref{sec:quad_setup}. 
 Note that since the sensitivity-based uncertainty tubes are valid for uncertain parameters contained within the uncertain parameter ellipsoid (see Section~\ref{sec:tubes}), the sampled vector of uncertain parameters is projected onto the ellipsoid hull when necessary.
 

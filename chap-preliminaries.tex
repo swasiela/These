@@ -29,7 +29,7 @@ Also, assume the presence of a controller $\boldmu$ of any form whose aim is to 
 \end{equation}
 where $\bxi\in \mathbb{R}^{n_{\xi}}$ are the internal states of the controller (e.g., an integral action), $\k_{c}\in \mathbb{R}^{n_{k}}$ the controller gains, and $\p_{n}\in{\mathbb{R}^{n_{p}}}$ is the vector of "nominal" system parameters used in the control loop, i.e. the estimated nominal values of $\p$.
 It is important to note that, in this thesis, the system state $\q$ is assumed to be perfectly known, as no sensor models are considered.
-Consequently, the simulations and subsequent sensitivity computations are performed using the true system state $\q$, than the usual estimation of this state $\hat{\q}$.
+Consequently, the simulations and subsequent sensitivity computations are performed using the true system state $\q$, rather than the usual estimation of this state $\hat{\q}$.
 
 In line with the previous definitions, the following sections of this thesis will then differentiate between three types of state vectors of key importance:
 \begin{enumerate}
@@ -60,7 +60,7 @@ However, as shown in~\cite{cPi,cTh}, their evolution in time can be computed by 
 where $\bPixi(t)\in \mathbb{R}^{n_{\xi} \times n_p}$ represents the \emph{internal state sensitivity} matrix.
 
 Now that the sensitivity matrices are defined, one can optimize the desired trajectory s.t. a norm of these matrices is minimized (see~\cite{cPi,cTh}). 
-This optimization produces a trajectory s.t. the closed-loop evolution of $\q(t)$/$\u(t)$ closely matches its evolution in the nominal case $\q_n(t)$/$\u_n(t)$.
+This optimization produces a trajectory s.t. the closed-loop evolution of $\q(t)$ and $\u(t)$ closely matches their evolutions in the nominal case $\q_n(t)$ and $\u_n(t)$.
 
 \subsection{Tube computation}\label{sec:tubes}
 
