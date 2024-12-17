@@ -2,31 +2,105 @@
 \markboth{Related work}{}% To set left/right header
 % \localtableofcontents
 
-\section{Decoupled approaches}
-\subsection{Motion planning}
-In motion planning a distinction is usually made between the local planner and the global planner. 
-The former is in charge of producing a valid trajectory between two configurations (or states) of the system without necessarily taking collisions into account. 
-The later is the overall algorithmic process that is in charge of solving the motion planning problem by exploring the configuration space (or the state space) of the system. 
-It relies on multiple calls to the local planner.
-\subsubsection{Path finding}
-\subsubsection{Trajectory generation}
-Throughout the thesis, the terms "global optimization" and "global planning" refer to the use of global sampling-based techniques.
-\subsubsection{Kinodynamic motion planning}
-\subsection{Robust control}
-\subsubsection{DFL}
-\subsubsection{Geometric controller}
-\subsubsection{MPC}
+\section{Motion planning}
 
-\section{Robust and control-aware motion planning}
-\subsection{Robust motion planning}
-\subsubsection{Chance-constrained}
-\subsubsection{Particle RRT}
-\subsection{Control-aware motion planning}
-\subsubsection{xxxx}
-\subsection{Robust control-aware motion planning}
-\subsubsection{Randomized uncertainty propagation}
-\subsubsection{FaSTrack}
-\subsubsection{LQR-trees}
-\subsubsection{Contraction theory}
+\subsection{Path finding}
 
-\todomarker{}
+The path finding problem focuses on finding a collision-free and/or optimal path that connects two configurations: a starting configuration and a goal configuration.
+
+\subsection{Kinodynamic planning}
+
+While path finding focuses on generating a route between two robot configurations, trajectory generation focuses on how the robot should move along this route over time.
+
+\subsubsection{}
+
+\subsubsection{Forward propagation}
+
+
+
+% Motion Planning
+
+% Motion planning is a critical component in robotics, enabling autonomous agents to navigate their environments by computing safe and efficient paths or trajectories. This process ensures collision avoidance and adherence to physical and dynamic constraints of the system. It can be divided into three main subcategories: Path Finding, Trajectory Generation, and Kinodynamic Motion Planning, each addressing different aspects of the motion planning problem.
+% 1. Path Finding
+
+% Path finding is the foundational stage of motion planning, focusing on computing a feasible route between a starting configuration and a goal configuration. These paths are often generated in static or fully known environments and are primarily concerned with ensuring collision-free navigation.
+
+%     Graph-based Algorithms:
+%     Classical graph-search algorithms, such as Dijkstra’s algorithm and A*, operate by discretizing the configuration space into nodes connected by edges, then searching for the shortest path.
+%         Dijkstra’s algorithm ensures optimal solutions but can be computationally expensive for large environments.
+%         A* improves efficiency by incorporating heuristics, reducing the search space significantly. Variants like Weighted A* allow trade-offs between optimality and computation time, while algorithms like Anytime Repairing A* cater to dynamic environments by efficiently replanning when changes occur.
+
+%     Sampling-based Planners:
+%     Sampling-based planners like Probabilistic Roadmaps (PRM) and Rapidly-exploring Random Trees (RRT) excel in high-dimensional configuration spaces.
+%         PRM constructs a global roadmap by sampling configurations and connecting collision-free paths between them, offering efficient solutions in static environments.
+%         RRT, on the other hand, incrementally builds a tree by exploring the configuration space, making it well-suited for dynamic systems or when real-time computation is necessary. Enhancements such as RRT* and PRM* improve solution quality by ensuring asymptotic optimality, which guarantees convergence toward the best path as computation time increases.
+
+%     Grid-based Methods:
+%     In structured environments, grid-based techniques discretize the space into a uniform grid of cells.
+%         Dynamic Programming is commonly applied on such grids to compute paths by minimizing a cost function.
+%         The resolution of the grid plays a critical role in determining the trade-off between computational efficiency and path accuracy. While grid-based methods are straightforward, they struggle in high-dimensional spaces or unstructured environments.
+
+% 2. Trajectory Generation
+
+% While path finding determines the spatial route, trajectory generation focuses on how the robot should move along this route over time, considering kinematic and dynamic constraints to ensure feasibility.
+
+%     Polynomial Splines:
+%     Polynomial-based methods, such as cubic splines and quintic splines, are widely used for smooth trajectory interpolation between waypoints.
+%         These methods ensure continuity in position, velocity, and acceleration, which is essential for smooth robotic motion.
+%         They are computationally efficient and suitable for applications like robotic manipulators or UAV navigation.
+
+%     Optimization-based Methods:
+%     Optimization frameworks like CHOMP and STOMP formulate trajectory planning as an optimization problem, minimizing a cost function that accounts for obstacle avoidance and trajectory smoothness.
+%         CHOMP uses gradient-based optimization to refine an initial trajectory, making it collision-free while maintaining smoothness.
+%         STOMP, on the other hand, employs stochastic sampling to explore feasible trajectories, offering robustness in environments with complex obstacle configurations.
+%         More advanced methods integrate convex optimization or leverage real-time solvers for handling dynamic constraints, enabling robots to adapt to changes in their environments.
+
+%     Learning-based Approaches:
+%     Data-driven methods leverage neural networks trained on large datasets of prior trajectories to predict feasible paths.
+%         Imitation learning is a common technique where the robot learns from expert demonstrations to generate trajectories in similar scenarios.
+%         These methods excel in reducing computation time, making them highly suitable for real-time applications, though they often rely on high-quality training data and can struggle with generalization.
+
+% 3. Kinodynamic Motion Planning
+
+% Kinodynamic motion planning extends traditional motion planning by considering both the kinematic constraints (e.g., turning radius) and dynamic constraints (e.g., velocity, acceleration) of the robot, ensuring that the generated motion plans are physically executable.
+
+%     Time-parameterized RRTs:
+%     Extensions of RRT, such as RRT-Connect and Kinodynamic RRT, incorporate dynamic constraints directly into the planning process.
+%         These planners ensure that the generated paths are not only collision-free but also adhere to the robot's motion model, such as maximum acceleration or turning capabilities.
+%         The addition of time-parameterization allows for the generation of time-efficient trajectories, suitable for systems requiring fast, dynamic responses.
+
+%     Model Predictive Control (MPC):
+%     MPC-based planners solve an optimization problem over a receding time horizon, generating dynamically feasible motion plans that account for constraints and obstacles.
+%         MPC is particularly effective for systems with complex dynamics, such as mobile robots, autonomous vehicles, and drones.
+%         Its ability to continuously update plans in real time makes it ideal for dynamic and uncertain environments.
+
+%     Search-based Methods:
+%     Algorithms like state-time A* or lattice-based planning search directly in the state-time space, incorporating kinodynamic constraints at the planning level.
+%         These methods often use discretization to simplify the problem but can become computationally expensive in high-dimensional spaces.
+%         They are well-suited for problems requiring precise adherence to constraints, such as robotic manipulators or autonomous cars navigating through dense traffic.
+
+%     Nonlinear Dynamics Integration:
+%     For robots with non-holonomic constraints (e.g., wheeled robots), planning methods often employ predefined motion primitives, such as Dubins paths or Reeds-Shepp curves, to generate feasible trajectories.
+%         These techniques ensure that the paths are physically realistic while maintaining computational efficiency.
+
+\section{Motion planning under uncertainty}
+
+\subsection{Chance-constrained}
+
+\subsection{POMDP}
+
+\subsection{Chance-constrained}
+
+\section{Control-aware motion planning}
+
+\subsection{MPC}
+
+\subsection{FaSTrack}
+
+\subsection{LQR-trees}
+
+\subsection{Contraction theory}
+
+\subsection{Randomized uncertainty propagation}
+
+\subsection{Sensitivity}

@@ -28,7 +28,8 @@ Also, assume the presence of a controller $\boldmu$ of any form whose aim is to 
    \right .
 \end{equation}
 where $\bxi\in \mathbb{R}^{n_{\xi}}$ are the internal states of the controller (e.g., an integral action), $\k_{c}\in \mathbb{R}^{n_{k}}$ the controller gains, and $\p_{n}\in{\mathbb{R}^{n_{p}}}$ is the vector of "nominal" system parameters used in the control loop, i.e. the estimated nominal values of $\p$.
-It is important to note that, in this thesis, the system state $\q$ is assumed to be perfectly known, as no sensor models are considered.
+Note that the controller operates based on the nominal parameters $\p_{n}$, while the actual parameters $\p$, which influence the system, remain unknown and cannot be determined.
+It is also important to note that, in this thesis, the system state $\q$ is assumed to be perfectly known, as no sensor models are considered.
 Consequently, the simulations and subsequent sensitivity computations are performed using the true system state $\q$, rather than the usual estimation of this state $\hat{\q}$.
 
 In line with the previous definitions, the following sections of this thesis will then differentiate between three types of state vectors of key importance:
@@ -82,12 +83,6 @@ Another important feature of the sensitivity matrices is that it is possible to 
 The rest of this section shows how to establish such bounds around the nominal state trajectory $\q_n(t)$ by focusing solely on the state-sensitivity matrix $\bPi(t)$ for clarity. 
 However, it is important to note that the same procedure can also be applied to compute bounds around the nominal input trajectory $\u_n(t)$ by leveraging the input-sensitivity matrix $\bTheta(t)$.
 
-The uncertainty tube for each component of the state is characterized by a \emph{radius} which bounds the state component evolution from its nominal value over time, i.e. for the $i$-th component of the state ($q_i(t)$) the tube radius $r_{q,i}(t)$ is defined s.t.:
-\begin{equation}\label{eq:bounds_q}
-  q_{n,i}(t) - r_{q,i}(t) \leq q_i(t) \leq q_{n,i}(t) + r_{q,i}(t).
-\end{equation}
-
-Let $\Delta\q(t) = \q(t) - \q_n(t)$, representing the deviation of the perturbed trajectory from the nominal one, which we seek to bound.
 Assume that for each uncertain parameter $p_{i}, i \in [1, n_p]$ in $\p$, we have a bounded parameter deviation $\delta p_i \in \mathbb{R}$ s.t. 
 \begin{equation*}
   \forall i \in [1, n_p] ,p_i \in [p_{n_i}-\delta p_i, p_{n_i}+\delta p_i].
@@ -116,14 +111,22 @@ Without loss of generality, for a well-chosen $\delta \p$ s.t. Equation~(\ref{eq
   \Delta\q(t)^T (\bPi(t) \bW \bPi(t)^T)^\dag \Delta\q(t) \leq 1.
 \end{equation}
 However, it is important to note that the ellipsoid axes are in general not aligned with the canonical basis of the state space.
-This implies that computing the deviation of each state component $q_i(t)$ is not straightforward, as direct use of the ellipsoid semi-axes length is not possible and the direction of interest may not belong to the range of the ellipsoid.
+This implies that computing the deviation of each state component $q_i(t)$ is not straightforward, as direct use of the ellipsoid semi-axes length is not possible.
+%  and the direction of interest may not belong to the range of the ellipsoid.
 
-Nevertheless, it has been shown in ~\cite{cTube} how to obtain the tube radius along the $i$-th component of the state $q_i(t)$ by mean of the following projection:
+Nevertheless, it has been shown in~\cite{cTube} how to evaluate the radius $r_{q,i}(t)\geq 0$ of the perturbed tubes along the $i$-th component of the state $q_i(t)$ by mean of the following projection:
 \begin{equation}\label{eq:radius}
   r_{q,i}(t) =  \sqrt{\boldsymbol{n_i}^{T} \boldsymbol{K_{\Pi}}(t) \boldsymbol{n_i}},
 \end{equation}
 where $\boldsymbol{n}_i$ is the unit-norm vector of the $i$-th state space component, and $\boldsymbol{K_{\Pi}}(t) = \boldsymbol{\Pi}(t)\boldsymbol{W}\boldsymbol{\Pi}(t)^T$ is the kernel matrix of Equation~(\ref{eq:q_ellipsoid}).
 It is important to note that the radius along the $i$-th component represents the maximum possible deviation in that direction and does not directly correspond to the semi-axes of the uncertainty ellipsoid as depicted in Figure~\ref{fig:ellips_radius}.
+
+The quantities $r_{q,i}(t)$ can then be used to bound components of the states $\q(t)$ or inputs $\u(t)$ over time.
+For example, letting $q_{n,i}(t)$ the behavior of the $i$-th state component in the nominal case (non-perturbed case), the so-called \emph{uncertainty tube} along this component is defined s.t.:
+\begin{equation}\label{eq:bounds_q}
+  q_{n,i}(t) - r_{q,i}(t) \leq q_i(t) \leq q_{n,i}(t) + r_{q,i}(t),
+\end{equation}
+for a perturbed state $q_i(t)$, and an analogous derivation is also possible for the control inputs $\u(t)$.
 
 Finally, it is important to underline that since the uncertainty tube radii depend on the state sensitivity $\boldsymbol{\Pi}(t)$, it is necessary to solve the set of \myglsentry{odes} represented by Equation~(\ref{eq:dyna}), Equation~(\ref{eq:ctrl}), and Equation~(\ref{eq:dyna_sensi}) beforehand.
 Additionally, note how, in general, the tube radius does not necessarily increase monotonically due to the influence of feedback action as illustrated in Figure~\ref{fig:tubes}, despite the cumulative effect of uncertainties over time. 
@@ -207,7 +210,7 @@ The dynamic model is then defined as follows:
    \end{array}
    \right . 
 \end{equation}
-In line with Section~\ref{sec:sensi}, let the vector $\p = [m \, x_{cx} \, x_{cy} \, x_{cz} \, J_{x} \, J_{y} \,J_{z} \, k_f \, k_{\tau}]^T \in \mathbb{R}^{9}$ represent all the parameters used in the robot model outlined above that are subject to uncertainty. 
+In line with Section~\ref{sec:sensi}, let the vector $\p = [m \, x_{cx} \, x_{cy} \, x_{cz} \, J_{x} \, J_{y} \,J_{z} \, k_f \, k_{\tau}]^T \in \mathbb{R}^{9}$ with $J_{x}, \, J_{y},$ and $J_{z}$ the main inertia coefficients, represent all the parameters used in the robot model outlined above that are subject to uncertainty. 
 This vector can be adjusted based on the various scenarios presented in this thesis.
 
 Finally, as tracking controller, we consider the widely used Lee (or geometric) controller~\cite{cLee} to compute the control input vector $\u$.
@@ -219,7 +222,7 @@ Let the linear position error and linear velocity error be defined as follows:
   \boldsymbol{e_x}(t) = \boldsymbol{x}(t) - \boldsymbol{x}_d(t) \in \mathbb{R}^3, \,
   \boldsymbol{e_v}(t) = \boldsymbol{v}(t) - \boldsymbol{v}_d(t) \in \mathbb{R}^3,
 \end{equation}
-and the controller gains vector \(\boldsymbol{k}_c = [\boldsymbol{k}_{x}^T \, \boldsymbol{k}_{v}^T \, \boldsymbol{k}_{R}^T \, \boldsymbol{k}_{\omega}^T]^T \in \mathbb{R}^{12}\) with their associated diagonal representation $(\boldsymbol{K_x}, \boldsymbol{K_v}, \boldsymbol{K_R}, \boldsymbol{K_\omega}) \in (\mathbb{R}^{3\times3})^4$.
+and the controller gains vector \(\boldsymbol{k}_c = [\boldsymbol{k}_{x}^T \, \boldsymbol{k}_{v}^T \, \boldsymbol{k}_{R}^T \, \boldsymbol{k}_{\omega}^T]^T \in \mathbb{R}^{12}\) with their associated diagonal representation $(\boldsymbol{K_x}, \boldsymbol{K_v}, \boldsymbol{K_R}, \boldsymbol{K_\omega})$.
 This control strategy starts by computing the desired third basis vector of the body frame:
 \begin{equation}
   \boldsymbol{r}_{3d} = \frac{-\boldsymbol{K_x} \cdot \boldsymbol{e_x} - \boldsymbol{K_v} \cdot \boldsymbol{e_v} + m(g Z_W + \boldsymbol{a}_d) }{\left\| -\boldsymbol{K_x} \cdot \boldsymbol{e_x} - \boldsymbol{K_v} \cdot \boldsymbol{e_v} + m(g Z_W + \boldsymbol{a}_d) \right\|} \in \mathbb{R}^3.
@@ -227,12 +230,14 @@ This control strategy starts by computing the desired third basis vector of the 
 Then, using the desired yaw angle $\psi_d$, the desired heading vector can be defined as $\boldsymbol{\Omega_{\psi_d}} = [cos(\psi_d) \, sin(\psi_d) \, 0]^T$.
 This heading vector is then used to compute the desired first and second basis vectors of the body frame:
 \begin{equation}
-  \boldsymbol{r}_{2d} = \frac{\left[\boldsymbol{r}_{3d}\right]_{\times} \cdot \boldsymbol{\Omega}_{\psi_d}}{\left\|\left[\boldsymbol{r}_{3d}\right]_{\times} \cdot \boldsymbol{\Omega}_{\psi_d}\right\|} \in \mathbb{R}^3, \, \boldsymbol{r}_{1d} = \left[\boldsymbol{r}_{2d}\right]_{\times} \cdot \boldsymbol{r}_{3d} \in \mathbb{R}^3.
+  \boldsymbol{r}_{2d} = \frac{\left[\boldsymbol{r}_{3d}\right]_{\times} \cdot \boldsymbol{\Omega}_{\psi_d}}{\left\|\left[\boldsymbol{r}_{3d}\right]_{\times} \cdot \boldsymbol{\Omega}_{\psi_d}\right\|} \in \mathbb{R}^3, \, \boldsymbol{r}_{1d} = \left[\boldsymbol{r}_{2d}\right]_{\times} \cdot \boldsymbol{r}_{3d} \in \mathbb{R}^3,
 \end{equation}
+where $\left[ \, \right]_{\times}$ is the skew-symmetric matrix operator.
 From the three body frame basis vectors it is then possible to define the desired rotation matrix $\boldsymbol{R}_d(\psi_d, t) = [\boldsymbol{r}_{1d} \, \boldsymbol{r}_{2d} \, \boldsymbol{r}_{3d}]$, and to compute the following attitude error:
 \begin{equation}\label{eq:att_error}
-  \boldsymbol{e_R}(t) = \frac{1}{2}[\boldsymbol{R}_d(\psi_d, t)^T \cdot \boldsymbol{R}(\boldsymbol{\rho}, t) - \boldsymbol{R}(\boldsymbol{\rho}, t)^T \cdot \boldsymbol{R}_d(\psi_d, t)^T]^\vee \in \mathbb{R}^3.
+  \boldsymbol{e_R}(t) = \frac{1}{2}[\boldsymbol{R}_d(\psi_d, t)^T \cdot \boldsymbol{R}(\boldsymbol{\rho}, t) - \boldsymbol{R}(\boldsymbol{\rho}, t)^T \cdot \boldsymbol{R}_d(\psi_d, t)^T]^\vee \in \mathbb{R}^3,
 \end{equation}
+where $\left[ \, \right]^\vee$ is the vee matrix operator.
 Finally, to simplify the overall controller design, the desired yaw rate $\Dot{\psi}_d$ is always set to zero in this thesis, allowing the angular velocity error to be expressed as:
 \begin{equation}\label{eq:rate_error}
   \boldsymbol{e_\omega}(t) = \omega(t) \in \mathbb{R}^3.
@@ -271,7 +276,7 @@ Note also that no internal controller states are considered in this controller; 
 
 With the quadrotor model and controller now defined, this section presents the interpolation method (hereafter referred to as the \emph{local} planner) for computing a desired trajectory that the geometric controller will track.
 
-Given an initial desired state $\q_d^0 = [\boldsymbol{\gamma}^0 \, \boldsymbol{\Dot{\gamma}}^0 \, \boldsymbol{\Ddot{\gamma}}^0] \in \mathbb{R}^{12}$ and a goal state $\q_d^F = [\boldsymbol{\gamma}^F \, \boldsymbol{\Dot{\gamma}}^F \, \boldsymbol{\Ddot{\gamma}}^F] \in \mathbb{R}^{12}$ for the quadrotor, where $\boldsymbol{\gamma} = [x_{d} \, y_{d} \, z_{d} \, \Psi_{d}]^T \in \mathbb{R}^{4}$ represents the desired position along the x, y, and z axes and the desired yaw angle, the \emph{kino-spline} method from~\cite{cKino} is employed to plan a time optimal and continuous desired trajectory $\q_d(t)$ connecting $\q_d^0$ and $\q_d^F$. 
+Given an initial desired state $\q_d^0 = [\boldsymbol{\gamma}^0 \, \boldsymbol{\Dot{\gamma}}^0 \, \boldsymbol{\Ddot{\gamma}}^0] \in \mathbb{R}^{12}$ and a goal state $\q_d^g = [\boldsymbol{\gamma}^g \, \boldsymbol{\Dot{\gamma}}^g \, \boldsymbol{\Ddot{\gamma}}^g] \in \mathbb{R}^{12}$ for the quadrotor, where $\boldsymbol{\gamma} = [x_{d} \, y_{d} \, z_{d} \, \Psi_{d}]^T \in \mathbb{R}^{4}$ represents the desired position along the x, y, and z axes and the desired yaw angle, the \emph{kino-spline} method from~\cite{cKino} is employed to plan a time optimal and continuous desired trajectory $\q_d(t)$ connecting $\q_d^0$ and $\q_d^F$. 
 
 The trajectory generation problem is solved independently for each component of $\boldsymbol{\gamma}$.
 Furthermore, in order to generate smooth trajectories in a global context, the local planner ensures the continuity of their derivatives up to the jerk (acceleration derivative). 
@@ -279,7 +284,7 @@ Note that even if the yaw angular acceleration is not required by the control la
 As for both initial and goal jerk, they are set to zero to facilitate a smooth transition between trajectories, and are therefore not considered in $\boldsymbol{\gamma}$.
 Finally, the kino-spline method also consider bounds on the several derivatives up to the snap (i.e. $v_{max}, a_{max}$, etc.) and plan the trajectory accordingly.
 
-As previously mentioned, this local planner focuses on generating local trajectories that are time optimal, i.e. that minimize the total time needed to reach $\q_d^F$.
+As previously mentioned, this local planner focuses on generating local trajectories that are time optimal, i.e. that minimize the total time needed to reach $\q_d^g$.
 This is achieved by reaching the full speed as soon as possible and by maintaining it as long as possible for each component of $\boldsymbol{\gamma}$.
 This also implies that the time spent reaching this velocity must be minimized, which means that the time spent at maximum acceleration during transient phases must be maximized.
 The same principle applies to jerk and snap; during variations in acceleration, the maximum achievable jerk should be maintained for as long as possible, while the duration of jerk variation phases is minimized.

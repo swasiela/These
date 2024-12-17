@@ -244,7 +244,8 @@ The tree is initialized with the desired initial and goal robot states, $(q^{ini
 Such a criterion can include a maximum number of iterations, a maximum runtime, a cost convergence threshold, etc.
 
 The first stage of the algorithm follows the same standard procedure as the vanilla \myglsentry{rrtstar}, including sampling a desired robot state $q^{rand}$ and finding its nearest neighbor $q^{nearest}$ in the tree structure (lines 3 and 4, respectively) using an efficient distance metric.
-Then, a local planner (such as the ones presented in Section~\ref{sec:kinosplines} and Section~\ref{sec:dubins}) is employed to generate a desired local trajectory $\q_d$ that connects $q^{rand}$ to $q^{nearest}$.
+Then, a local planner (such as the ones presented in Section~\ref{sec:kinosplines} and Section~\ref{sec:dubins}) is employed to generate a desired local trajectory $\q_d$ that extends $q^{nearest}$ toward $q^{rand}$.
+Note that if a maximum local distance is imposed, $q^{rand}$ is adjusted accordingly.
 Next, as discussed in Section~\ref{sec:general_method}, the set of \myglsentry{odes} is solved (line 7) to compute the nominal trajectory $\q_n$, the nominal control inputs $\u_n$, and the uncertainty tubes $(\Rq, \Ru)$, utilizing the initial conditions $S_0$ (line 6).
 A robust feasibility check is then conducted along the nominal trajectory and control inputs (line 8), following the procedure outlined in Section~\ref{sec:robust_CC}.
 Remember that this test is carried out along the nominal values, as the uncertainty tubes are valid around them, as detailed in Section~\ref{sec:tubes}.
@@ -480,6 +481,7 @@ This section present the \gls{lazysarrt*}, as a particular instance of \myglsent
 The algorithm not only provides a (near) time-optimal trajectory but also ensures that the resulting trajectory is collision-free w.r.t. the state uncertainties and also that control inputs remain in their allowed bounds.
 However, as highlighted in Section~\ref{sec:unified}, the number of \myglsentry{odes} computation within the \myglsentry{rrtstar} must remain as limited as possible to avoid a too long computing time. 
 For this reason, trajectory robustness is checked in a lazy way, only when a better solution is found, and reconnecting the nodes optimally if necessary.
+The lazy process is achieved as described in~\cite{cLazy1,cLazy2}, with the addition of maintaining a set of non-robust parents ($Q_{collide}$) for each node.
 Consequently, unlike the \myglsentry{samp} methods described in Section~\ref{sec:samp}, the tree built by the lazy variant is not inherently robust; only the final solution meets the robustness requirements.
 
 Algorithm~\ref{alg:LazySARRT*} provides the pseudo-code of the \myglsentry{lazysarrt*} variant.  
