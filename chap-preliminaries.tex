@@ -80,7 +80,7 @@ This optimization produces a trajectory s.t. the closed-loop evolution of $\q(t)
 \end{figure}
 
 Another important feature of the sensitivity matrices is that it is possible to derive the so-called \emph{uncertainty tubes}, that bounds the closed-loop system trajectory $\q(t)$/$\u(t)$ around its nominal trajectory $\q_n(t)$/$\u_n(t)$ as shown in~\cite{cTube} and illustrated in Figure~\ref{fig:tubes}.
-The rest of this section shows how to establish such bounds around the nominal state trajectory $\q_n(t)$ by focusing solely on the state-sensitivity matrix $\bPi(t)$ for clarity. 
+The rest of this subsection shows how to establish such bounds around the nominal state trajectory $\q_n(t)$ by focusing solely on the state-sensitivity matrix $\bPi(t)$ for clarity. 
 However, it is important to note that the same procedure can also be applied to compute bounds around the nominal input trajectory $\u_n(t)$ by leveraging the input-sensitivity matrix $\bTheta(t)$.
 
 Assume that for each uncertain parameter $p_{i}, i \in [1, n_p]$ in $\p$, we have a bounded parameter deviation $\delta p_i \in \mathbb{R}$ s.t. 
@@ -274,7 +274,7 @@ Note also that no internal controller states are considered in this controller; 
 
 \subsubsection{State interpolation}\label{sec:kinosplines}
 
-With the quadrotor model and controller now defined, this section presents the interpolation method (hereafter referred to as the \emph{local} planner) for computing a desired trajectory that the geometric controller will track.
+With the quadrotor model and controller now defined, this subsection presents the interpolation method (hereafter referred to as the \emph{local} planner) for computing a desired trajectory that the geometric controller will track.
 
 Given an initial desired state $\q_d^0 = [\boldsymbol{\gamma}^0 \, \boldsymbol{\Dot{\gamma}}^0 \, \boldsymbol{\Ddot{\gamma}}^0] \in \mathbb{R}^{12}$ and a goal state $\q_d^g = [\boldsymbol{\gamma}^g \, \boldsymbol{\Dot{\gamma}}^g \, \boldsymbol{\Ddot{\gamma}}^g] \in \mathbb{R}^{12}$ for the quadrotor, where $\boldsymbol{\gamma} = [x_{d} \, y_{d} \, z_{d} \, \Psi_{d}]^T \in \mathbb{R}^{4}$ represents the desired position along the x, y, and z axes and the desired yaw angle, the \emph{kino-spline} method from~\cite{cKino} is employed to plan a time optimal and continuous desired trajectory $\q_d(t)$ connecting $\q_d^0$ and $\q_d^F$. 
 
@@ -405,7 +405,7 @@ where $\boldsymbol{T}_n$ represent the same allocation matrix as in Equation~\re
 
 \subsubsection{State interpolation}\label{sec:dubins}
 
-Now that the dynamics of the differential drive robot and its controller are defined, this section presents the local planner used to generate the desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$ that is tracked by the \myglsentry{dfl} controller.
+Now that the dynamics of the differential drive robot and its controller are defined, this subsection presents the local planner used to generate the desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$ that is tracked by the \myglsentry{dfl} controller.
 The trajectory generation problem is addressed using Dubins curves~\cite{cDubins}. 
 
 This approach ensures smooth and continuous trajectories between two positions $(x^0, y^0)$ and $(x^F, y^F)$ in the x-y plane for systems with constraints on turning radius and forward motion such as the differential drive robot.

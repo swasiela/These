@@ -29,7 +29,7 @@ During the process, each of these local trajectories are subject to collision ch
 However, in this thesis, the collision check is extended to include a more general feasibility test, which also accounts for the control input space. 
 This extension ensures that the generated trajectories are not only free from obstacles but also prevent control inputs from reaching saturation. 
 Additionally, it accounts for uncertainty in both the state and control input spaces, further enhancing the robustness of the trajectories.
-The following section describes how these extended feasibility check is performed to ensure the robustness of each local trajectory in this context.
+The following subsection describes how these extended feasibility check is performed to ensure the robustness of each local trajectory in this context.
 It is important to note that these test is not continuous; rather, it is performed along a discrete representation of the local trajectories.
 
 \paragraph{Robust collision checking}
@@ -167,12 +167,12 @@ Moreover, it is important to note that the initial conditions of a given node ar
 As a result, these initial conditions are specific to the parent node, making them applicable only in tree-based planners, where each node has exactly one parent.
 Additionally, note that, since dynamics are taken into account, the algorithms presented in this thesis utilize directed data structures (i.e., structures like directed trees that represent dependencies and directionality in motion).
 
-The following section describes how the concepts outlined above can be incorporated into different tree planners to develop robust, sensitivity-aware variants, generally referred to as \gls{samp}\footnote{It is important to note that none of the proposed variants are formally proven to be complete, as establishing completeness would require a separate proof for each variant and determining an upper bound for the first-order approximation of the tube.}.
+The following subsection describes how the concepts outlined above can be incorporated into different tree planners to develop robust, sensitivity-aware variants, generally referred to as \gls{samp}\footnote{It is important to note that none of the proposed variants are formally proven to be complete, as establishing completeness would require a separate proof for each variant and determining an upper bound for the first-order approximation of the tube.}.
 Note that although the following sections of this chapter focus on asymptotically-optimal planner variants to generate globally sensitivity-optimal trajectories, the same principles can easily be applied to non-asymptotically optimal planners (see Chapter~\ref{chap:sampNN}), such as the standard \gls{rrt}.
  
 \subsection{Sensitivity-Aware Motion Planner (SAMP)}\label{sec:samp}
 
-For clarity in the pseudo-code, the temporal notation is omitted in this section. 
+For clarity in the pseudo-code, the temporal notation is omitted in this subsection. 
 Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent instantaneous vectors (e.g., $q^{rand}$ denotes a random state, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given state vector, etc.).
 
 \subsubsection{Sensitivity-Aware RRT* (SARRT*)}
@@ -265,7 +265,7 @@ Note that this final operation requires re-solving the \myglsentry{odes} for eac
 \subsubsection{Sensitivity-Aware SST* (SASST*)}
 
 It is important to note that a single iteration of \myglsentry{sarrt*} presented above requires solving the set of \myglsentry{odes} multiple times which leads to a prohibitive computation time per iteration as shown in Section~\ref{sec:samp_simu}.
-To mitigate this impact, this section proposes a robust sensitivity-aware variant of the \gls{sst*}~\cite{cSST}, denoted \gls{sasst*} as a particular instance of \myglsentry{samp}. 
+To mitigate this impact, this subsection proposes a robust sensitivity-aware variant of the \gls{sst*}~\cite{cSST}, denoted \gls{sasst*} as a particular instance of \myglsentry{samp}. 
 
 The \myglsentry{sst*} algorithm has two key features: it reduces the number of collision checks to just one per iteration and uses Monte Carlo propagation to sample the control input space and perform forward dynamic propagation, eliminating the need for a local planner.
 However, since this thesis uses the system closed-loop dynamics for sensitivity computation rather than open-loop Monte Carlo propagation, the latter is replaced by a local planner.
@@ -330,9 +330,9 @@ Note that in this implementation the \myglsentry{odes} need to be solved only on
 
 \subsection{Simulation results}\label{sec:samp_simu}
 
-This section presents the results of trajectory planning using the previously discussed variants, evaluated based on computation time, and robustness for the two systems introduced in Chapter~\ref{chap:models}.
+This subsection presents the results of trajectory planning using the previously discussed variants, evaluated based on computation time, and robustness for the two systems introduced in Chapter~\ref{chap:models}.
 To assess the impact of planning robust, globally sensitivity-optimal trajectories, both \myglsentry{sarrt*} and \myglsentry{sasst*} are compared with their respective non-robust vanilla versions, which focus on optimizing trajectory length.
-The objective of this section is to quantify the ability of the proposed variants to generate robust solutions, and to evaluate the impact of solving \myglsentry{odes} multiple times within a sampling-based framework.
+The objective of this subsection is to quantify the ability of the proposed variants to generate robust solutions, and to evaluate the impact of solving \myglsentry{odes} multiple times within a sampling-based framework.
 All planner implementations are performed using the \gls{ompl}~\cite{cOMPL}.
 The \myglsentry{odes} are implemented using the JiTCODE \cite{cJit} module which converts the equations to be integrated into C-compiled code.
 The Euler integrator is then used to solve each ODE and take advantage of this compiled function.
@@ -342,7 +342,7 @@ Although the Euler method is less accurate than a Runge-Kutta 4-based method (e.
 
 \paragraph{Robot setup}
 
-This section presents results for the differential drive robot model depicted in Section~\ref{sec:unic_model}, with the following set of uncertain parameters $\p = [r, \, d]^T \in \mathbb{R}^{2}$.
+This subsection presents results for the differential drive robot model depicted in Section~\ref{sec:unic_model}, with the following set of uncertain parameters $\p = [r, \, d]^T \in \mathbb{R}^{2}$.
 The nominal value vector is set to $\p_n = [0.1m, \, 0.4m]^T$, with an associated uncertainty range of $\delta\p = [3\%, \, 3\%]^T$, representing the percentage deviation from their corresponding nominal values.
 Therefore, in this differential drive robot application, $\bPi \in \mathbb{R}^{3\times2}$, $\bPixi\in \mathbb{R}^{3\times2}$, and $\bTheta \in \mathbb{R}^{2\times2}$.
 As a result, the computations necessary to find the uncertainty tubes involve solving 16 \myglsentry{odes}.
@@ -477,7 +477,7 @@ This trajectory is then locally optimized for minimizing the cost function~(\ref
     \end{algorithmic}
 \end{algorithm}
 
-This section present the \gls{lazysarrt*}, as a particular instance of \myglsentry{lazysamp}, that plans a robust (near) time-optimal trajectory.
+This subsection present the \gls{lazysarrt*}, as a particular instance of \myglsentry{lazysamp}, that plans a robust (near) time-optimal trajectory.
 The algorithm not only provides a (near) time-optimal trajectory but also ensures that the resulting trajectory is collision-free w.r.t. the state uncertainties and also that control inputs remain in their allowed bounds.
 However, as highlighted in Section~\ref{sec:unified}, the number of \myglsentry{odes} computation within the \myglsentry{rrtstar} must remain as limited as possible to avoid a too long computing time. 
 For this reason, trajectory robustness is checked in a lazy way, only when a better solution is found, and reconnecting the nodes optimally if necessary.

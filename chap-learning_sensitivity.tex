@@ -26,7 +26,7 @@ The set of \myglsentry{odes} that has to be computationally speed up has the fol
 
 \subsection{ODEs parallelization}
 
-This section discusses various techniques used to parallelize the computation of \myglsentry{odes}, such as the Parareal algorithm~\cite{cParareal}, which divides the solution process into multiple steps to be processed in parallel, improving efficiency.
+This subsection discusses various techniques used to parallelize the computation of \myglsentry{odes}, such as the Parareal algorithm~\cite{cParareal}, which divides the solution process into multiple steps to be processed in parallel, improving efficiency.
 
 \begin{itemize}
     \item The first and most straightforward approach to parallelizing the \myglsentry{odes} is to compute each equation in parallel across different threads, exploiting the decoupling between the equations. 
@@ -48,7 +48,7 @@ Furthermore, although some parts of the set of \myglsentry{odes} can be parallel
 
 \subsection{Learning with embedded dynamic}
 
-This section explores learning techniques that directly incorporate the \myglsentry{odes} structure into the learning process, facilitating accurate predictions of system dynamics.
+This subsection explores learning techniques that directly incorporate the \myglsentry{odes} structure into the learning process, facilitating accurate predictions of system dynamics.
 
 \begin{itemize}
     \item Neural \myglsentry{odes}: Neural \myglsentry{odes}~\cite{cNeuralodes} offer a powerful approach to learning dynamic systems by treating ODE solvers as neural networks. 
@@ -73,7 +73,7 @@ This section explores learning techniques that directly incorporate the \myglsen
 
 \subsection{Learning sequences of data}
 
-This section discusses learning methods suited for modeling sequences of data, such as time series or trajectories, which are common while dealing with dynamic systems.
+This subsection discusses learning methods suited for modeling sequences of data, such as time series or trajectories, which are common while dealing with dynamic systems.
 
 \begin{itemize}
     \item Recurrent Neural Networks (\myglsentry{rnns}): \myglsentry{rnns} are well known for their excellent application to temporal data sequences, and more specifically in this case, to trajectories.
@@ -303,7 +303,7 @@ Time is denoted $T_{solver/NN}$ according to the model or solver used.
 
 \subsection{Training}
 
-This section outlines the training procedures and specifies the neural network parameters used.
+This subsection outlines the training procedures and specifies the neural network parameters used.
 
 \subsubsection{Differential drive robot}
 
@@ -402,7 +402,7 @@ On the other hand, the \textbf{LSTM} achieves accuracy comparable to the \textbf
     \label{fig:pred_val_unic}
 \end{figure}
 
-This section presents qualitative results for differential drive robot.
+This subsection presents qualitative results for differential drive robot.
 Firstly, Figure~\ref{fig:all_models_pred_val_unic} illustrates the predictions of the \textbf{RNN}, \textbf{GRU}, \textbf{LSTM}, and \textbf{MLP} models on a 300-state trajectory from the test set.
 It is noticeable that the \textbf{MLP} model provides poor accuracy, as discussed in Section~\ref{sec:nn_comparaison_unic}.
 However, one can note its averaging behavior.

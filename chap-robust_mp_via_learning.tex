@@ -60,12 +60,12 @@ The algorithm produces two offline outputs: $(i)$ a robust desired trajectory $\
 
 \subsection{Deep Sensitivity-Aware Motion Planner (DeepSAMP)}\label{sec:RSAMP}
 
-For clarity in the pseudo-code, the temporal notation is omitted in this section. 
+For clarity in the pseudo-code, the temporal notation is omitted in this subsection. 
 Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent instantaneous vectors (e.g., $q^{rand}$ denotes a random state, and $h_0$ represents the initial hidden state of the GRU at a given state vector, etc.).
 
 \subsubsection{General method}
 
-This section explains how the deep learning method presented in Chapter~\ref{chap:NN} can be incorporated into any sampling-based tree planner in order to create \gls{deepsamp} variants, which use the learned model to predict uncertainty tubes.
+This subsection explains how the deep learning method presented in Chapter~\ref{chap:NN} can be incorporated into any sampling-based tree planner in order to create \gls{deepsamp} variants, which use the learned model to predict uncertainty tubes.
 As highlighted before, a key challenge in computing such tubes for a given trajectory lies in the high computational cost of numerically integrating the dynamics of $\bPi(t)$ and $\bTheta(t)$.
 Additionally, when extending the tree and computing these sensitivity matrices, various initial conditions (such as the initial control input, $\bPi_0$, etc.) need to be incorporated into the tree nodes (as outlined in Chapter~\ref{chap:samp}).
 
@@ -77,7 +77,7 @@ Therefore, its use is only applicable to tree-based planners, where each node ha
 
 \subsubsection{Deep Sensitivity-Aware RRT (DeepSARRT)}
 
-This section proposes a deep learning-based sensitivity-aware variant of the \myglsentry{rrt}~\cite{cRRT}, denoted \gls{deepsarrt} as a particular instance of \myglsentry{deepsamp}, and presented in Algorithm~\ref{alg:ExtensionExample}. 
+This subsection proposes a deep learning-based sensitivity-aware variant of the \myglsentry{rrt}~\cite{cRRT}, denoted \gls{deepsarrt} as a particular instance of \myglsentry{deepsamp}, and presented in Algorithm~\ref{alg:ExtensionExample}. 
 It demonstrates how to integrate the GRU hidden state and tube predictions within a standard RRT planner~\cite{cRRT}.
 It is important to note that this approach, using GRU hidden state and tube predictions, can be similarly applied to other tree-based planners. 
 For instance, in the results presented in Section~\ref{sec:RobustPlanSimu}, a deep learning-based sensitivity-aware variant of the \myglsentry{rrtstar}~\cite{cRRTstar} implementation, denoted \myglsentry{deepsarrt*}, leverage the same principle presented here.
@@ -121,7 +121,7 @@ This approach first leverages the predicted control inputs and associated tubes 
 
 \subsection{Robust local accuracy optimization \emph{(A-Optim)} }\label{sec:AOptim}
 
-This section introduces robust local optimizer variants, highlighting their capability to address accuracy-related costs effectively.
+This subsection introduces robust local optimizer variants, highlighting their capability to address accuracy-related costs effectively.
 
 \subsubsection{Cost function}\label{sec:AOptimCost}
 
@@ -141,7 +141,7 @@ In the following section several robust variant derivative-free algorithms are p
 
 This thesis considers four robust sensitivity-aware local variants for optimizing the aforementioned cost function, aiming to identify the most suitable approach for optimizing a punctual cost function while appropriately scaling its complexity to the robust feasibility check described in Chapter~\ref{chap:samp}. 
 It is important to note that none of the proposed robust variants utilize the deep learning method introduced in Chapter~\ref{chap:NN}, as the trajectories encountered during this local optimization process differ significantly from those in the training set.
-Also note that in this section, only the trajectory states are optimization variables. 
+Also note that in this subsection, only the trajectory states are optimization variables. 
 The addition of controller gains in the optimization variables, as mentioned in the general framework (see Section~\ref{sec:RASAMP}), is detailed in Section~\ref{sec:AccOptSimu}.
 
 \paragraph{Shortcut}
@@ -281,7 +281,7 @@ Finally, considering that the robot hovering state is achieved with propeller sp
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{DeepSAMP vs SAMP} \label{sec:NNresult}
 
-This section presents comparison between the \myglsentry{deepsamp} variants, that leverage the GRU-based neural network, and the \myglsentry{samp} variants that solve the set of \myglsentry{odes}.
+This subsection presents comparison between the \myglsentry{deepsamp} variants, that leverage the GRU-based neural network, and the \myglsentry{samp} variants that solve the set of \myglsentry{odes}.
 
 First, the time gains presented in Chapter~\ref{chap:NN} must be mitigated due to certain limitations:
 \begin{itemize}
@@ -379,7 +379,7 @@ It shows the effective robustness of the proposed algorithm as illustrated by th
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Robust local accuracy optimization} \label{sec:AccOptSimu}
 
-This section provides a comparison of the robust sensitivity-aware local optimizers introduced in Section~\ref{sec:AOptim}. 
+This subsection provides a comparison of the robust sensitivity-aware local optimizers introduced in Section~\ref{sec:AOptim}. 
 The evaluation focuses on their computation time and resulting costs, using an initial trajectory as the optimization variable.
 The objective is to identify the most suitable optimizer for the accuracy optimization stage required for the experimental scenario outlined in Section~\ref{sec:AccOptExp}.
 

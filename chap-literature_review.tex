@@ -2,43 +2,69 @@
 \markboth{Related work}{}% To set left/right header
 % \localtableofcontents
 
+This chapter provides an overview of the related work on the key concepts that this thesis builds upon and compares with.
+
 \section{Motion planning}
 
-\subsection{Path finding}
+\subsection{Path planning}
 
-The path finding problem focuses on finding a collision-free and/or optimal path that connects two configurations: a starting configuration and a goal configuration.
+This subsection provides an overview of various path planning approaches. 
+For a more detailed survey, please refer to~\cite{cLavalle, cKavraki, cFrazzoli}.
+The path planning problem focuses on finding a collision-free and/or optimal path between two configurations: a starting configuration and a goal configuration. 
+The work of~\cite{cConfigSpace} introduced the configuration space concept as a general framework for planning motions in arbitrary kinematic systems.
+This idea provided a solid foundation for the field and, as noted in~\cite{cSpatialPlan}, formally established the motion planning problem as the task of finding a path within the configuration space.
+
+However, planning motion in the configuration space poses significant challenges due to the problem computational complexity. 
+A key stone in addressing this issue is the introduction of artificial potential fields~\cite{cAPF}, which create a repulsive force field around obstacles and an attractive force field toward the target.
+However, although this strategy has proven to be efficient, it sacrifices guarantees such as algorithm completeness and optimality.
+
+Another common approach to the path planning problem involves search-based techniques. 
+These methods operate on a discrete representation of the configuration space, where vertices correspond to a finite set of robot configurations, and edges represent possible transitions between these configurations.
+The desired path is found by performing a search for a minimum-cost path in such a graph using Dijkstra algorithm~\cite{cDijk}. 
+
+Advances in computational techniques have enabled the development of a new class of algorithms, commonly referred to as sampling-based planners that allow to generate global motion plans.
+A key contribution of the domain is the work of~\cite{cLatombe}, which improves the aforementioned potential fields approach by integrating a random walk mechanism, thus guaranteeing the probabilistic completeness of the algorithm.
+Sampling-based planners are divided in two main categories: graph-based planners and tree-based planners.
+
+Graph-based sampling-based planners, such as \gls{prm}~\cite{cPRM}, generate a roadmap by sampling configurations in the free space and connecting them with feasible paths. 
+The technique involves a graph building phase and a query phase.
+The graph is first built by randomly sampling configurations (denoted nodes) in the robot configuration space.
+Each sampled configuration is checked for collisions with obstacles.
+For each collision-free node, the planner attempts to connect it to nearby free configurations by creating edges between them.  
+The edges are valid if the path connecting the two configurations is collision-free.
+This procedure typically involves a notion of neighborhood that is space-dependent and generally increases as the dimensionality of the space grows.
+Once the graph is built, a graph search query is performed to compute the desired path, using graph search techniques such as Dijkstra algorithm~\cite{cDijk} or A*~\cite{cA*}.
+
+The other planner family among sampling-based planners are tree-based planners such as the well-known \gls{rrt}~\cite{cRRT}.
+This algorithm generates a tree starting from an initial configuration.
+At each iteration, a new configuration is sampled $q^{rand}$.
+It's nearest neighbor among the existing tree nodes is found $q^{near}$, and then an extension is attempt starting from $q^{near}$ toward $q^{rand}$ leading to a new configuration $q^{new}$.
+If the extension is collision free, the configuration is added to the tree as anew node with an edge connecting the two nodes (see Figure~\ref{fig:rrt}).
+
+Therefore, sampling-based motion planners have become one of the most widely used strategy for generating global motion paths in the presence of obstacles, due to their efficiency in handling complex and high-dimensional configuration spaces, as well as their completeness guarantee.
+Advances in sampling-based planners have then focused on generating feasible and cost-effective paths through various strategies, such as the transition-based approach~\cite{cTRRT}. 
+These strategies often achieve asymptotic optimality by employing optimal connection procedures during the tree or graph construction process~\cite{cRRTstar, cTRRTstar, cFMT}.
+Research on sampling-based planners has expanded into various areas, such as developing suitable sampling strategies~\cite{cSampling}, exploring lazy collision checking approaches~\cite{cLazy1}, extending to the molecular domain~\cite{cMolecular}, and more.
+
+The aforementioned sampling-based methods are generally referred to as global planning methods, as they rely on local planning techniques to generate the edges that connect the sampled configurations.
+Such local planning methods are not considered global, as they do not address the entire motion planning problem. 
+A local planner is typically fast; however, the generated path may not fully satisfy the problem constraints (e.g., it could result in collisions).
+Traditional local strategies typically involve path segments, but local planners often need to account for additional constraints.
+For example, significant work has been done to enforce kinematic constraints on these local plans, ensuring the kinematic feasibility of the resulting global paths.
+Such work includes, for example, Dubins path generation~\cite{cDubins}, which enables connecting two configurations under forward motion constraints and curvature constraints for car-like robots. 
+The Reeds-Shepp method~\cite{cReeds} extends this local path generation procedure to car-like robots capable of moving both forward and backward.
+
+\begin{figure} [htp]
+    \centering
+    \includegraphics[width=0.6\linewidth]{figures/models/rrt.png} 
+    \caption{Illustration of the \myglsentry{rrt} tree extension procedure.}%
+    \label{fig:rrt}%
+  \end{figure}
 
 \subsection{Kinodynamic planning}
 
-While path finding focuses on generating a route between two robot configurations, trajectory generation focuses on how the robot should move along this route over time.
-
-\subsubsection{}
-
-\subsubsection{Forward propagation}
-
-
-
-% Motion Planning
-
-% Motion planning is a critical component in robotics, enabling autonomous agents to navigate their environments by computing safe and efficient paths or trajectories. This process ensures collision avoidance and adherence to physical and dynamic constraints of the system. It can be divided into three main subcategories: Path Finding, Trajectory Generation, and Kinodynamic Motion Planning, each addressing different aspects of the motion planning problem.
-% 1. Path Finding
-
-% Path finding is the foundational stage of motion planning, focusing on computing a feasible route between a starting configuration and a goal configuration. These paths are often generated in static or fully known environments and are primarily concerned with ensuring collision-free navigation.
-
-%     Graph-based Algorithms:
-%     Classical graph-search algorithms, such as Dijkstra’s algorithm and A*, operate by discretizing the configuration space into nodes connected by edges, then searching for the shortest path.
-%         Dijkstra’s algorithm ensures optimal solutions but can be computationally expensive for large environments.
-%         A* improves efficiency by incorporating heuristics, reducing the search space significantly. Variants like Weighted A* allow trade-offs between optimality and computation time, while algorithms like Anytime Repairing A* cater to dynamic environments by efficiently replanning when changes occur.
-
-%     Sampling-based Planners:
-%     Sampling-based planners like Probabilistic Roadmaps (PRM) and Rapidly-exploring Random Trees (RRT) excel in high-dimensional configuration spaces.
-%         PRM constructs a global roadmap by sampling configurations and connecting collision-free paths between them, offering efficient solutions in static environments.
-%         RRT, on the other hand, incrementally builds a tree by exploring the configuration space, making it well-suited for dynamic systems or when real-time computation is necessary. Enhancements such as RRT* and PRM* improve solution quality by ensuring asymptotic optimality, which guarantees convergence toward the best path as computation time increases.
-
-%     Grid-based Methods:
-%     In structured environments, grid-based techniques discretize the space into a uniform grid of cells.
-%         Dynamic Programming is commonly applied on such grids to compute paths by minimizing a cost function.
-%         The resolution of the grid plays a critical role in determining the trade-off between computational efficiency and path accuracy. While grid-based methods are straightforward, they struggle in high-dimensional spaces or unstructured environments.
+While the aforementioned path finding methods focus on generating a route between two robot configurations, they do not address the problem on how the robot should move along this route over time.
+The kinodynamic motion planning problem extends traditional motion planning by considering both the kinematic constraints (e.g., turning radius) and dynamic constraints (e.g., velocity, acceleration) of the robot, ensuring that the generated motion plans are physically executable.
 
 % 2. Trajectory Generation
 
