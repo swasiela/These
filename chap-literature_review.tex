@@ -39,7 +39,7 @@ The other planner family among sampling-based planners are tree-based planners s
 This algorithm generates a tree starting from an initial configuration.
 At each iteration, a new configuration is sampled $q^{rand}$.
 It's nearest neighbor among the existing tree nodes is found $q^{near}$, and then an extension is attempt starting from $q^{near}$ toward $q^{rand}$ leading to a new configuration $q^{new}$.
-If the extension is collision free, the configuration is added to the tree as anew node with an edge connecting the two nodes (see Figure~\ref{fig:rrt}).
+If the extension is collision free, the new configuration is added to the tree as a new node with an edge connecting the two nodes.
 
 Therefore, sampling-based motion planners have become one of the most widely used strategy for generating global motion paths in the presence of obstacles, due to their efficiency in handling complex and high-dimensional configuration spaces, as well as their completeness guarantee.
 Advances in sampling-based planners have then focused on generating feasible and cost-effective paths through various strategies, such as the transition-based approach~\cite{cTRRT}. 
@@ -54,72 +54,91 @@ For example, significant work has been done to enforce kinematic constraints on 
 Such work includes, for example, Dubins path generation~\cite{cDubins}, which enables connecting two configurations under forward motion constraints and curvature constraints for car-like robots. 
 The Reeds-Shepp method~\cite{cReeds} extends this local path generation procedure to car-like robots capable of moving both forward and backward.
 
-\begin{figure} [htp]
-    \centering
-    \includegraphics[width=0.6\linewidth]{figures/models/rrt.png} 
-    \caption{Illustration of the \myglsentry{rrt} tree extension procedure.}%
-    \label{fig:rrt}%
-  \end{figure}
-
 \subsection{Kinodynamic planning}
 
 While the aforementioned path finding methods focus on generating a route between two robot configurations, they do not address the problem on how the robot should move along this route over time.
-The kinodynamic motion planning problem extends traditional motion planning by considering both the kinematic constraints (e.g., turning radius) and dynamic constraints (e.g., velocity, acceleration) of the robot, ensuring that the generated motion plans are physically executable.
+Additionally, path planning does not account for the robot dynamic constraints, such as velocity and acceleration. 
+The problem of generating motion plans that consider both kinematic constraints (e.g., turning radius) and dynamic constraints, ensuring the plans are physically executable, is known as kinodynamic motion planning.
+Therefore, the kinodynamic problem extends beyond searching in the robot configuration space by considering its entire state space.
 
-% 2. Trajectory Generation
+\subsubsection{Local planners}
 
-% While path finding determines the spatial route, trajectory generation focuses on how the robot should move along this route over time, considering kinematic and dynamic constraints to ensure feasibility.
+Local planners, or steering methods, focus on generating feasible motion between two states while respecting kinematic and dynamic constraints. 
+They are often used as building blocks in global kinodynamic planners. 
 
-%     Polynomial Splines:
-%     Polynomial-based methods, such as cubic splines and quintic splines, are widely used for smooth trajectory interpolation between waypoints.
-%         These methods ensure continuity in position, velocity, and acceleration, which is essential for smooth robotic motion.
-%         They are computationally efficient and suitable for applications like robotic manipulators or UAV navigation.
+A common approach is to take advantage of polynomial-based methods, such as splines, that are widely used for smooth trajectory interpolation between waypoints.
+For instance, the kino-splines local planner proposed in~\cite{cKino} generates smooth trajectories by solving a two-point \gls{bvp} between initial and final robot states. 
+Based on the system differential flatness, this method ensures the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
+The resulting trajectories respect kinodynamic constraints up to the jerk level and enable time-optimal connections between two given states.
 
-%     Optimization-based Methods:
-%     Optimization frameworks like CHOMP and STOMP formulate trajectory planning as an optimization problem, minimizing a cost function that accounts for obstacle avoidance and trajectory smoothness.
-%         CHOMP uses gradient-based optimization to refine an initial trajectory, making it collision-free while maintaining smoothness.
-%         STOMP, on the other hand, employs stochastic sampling to explore feasible trajectories, offering robustness in environments with complex obstacle configurations.
-%         More advanced methods integrate convex optimization or leverage real-time solvers for handling dynamic constraints, enabling robots to adapt to changes in their environments.
+Another example of a spline-based approach, which contrasts with the bang-bang snap strategy of kino-splines, is the minimum snap trajectory generation method~\cite{cMinimumSnap}. 
+This approach, also based on system differential flatness, formulates an optimization problem that minimizes the integral of a weighted combination of the squared position snap and the squared yaw acceleration. 
+It ensures continuity between trajectory segments, satisfies kinematic conditions at the start and end of the motion, and respects actuation limits.
 
-%     Learning-based Approaches:
-%     Data-driven methods leverage neural networks trained on large datasets of prior trajectories to predict feasible paths.
-%         Imitation learning is a common technique where the robot learns from expert demonstrations to generate trajectories in similar scenarios.
-%         These methods excel in reducing computation time, making them highly suitable for real-time applications, though they often rely on high-quality training data and can struggle with generalization.
+While the local planners mentioned earlier primarily focus on enforcing kinodynamic constraints, Bézier curve-based planners~\cite{cBezier,cBezier2} offer additional benefits due to their inherent smoothness, and their convex hull property.
+Their convex hull property ensures that the trajectory remains within the convex hull of its control points. 
+This simplifies collision detection, as it guarantees that if the convex hull is free of obstacles, the entire trajectory will be too. 
+Additionally, adjusting control points affects only a localized portion of the trajectory, allowing precise modifications without affecting the entire trajectory. 
+This approach is particularly useful in environments where efficient collision detection is crucial.
+Furthermore, its smoothness also naturally accommodates velocity, acceleration, and higher-order dynamic constraints, making it suitable for kinodynamic motion planning in various robotic systems. 
 
-% 3. Kinodynamic Motion Planning
+Another powerful method is \gls{chomp}~\cite{cCHOMP}, which formulates trajectory generation as an optimization problem starting from an initial trajectory as guess. 
+The cost function in \myglsentry{chomp} typically balances smoothness and obstacle avoidance.
+Smoothness is ensured by penalizing higher derivatives of the trajectory, while obstacle avoidance is achieved through the use of a signed distance field. 
+\myglsentry{chomp} can incorporate dynamic and kinematic constraints, such as joint limits and velocity bounds, which are important for kinodynamic planning. 
+Using gradient-based optimization, \myglsentry{chomp} iteratively refines the initial trajectory, ensuring that it satisfies all constraints while minimizing the cost function. 
+While effective in high-dimensional or cluttered environments, \myglsentry{chomp} does require a good initial trajectory and can struggle in environments with non-convex obstacles.
 
-% Kinodynamic motion planning extends traditional motion planning by considering both the kinematic constraints (e.g., turning radius) and dynamic constraints (e.g., velocity, acceleration) of the robot, ensuring that the generated motion plans are physically executable.
+While \myglsentry{chomp} can handle differentiable cost function due its gradient-based optimization, the \gls{stomp} algorithm~\cite{cSTOMP} is designed to optimize non-differentiable cost functions. 
+\myglsentry{stomp} iteratively improves trajectories by introducing small perturbations to the initial guess, evaluating the resulting costs, and updating the trajectory based on the best-performing samples. 
+This process also accounts for kinodynamic constraints and obstacle avoidance by adding state cost penalty in the cost function formulation.
+While \myglsentry{stomp} is computationally more expensive than \myglsentry{chomp} as it relies on several sampling-based rollouts, its ability to handle more complex cost functions and find better solutions in challenging environments makes it highly versatile for kinodynamic motion planning.
 
-%     Time-parameterized RRTs:
-%     Extensions of RRT, such as RRT-Connect and Kinodynamic RRT, incorporate dynamic constraints directly into the planning process.
-%         These planners ensure that the generated paths are not only collision-free but also adhere to the robot's motion model, such as maximum acceleration or turning capabilities.
-%         The addition of time-parameterization allows for the generation of time-efficient trajectories, suitable for systems requiring fast, dynamic responses.
+\subsubsection{Forward propagation}\label{sec:forwardplanning}
 
-%     Model Predictive Control (MPC):
-%     MPC-based planners solve an optimization problem over a receding time horizon, generating dynamically feasible motion plans that account for constraints and obstacles.
-%         MPC is particularly effective for systems with complex dynamics, such as mobile robots, autonomous vehicles, and drones.
-%         Its ability to continuously update plans in real time makes it ideal for dynamic and uncertain environments.
+Global sampling-based motion planners can generate globally kinodynamically feasible trajectories by leveraging the aforementioned local planners to connect their sampled state.
+However, such local planners may not be available for every system.
+Therefore, algorithms were developed to bypass this need by performing dynamic system forward propagation instead of solving a complex \myglsentry{bvp}.
 
-%     Search-based Methods:
-%     Algorithms like state-time A* or lattice-based planning search directly in the state-time space, incorporating kinodynamic constraints at the planning level.
-%         These methods often use discretization to simplify the problem but can become computationally expensive in high-dimensional spaces.
-%         They are well-suited for problems requiring precise adherence to constraints, such as robotic manipulators or autonomous cars navigating through dense traffic.
+Kinodynamic motion planners, such as Kinodynamic RRT~\cite{cKinoRRT} and \gls{sst}~\cite{cSST}, are designed to address the challenges of planning for robots with complex dynamics without relying on a local planner. 
+These methods utilize system forward dynamic propagation by sampling control inputs and propagation time. 
+Starting from an initial robot state, the system dynamics are integrated in an open-loop manner to propagate the state, allowing the planner to account for both the robot kinematic limitations and its dynamic behavior. 
+This approach ensures that the generated paths are collision-free and physically executable while eliminating the need for local planners.
 
-%     Nonlinear Dynamics Integration:
-%     For robots with non-holonomic constraints (e.g., wheeled robots), planning methods often employ predefined motion primitives, such as Dubins paths or Reeds-Shepp curves, to generate feasible trajectories.
-%         These techniques ensure that the paths are physically realistic while maintaining computational efficiency.
+\section{Planning under uncertainty}
 
-\section{Motion planning under uncertainty}
+While the previous section focused on motion planning algorithms that can deal with kinodynamic constraints of various robot, none of them consider the unavoidable presence of uncertainties (e.g. external disturbances, sensor noise, model parameter mismatches, etc.).
 
-\subsection{Chance-constrained}
+A common approach to managing uncertainties is to compensate for them in real-time using robust controllers, such as H-infinity or \gls{lpv} methods.
+However, these methods often encounter difficulties in maintaining robustness when applied to non-robust reference trajectories, due to their inherently local nature.
+Additionally, they struggle to achieve global optimality and performance, which are typically better addressed by global planning approaches.
+Therefore, considerable research has focused on designing motion planning algorithms that incorporate uncertainty into the trajectory generation process, with the goal of producing robust and feasible plans.
 
-\subsection{POMDP}
+A seminal work in the domain is the \gls{lmt} framework~\cite{cLMT} that address the challenge of computing compliant-motion strategies
 
-\subsection{Chance-constrained}
+{Fine motion planning under uncertainty}
+
+{POMDP}
+
+{Chance-constrained}
+
+{Particle RRT}
+
+
 
 \section{Control-aware motion planning}
 
-\subsection{MPC}
+The algorithms presented so far have been designed to handle kinodynamic constraints and/or ensure robustness against various uncertainties.
+However, none of them typically consider the inevitable presence of a feedback controller responsible for executing the generated trajectories. 
+This controller might deviate from the planned trajectory to address uncertainties and disturbances, which can quickly compromise feasibility and optimality of the plan.
+It is important to note that kinodynamic approaches relying on system dynamics forward propagation, as discussed in Section~\ref{sec:forwardplanning}, do not incorporate feedback actions.
+Instead, they directly sample in the control input space, resulting in an open-loop propagation strategy.
+
+MPC and control-aware from M Tognon
+
+\section{Robust control-aware motion planning}
+
+one should guarantee safe operation for all uncertainty realizations within these bounds taking into account for the presence of a feedback controller. This task is referred to as robust control-aware motion planning (or robust feedback motion planning).
 
 \subsection{FaSTrack}
 
@@ -130,3 +149,5 @@ The kinodynamic motion planning problem extends traditional motion planning by c
 \subsection{Randomized uncertainty propagation}
 
 \subsection{Sensitivity}
+
+\section{Summary}

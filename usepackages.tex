@@ -124,11 +124,11 @@
 \usepackage{listings}
 \usepackage[normalem]{ulem}
 
-\ifdefined\noxindy% Used to have easy make rules to build the file
-  \usepackage[acronyms,sort=standard,toc]{glossaries} % Do not use xindy to limite dependencies
-\else
-  \usepackage[acronyms,xindy,sort=standard,toc]{glossaries}
-\fi
+% \ifdefined\noxindy% Used to have easy make rules to build the file
+%   \usepackage[acronyms,sort=standard,toc]{glossaries} % Do not use xindy to limite dependencies
+% \else
+%   \usepackage[acronyms,xindy,sort=standard,toc]{glossaries}
+% \fi
 
 % Need to be loaded after many other packages
 \usepackage{cleveref} % For nice multiple refs in a single command

@@ -11,166 +11,181 @@ The contribution of this chapter is twofold:
     \item Secondly, this chapter introduces, for the first time, the use of sensitivity-based uncertainty tubes to enforce constraints in both the state and input spaces. 
     This enables the generation of intrinsically-robust motions (i.e. accounting for the controller behavior with respect to uncertainty) that ensures robustness to both the environment and the actuator limits.
 \end{enumerate}
-This chapter is organized as follows: it first presents in Section~\ref{sec:metrics} how the uncertainty tubes of Section~\ref{sec:tubes} are used to enforce robust constraints in the planning process, as well as the development of an appropriate cost function for performing global sensitivity optimization.
-Then, in Section~\ref{sec:unified}, a unified approach is presented, which allows for planning a robust trajectory with optimal sensitivity by directly incorporating the sensitivity computation into the optimal tree-building process (e.g., \myglsentry{rrtstar}). 
+This chapter is organized as follows: Section~\ref{sec:unified} introduces a unified approach that enables robust trajectory planning with optimal sensitivity by incorporating the sensitivity computation and tube generation from Section~\ref{sec:tubes} directly into the optimal tree-building process, such as in \myglsentry{rrtstar}.
 This approach is tested on the robot models described in Chapter~\ref{chap:models} showing poor scalability to the system complexity.
 Finally, a decoupled approach that shows better efficiency for more complex systems, is introduced in Section~\ref{sec:decoupled}, followed by conclusions in Section~\ref{sec:concl}.
+% This chapter is organized as follows: it first presents in Section~\ref{sec:metrics} how the uncertainty tubes of Section~\ref{sec:tubes} are used to enforce robust constraints in the planning process, as well as the development of an appropriate cost function for performing global sensitivity optimization.
+% Then, in Section~\ref{sec:unified}, a unified approach is presented, which allows for planning a robust trajectory with optimal sensitivity by directly incorporating the sensitivity computation into the optimal tree-building process (e.g., \myglsentry{rrtstar}). 
+% This approach is tested on the robot models described in Chapter~\ref{chap:models} showing poor scalability to the system complexity.
+% Finally, a decoupled approach that shows better efficiency for more complex systems, is introduced in Section~\ref{sec:decoupled}, followed by conclusions in Section~\ref{sec:concl}.
 
-This chapter is associated to the following publication in ICRA 2023~\cite{cSAMP}: Wasiela, S., Giordano, P. R., Cortés, J., and Simeon, T. (2023, May). "A sensitivity-aware motion planner (samp) to generate intrinsically-robust trajectories." In IEEE International Conference on Robotics and Automation (ICRA) (pp. 12707-12713).\footnote{The results presented in this chapter differ from those in the article due to improvements in implementation and more refined planner settings.}
+% This chapter is associated to the following publication in ICRA 2023~\cite{cSAMP}: Wasiela, S., Giordano, P. R., Cortés, J., and Simeon, T. (2023, May). "A sensitivity-aware motion planner (samp) to generate intrinsically-robust trajectories." In IEEE International Conference on Robotics and Automation (ICRA) (pp. 12707-12713).\footnote{The results presented in this chapter differ from those in the article due to improvements in implementation and more refined planner settings.}
 
-\section{Practical Considerations}\label{sec:metrics}
+% \section{Practical Considerations}\label{sec:metrics}
 
-This section first presents how the uncertainty tubes from Section~\ref{sec:tubes} are used to perform robust feasibility checks, followed by the selection of an appropriate cost function for global sampling-based sensitivity optimization.
+% This section first presents how the uncertainty tubes from Section~\ref{sec:tubes} are used to perform robust feasibility checks, followed by the selection of an appropriate cost function for global sampling-based sensitivity optimization.
 
-\subsection{Robust feasibility check}\label{sec:robust_CC}
+% \subsection{Robust feasibility check}\label{sec:robust_CC}
 
-As previously mentioned in Chapter~\ref{chap:related_work}, sampling-based algorithms generate global trajectories by combining multiple continuous local trajectories.
-During the process, each of these local trajectories are subject to collision checks to determine their feasibility.
-However, in this thesis, the collision check is extended to include a more general feasibility test, which also accounts for the control input space. 
-This extension ensures that the generated trajectories are not only free from obstacles but also prevent control inputs from reaching saturation. 
-Additionally, it accounts for uncertainty in both the state and control input spaces, further enhancing the robustness of the trajectories.
-The following subsection describes how these extended feasibility check is performed to ensure the robustness of each local trajectory in this context.
-It is important to note that these test is not continuous; rather, it is performed along a discrete representation of the local trajectories.
+% As previously mentioned in Chapter~\ref{chap:related_work}, sampling-based algorithms generate global trajectories by combining multiple continuous local trajectories.
+% During the process, each of these local trajectories are subject to collision checks to determine their feasibility.
+% However, in this thesis, the collision check is extended to include a more general feasibility test, which also accounts for the control input space. 
+% This extension ensures that the generated trajectories are not only free from obstacles but also prevent control inputs from reaching saturation. 
+% Additionally, it accounts for uncertainty in both the state and control input spaces, further enhancing the robustness of the trajectories.
+% The following subsection describes how these extended feasibility check is performed to ensure the robustness of each local trajectory in this context.
+% It is important to note that these test is not continuous; rather, it is performed along a discrete representation of the local trajectories.
 
-\paragraph{Robust collision checking}
-In this thesis, collision detection is performed using the widely used C implementation of PyBullet~\cite{cBullet}, which operates as follows: 
-\begin{enumerate}
-    \item It starts with a broad-phase collision detection using \myglsentry{AABBs} to quickly eliminate pairs of objects that are too far apart to collide, allowing the more computationally intensive collision checks to focus only on pairs that are potentially close to each other.
-    \item Then, it performs a narrow-phase collision detection that, after potential collision pairs are identified, checks for each pair. 
-    For each identified potential collision pair, this phase uses a more precise robot representation (as defined by the user) and specialized collision algorithms to detect actual intersections and determine contact points, normals, and penetration depths.
-\end{enumerate}
+% \paragraph{Robust collision checking}
+% In this thesis, collision detection is performed using the widely used C implementation of PyBullet~\cite{cBullet}, which operates as follows: 
+% \begin{enumerate}
+%     \item It starts with a broad-phase collision detection using \myglsentry{AABBs} to quickly eliminate pairs of objects that are too far apart to collide, allowing the more computationally intensive collision checks to focus only on pairs that are potentially close to each other.
+%     \item Then, it performs a narrow-phase collision detection that, after potential collision pairs are identified, checks for each pair. 
+%     For each identified potential collision pair, this phase uses a more precise robot representation (as defined by the user) and specialized collision algorithms to detect actual intersections and determine contact points, normals, and penetration depths.
+% \end{enumerate}
 
-Extending this procedure to account for robot state uncertainty aims to verify that the resulting extended bounding volume, which the robot may occupy due to the uncertainty, is clear of obstacles.
-In this thesis, such bounding volume is computed by considering only the uncertainty in the position subspace for simplicity (i.e., the $\{x,y,z\}$-subspace for the quadrotor or the $\{x,y\}$-subspace for the differential drive robot).
-Also note, that the collision tests presented in this thesis are generic to the robots presented in Chapter~\ref{chap:models}. 
-One can consider less conservative approaches for each robot specifically (e.g. considering a bounding sphere for each propeller of the quadrotor only).
-Several strategies are evaluated based on their computational efficiency, conservatism, and library capabilities:
-\begin{enumerate}
-    \item The simplest method to account for position uncertainty in collision checking is to compare the distance between the current robot AABB and the nearest obstacle, incorporating the maximum possible deviations by using the worst-case uncertainty tube radius from Equation~(\ref{eq:radius}) (see~\ref{chap:appendixA} for proof).
-    This check corresponds to a uniform scaling of the AABB by the maximum uncertainty radius as depicted in Figure~\ref{fig:CC1}. 
-    Since the C PyBullet library does not support re-scaling an existing collision shape on the fly, a new shape must be created whenever scaling is required. 
-    By using this straightforward distance check, one can avoid the need to create new shapes.
-    However, this method represent a conservative approach as all directions are scaled in the same way.
-    \item As mentioned above, a less conservative approach involves creating an extended AABB by scaling the current robot AABB in all directions according to their respective uncertainty radii as shown in Figure~\ref{fig:CC2}. 
-    However, this method requires the creation of a new collision shape for each collision test.
-    \item The approaches mentioned above, though efficient, are conservative because they only use the current robot AABB and do not leverage narrow-phase collision checks that consider the precise robot mesh representation. 
-    However, generating the accurate extended collision shape that incorporates uncertainty, required for the second phase, is challenging, as the library supports only standard primitives like boxes, spheres, cylinders, etc.
-    To address this, the third approach approximates the extended collision shape by sampling on the surface of the uncertainty ellipsoid bounding box defined by the uncertainty tube radii, rather than creating a new collision shape (see Figure~\ref{fig:CC3}). 
-    While this method more accurately approximates the true extended collision shape than the two first approaches, it requires multiple calls to the collision-checking function for each robot state tested.
-\end{enumerate}
+% Extending this procedure to account for robot state uncertainty aims to verify that the resulting extended bounding volume, which the robot may occupy due to the uncertainty, is clear of obstacles.
+% In this thesis, such bounding volume is computed by considering only the uncertainty in the position subspace for simplicity (i.e., the $\{x,y,z\}$-subspace for the quadrotor or the $\{x,y\}$-subspace for the differential drive robot).
+% Also note, that the collision tests presented in this thesis are generic to the robots presented in Chapter~\ref{chap:models}. 
+% One can consider less conservative approaches for each robot specifically (e.g. considering a bounding sphere for each propeller of the quadrotor only).
+% Several strategies are evaluated based on their computational efficiency, conservatism, and library capabilities:
+% \begin{enumerate}
+%     \item The simplest method to account for position uncertainty in collision checking is to compare the distance between the current robot AABB and the nearest obstacle, incorporating the maximum possible deviations by using the worst-case uncertainty tube radius from Equation~(\ref{eq:radius}) (see~\ref{chap:appendixA} for proof).
+%     This check corresponds to a uniform scaling of the AABB by the maximum uncertainty radius as depicted in Figure~\ref{fig:CC1}. 
+%     Since the C PyBullet library does not support re-scaling an existing collision shape on the fly, a new shape must be created whenever scaling is required. 
+%     By using this straightforward distance check, one can avoid the need to create new shapes.
+%     However, this method represent a conservative approach as all directions are scaled in the same way.
+%     \item As mentioned above, a less conservative approach involves creating an extended AABB by scaling the current robot AABB in all directions according to their respective uncertainty radii as shown in Figure~\ref{fig:CC2}. 
+%     However, this method requires the creation of a new collision shape for each collision test.
+%     \item The approaches mentioned above, though efficient, are conservative because they only use the current robot AABB and do not leverage narrow-phase collision checks that consider the precise robot mesh representation. 
+%     However, generating the accurate extended collision shape that incorporates uncertainty, required for the second phase, is challenging, as the library supports only standard primitives like boxes, spheres, cylinders, etc.
+%     To address this, the third approach approximates the extended collision shape by sampling on the surface of the uncertainty ellipsoid bounding box defined by the uncertainty tube radii, rather than creating a new collision shape (see Figure~\ref{fig:CC3}). 
+%     While this method more accurately approximates the true extended collision shape than the two first approaches, it requires multiple calls to the collision-checking function for each robot state tested.
+% \end{enumerate}
 
-\begin{figure}[htp]
-    \centering
-    % Row 1
-    \begin{subfigure}{0.4\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{figures/samp/CC1.png}
-        \caption{}
-        \label{fig:CC1}
-    \end{subfigure}
-    % \hfill
-    \begin{subfigure}{0.4\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{figures/samp/CC2.png}
-        \caption{}
-        \label{fig:CC2}
-    \end{subfigure}
+% \begin{figure}[htp]
+%     \centering
+%     % Row 1
+%     \begin{subfigure}{0.4\textwidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{figures/samp/CC1.png}
+%         \caption{}
+%         \label{fig:CC1}
+%     \end{subfigure}
+%     % \hfill
+%     \begin{subfigure}{0.4\textwidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{figures/samp/CC2.png}
+%         \caption{}
+%         \label{fig:CC2}
+%     \end{subfigure}
     
-    % Row 2
-    \begin{subfigure}{0.4\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{figures/samp/CC3.png}
-        \caption{}
-        \vspace{-0.3cm}
-        \label{fig:CC3}
-    \end{subfigure}
-    % \hfill
-    \begin{subfigure}{0.4\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{figures/samp/CCall.png}
-        \caption{}
-        \vspace{-0.3cm}
-        \label{fig:CCall}
-    \end{subfigure}
+%     % Row 2
+%     \begin{subfigure}{0.4\textwidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{figures/samp/CC3.png}
+%         \caption{}
+%         \vspace{-0.3cm}
+%         \label{fig:CC3}
+%     \end{subfigure}
+%     % \hfill
+%     \begin{subfigure}{0.4\textwidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{figures/samp/CCall.png}
+%         \caption{}
+%         \vspace{-0.3cm}
+%         \label{fig:CCall}
+%     \end{subfigure}
 
-    \caption{Figure showing the space covered by each of the three methods: (a) uniformly scaled AABB, (b) extended AABB, and (c) sampling-based approximation of the extended collision shape, for a differential drive robot with its associated uncertainty ellipsoid bounding box (green) based on computed uncertainty radii. Comparison of the three methods is shown in (d).}
-    \label{fig:CCmethods}
-\end{figure}
+%     \caption{Figure showing the space covered by each of the three methods: (a) uniformly scaled AABB, (b) extended AABB, and (c) sampling-based approximation of the extended collision shape, for a differential drive robot with its associated uncertainty ellipsoid bounding box (green) based on computed uncertainty radii. Comparison of the three methods is shown in (d).}
+%     \label{fig:CCmethods}
+% \end{figure}
 
-These different approaches enable progressively more precise collision testing, from the first to the third method, as illustrated in the Figure~\ref{fig:CCall} that shows a comparison of the resulting tested collision shapes according to the aforementioned methods for the 2D differential drive robot.
-However, this increased accuracy comes at the cost of longer computational times, as noted earlier. 
-To quantify this, the mean running time of each method was evaluated based on 1.000 robust collision tests performed using the quadrotor model described in Section~\ref{sec:quad_model}. 
-The results indicate that the first method, which involves a simple distance check, has an average runtime of 3 microseconds. 
-The second method, which creates an extended uncertain AABB, takes 7 microseconds to compute. 
-Finally, the method that approximates the true extended collision shape requires 45 microseconds. 
-It is worth mentioning that this last approach involves 14 samples (each corner and the center of each face), and therefore, its runtime can be approximated as linear with respect to the number of samples, compared to a simple test.
+% These different approaches enable progressively more precise collision testing, from the first to the third method, as illustrated in the Figure~\ref{fig:CCall} that shows a comparison of the resulting tested collision shapes according to the aforementioned methods for the 2D differential drive robot.
+% However, this increased accuracy comes at the cost of longer computational times, as noted earlier. 
+% To quantify this, the mean running time of each method was evaluated based on 1.000 robust collision tests performed using the quadrotor model described in Section~\ref{sec:quad_model}. 
+% The results indicate that the first method, which involves a simple distance check, has an average runtime of 3 microseconds. 
+% The second method, which creates an extended uncertain AABB, takes 7 microseconds to compute. 
+% Finally, the method that approximates the true extended collision shape requires 45 microseconds. 
+% It is worth mentioning that this last approach involves 14 samples (each corner and the center of each face), and therefore, its runtime can be approximated as linear with respect to the number of samples, compared to a simple test.
 
-Finally, in this thesis, the second approach is used for robust collision checking, as it offers a more precise approximation of the extended collision shape with only a minor increase in computation time than the first approach. 
-However, the third approach is employed in the scenario presented in Section~\ref{sec:AOptim}, as it demands a higher level of collision accuracy.
-Although the methods employed in this thesis for robust collision checking rely on the uncertainty ellipsoid bounding box computed using Equation~\ref{eq:radius}, the tubes are represented by ellipsoids in the various figures of this manuscript for smoother visualization.
+% Finally, in this thesis, the second approach is used for robust collision checking, as it offers a more precise approximation of the extended collision shape with only a minor increase in computation time than the first approach. 
+% However, the third approach is employed in the scenario presented in Section~\ref{sec:AOptim}, as it demands a higher level of collision accuracy.
+% Although the methods employed in this thesis for robust collision checking rely on the uncertainty ellipsoid bounding box computed using Equation~\ref{eq:radius}, the tubes are represented by ellipsoids in the various figures of this manuscript for smoother visualization.
 
-\paragraph{Robust saturation checking}
-Then, in this manuscript, the feasibility check is not restricted to the aforementioned collision test, but it also verifies that the robot control inputs does not saturate.
-This test is performed by checking that the tube associated with each control input remains in its feasibility domain.
-An example of infeasible input for the quadrotor case is presented in Figure.\ref{fig:invalid_inputs}, where the tube (green) around the nominal control input of the first actuator (blue) exceeds the maximum allowed input (red).
-Note that this simple test is less costly than the robust collision checking one, it is therefore performed first by mean of computational efficiency. 
+% \paragraph{Robust saturation checking}
+% Then, in this manuscript, the feasibility check is not restricted to the aforementioned collision test, but it also verifies that the robot control inputs does not saturate.
+% This test is performed by checking that the tube associated with each control input remains in its feasibility domain.
+% An example of infeasible input for the quadrotor case is presented in Figure.\ref{fig:invalid_inputs}, where the tube (green) around the nominal control input of the first actuator (blue) exceeds the maximum allowed input (red).
+% Note that this simple test is less costly than the robust collision checking one, it is therefore performed first by mean of computational efficiency. 
 
-\begin{figure} [htp]
-    \centering
-    \includegraphics[width=0.8\linewidth]{figures/samp/Invalid_Inputs.png} 
-    \caption{Non-robust nominal control input profile for the first rotor of a quadrotor (blue) along a specified trajectory, depicted with its uncertainty tube (green) and the control input limits (red).}%
-    \label{fig:invalid_inputs}%
-\end{figure}
-
-\subsection{Cost function}\label{sec:sensi_cost}
-
-First, generating a sensitivity-optimal trajectory requires identifying an appropriate sensitivity-based cost function.
-The approaches in~\cite{cPi, cTh} proposed leveraging the Frobenius norm of the sensitivity matrices (Equation~\ref{eq:sensi}).
-However, this formulation does not exploit the available information on the uncertainty ranges, $\delta \p$.
-
-Therefore, in this work the largest eigenvalue of the kernel matrix $\bPi(t) \W \bPi(t)^T$ is considered as \emph{sensitivity norm}, since this represents the largest (worst-case) deviation in the state space. 
-In particular, letting $\lambda_i(t)$ be the eigenvalues of $\bPi(t) \W \bPi(t)^T$, a smooth approximation of the $\max(\cdot)$ operator is performed with the $p$-norm:
-\begin{equation}
-    \lambda_{max}(t)\approx \left(\sum \lambda_{i}(t)^p\right)^{1/p}.
-\end{equation} 
-
-However, such function is neither additive (i.e., considering two desired trajectories ($\q_{d,1}(t), \q_{d,2}(t)$), the cost of their concatenation $c(\q_{d,1}(t)|\q_{d,2}(t)) \neq c(\q_{d,1}(t)) + c(\q_{d,2}(t))$), nor monotonic as depicted in Figure~\ref{fig:monotonic}.
-Therefore, it is unsuitable for global optimization using sampling-based motion planners like \cite{cRRTstar, cSST}, since they require additive and monotonic objective functions.
-The total cost function $c(\q_d(t))$ for a desired trajectory $\q_d(t)$ is then defined considering its integral along the desired trajectory s.t.:
-\begin{equation} \label{eq:cost_function}
-    c(\q_d(t))=\int_{t_{0}}^{t_{f}}\lambda_{max}(\tau)d\tau.
-\end{equation}
-Minimization of this cost will minimize the largest deviation of the state tube along the whole motion.
-
-\begin{figure} [htp]
-    \centering
-    \includegraphics[width=0.7\linewidth]{figures/samp/non_monotoic.png} 
-    \caption{Non monotonic p-norm profile along a 70-state trajectory for a quadrotor example.}%
-    \label{fig:monotonic}%
-\end{figure}
+% \begin{figure} [htp]
+%     \centering
+%     \includegraphics[width=0.8\linewidth]{figures/samp/Invalid_Inputs.png} 
+%     \caption{Non-robust nominal control input profile for the first rotor of a quadrotor (blue) along a specified trajectory, depicted with its uncertainty tube (green) and the control input limits (red).}%
+%     \label{fig:invalid_inputs}%
+% \end{figure}
 
 \section{Unified approach}\label{sec:unified}
 
 This section present how the sensitivity matrices and resulting uncertainty tubes computation can be incorporated into any assymptotically-optimal tree planner in order to generate robust and sensitivity-optimal trajectories.  
 
-\subsection{General method}\label{sec:general_method}
+\subsection{Overview}\label{sec:general_method}
+
+\paragraph{Sampling-based motion planning with dynamic}
 
 As shown in Section~\ref{sec:sensi_and_tubes}, the state/input sensitivity matrices (and resulting uncertainty tubes) are computed by forward integrating the set of \myglsentry{odes} presented by Equation~(\ref{eq:dyna}), Equation~(\ref{eq:ctrl}), and Equation~(\ref{eq:dyna_sensi}).
 This computation is performed using the controller time step along a given desired trajectory.
 In a sampling-based framework, this computation must be performed at each new extension to assess the trajectory cost and the associated uncertainty tubes for the robust feasibility check.
-Although the \myglsentry{odes} need to be solved at each controller time step, it is important to note that the robust feasibility check presented in Section~\ref{sec:robust_CC} can be conducted using a coarser time step.
+% Although the \myglsentry{odes} need to be solved at each controller time step, it is important to note that the robust feasibility check presented in Section~\ref{sec:robust_CC} can be conducted using a coarser time step.
 
 Furthermore, in a sampling-based context, solving the \myglsentry{odes} from a set of non-zero initial conditions (e.g. $\bPi_0$, $\q^0$ etc.), denoted $S_0$, is required when an extension is made from a node that is not the root.
 Therefore, after a feasible extension is made and the new node is added to the structure, the set of final conditions (e.g. $\bPi_F$, $\q^F$,  etc.), denoted $S_F$, must be embedded within the new node.
 These conditions are then reused as initial conditions for future extensions.
 Moreover, it is important to note that the initial conditions of a given node are determined by the trajectory from the root node. 
 As a result, these initial conditions are specific to the parent node, making them applicable only in tree-based planners, where each node has exactly one parent.
+Indeed, graph-based planners, such as \myglsentry{prm}~\cite{cPRM}, are unable to leverage such mechanisms due to their high degree of connectivity.
 Additionally, note that, since dynamics are taken into account, the algorithms presented in this thesis utilize directed data structures (i.e., structures like directed trees that represent dependencies and directionality in motion).
+
+\paragraph{Standard RRT*}
+
+The vanilla \gls{rrtstar}~\cite{cRRTstar} is a widely used asymptotically optimal sampling-based planner that extends the standard \gls{rrt}~\cite{cRRT} algorithm by incorporating a rewiring step to iteratively improve the quality of the trajectories in the generated tree.
+It achieves this by first optimally connecting the samples to the tree and then re-evaluating the connections between sampled nodes and their neighbors based on a cost metric. 
+This process ensures that the tree progressively converges toward an optimal solution as the number of samples increases.
+The \myglsentry{rrtstar} tree extension process and tree rewiring phase are illustrated in Figure~\ref{fig:rrtstar}.
+
+\begin{figure} [htp]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/samp/rrtstar.png} 
+    \caption{Illustration of the \myglsentry{rrtstar} tree extension procedure.
+    The first phase (left) consists of extending the nearest node in the tree, $q^{near}$, towards a randomly sampled state,$q^{rand}$, in order to add a new collision-free state, $q^{new}$, to the tree.
+    Then, an optimal connection phase is performed (middle), where the new node is optimally connected to the node with the minimum cost, $q^{min}$, from the start, within a neighborhood defined by a distance $\delta$.
+    Finally, within this same neighborhood, a rewiring phase (right) is attempted to optimally reconnect the existing nodes if the cost of passing through the new state improves their current cost.}%
+    \label{fig:rrtstar}%
+\end{figure}
+
+\paragraph{Standard SST*}
+
+The standard \gls{sst*}~\cite{cSST} is another asymptotically optimal sampling-based planner that, unlike \myglsentry{rrtstar}, does not utilize a local planner but instead relies on system dynamics forward propagation.
+This method grows a tree in the state space by employing Monte Carlo forward dynamic propagation to explore feasible trajectories by sampling control inputs.
+To improve efficiency, \myglsentry{sst} employs a pruning mechanism that preserves only the locally optimal solutions, thanks to a witness and representative system as illustrated in Figure~\ref{fig:sst}.
+This approach ensures that the planner focuses on promising regions of the state space, reducing redundant computations while maintaining theoretical guarantees of near-optimality. 
+By combining these features, \myglsentry{sst} offers a powerful solution for kinodynamic motion planning in complex systems.
+
+\begin{figure} [htp]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/samp/sst.png} 
+    \caption{Illustration of the \myglsentry{sst} tree extension procedure where white dots represent witnesses, and blue dots are current witnesses representative (i.e. the node with the best cost in the witness neighborhood) (extracted from~\cite{cSST}).
+    Dynamic propagation from $x_{selected}$ generates a new node $x_{new}$, which has a better trajectory cost than its current witness representative node $x_{peer}$.
+    In this case, $x_{peer}$ is pruned, and the newly propagated edge is incorporated into the tree as the new witness representative.
+    If $x_{peer}$ had children with the lowest trajectory cost in their respective neighborhoods, $x_{peer}$ would remain in the tree but would no longer be considered for further propagation. 
+    Inversely, if $x_{new}$ has a worse trajectory cost than $x_{peer}$, the old node $x_{peer}$ remains in the tree, and the propagation from $x_{selected}$ to $x_{new}$ is ignored.}%
+    \label{fig:sst}%
+\end{figure}
+
+\subsection{Sensitivity-Aware Motion Planner (SAMP)}\label{sec:samp}
 
 The following subsection describes how the concepts outlined above can be incorporated into different tree planners to develop robust, sensitivity-aware variants, generally referred to as \gls{samp}\footnote{It is important to note that none of the proposed variants are formally proven to be complete, as establishing completeness would require a separate proof for each variant and determining an upper bound for the first-order approximation of the tube.}.
 Note that although the following sections of this chapter focus on asymptotically-optimal planner variants to generate globally sensitivity-optimal trajectories, the same principles can easily be applied to non-asymptotically optimal planners (see Chapter~\ref{chap:sampNN}), such as the standard \gls{rrt}.
- 
-\subsection{Sensitivity-Aware Motion Planner (SAMP)}\label{sec:samp}
 
 For clarity in the pseudo-code, the temporal notation is omitted in this subsection. 
 Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent instantaneous vectors (e.g., $q^{rand}$ denotes a random state, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given state vector, etc.).
@@ -239,7 +254,7 @@ Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a de
     \end{algorithmic}
 \end{algorithm}
 
-The first implementation presented in Algorithm~\ref{alg:SARRT*} is a variant of the widely used \gls{rrtstar}~\cite{cRRTstar}, denoted \gls{sarrt*} as a particular instance of \myglsentry{samp}.
+The first implementation presented in Algorithm~\ref{alg:SARRT*} is a variant of the widely used \myglsentry{rrtstar}~\cite{cRRTstar}, denoted \gls{sarrt*} as a particular instance of \myglsentry{samp}.
 The tree is initialized with the desired initial and goal robot states, $(q^{init}, q^{goal})$ (line 1), and the algorithm continues until a user-defined stopping criterion is met (line 2).
 Such a criterion can include a maximum number of iterations, a maximum runtime, a cost convergence threshold, etc.
 
@@ -247,7 +262,8 @@ The first stage of the algorithm follows the same standard procedure as the vani
 Then, a local planner (such as the ones presented in Section~\ref{sec:kinosplines} and Section~\ref{sec:dubins}) is employed to generate a desired local trajectory $\q_d$ that extends $q^{nearest}$ toward $q^{rand}$.
 Note that if a maximum local distance is imposed, $q^{rand}$ is adjusted accordingly.
 Next, as discussed in Section~\ref{sec:general_method}, the set of \myglsentry{odes} is solved (line 7) to compute the nominal trajectory $\q_n$, the nominal control inputs $\u_n$, and the uncertainty tubes $(\Rq, \Ru)$, utilizing the initial conditions $S_0$ (line 6).
-A robust feasibility check is then conducted along the nominal trajectory and control inputs (line 8), following the procedure outlined in Section~\ref{sec:robust_CC}.
+A robust feasibility check is then conducted along the nominal trajectory and control inputs (line 8).
+This test includes a robust collision check that accounts for the robot shape expansion due to uncertainty tubes along the state trajectory, as well as a robust verification that the control inputs do not saturate.
 Remember that this test is carried out along the nominal values, as the uncertainty tubes are valid around them, as detailed in Section~\ref{sec:tubes}.
 If the extension is feasible, the new node parent is temporarily set to $q^{nearest}$, and the final conditions $S_F$ are temporarily stored within $q^{rand}$ (line 9-10).
 
@@ -284,7 +300,7 @@ The \myglsentry{sasst*} variant, detailed in Algorithm~\ref{alg:SASST*}, operate
         \item A best-first selection that samples a random state from the state space and finds the best node in terms of cost from the root within a distance of $\delta_{BN}$ in the active set of the tree. 
         This node, referred as $q^{selected}$, represents the state to be propagated (line 9).
         \item Then, instead of the original Monte Carlo propagation, a random state $q^{rand}$ is sampled within a maximum distance of $q^{selected}$ (line 10), analogous to sampling a control input and propagation duration in the vanilla algorithm.
-        The local trajectory connecting the two state is computed (line 11) and, as discussed in Section~\ref{sec:general_method}, the set of \myglsentry{odes} is solved (line 12-13) before performing the robust feasibility check (line 14) presented in Section~\ref{sec:robust_CC}.
+        The local trajectory connecting the two state is computed (line 11) and, as discussed in Section~\ref{sec:general_method}, the set of \myglsentry{odes} is solved (line 12-13) before performing a robust feasibility check (line 14).
         \item If the local trajectory is robustly feasible, the set $W$ is used by the IsNodeLocallyTheBestSST procedure (line 15) to check whether the newly sampled state $q^{rand}$ dominates the $\delta_s$-neighborhood of its closest witness and to update the witness set $W$ accordingly.
         \item Then, the sample is added to the tree (line 16-17), and the sets of active and inactive nodes are updated.
         Nodes that no longer belong to any of these sets are pruned (line 18).
@@ -333,10 +349,45 @@ Note that in this implementation the \myglsentry{odes} need to be solved only on
 This subsection presents the results of trajectory planning using the previously discussed variants, evaluated based on computation time, and robustness for the two systems introduced in Chapter~\ref{chap:models}.
 To assess the impact of planning robust, globally sensitivity-optimal trajectories, both \myglsentry{sarrt*} and \myglsentry{sasst*} are compared with their respective non-robust vanilla versions, which focus on optimizing trajectory length.
 The objective of this subsection is to quantify the ability of the proposed variants to generate robust solutions, and to evaluate the impact of solving \myglsentry{odes} multiple times within a sampling-based framework.
-All planner implementations are performed using the \gls{ompl}~\cite{cOMPL}.
-The \myglsentry{odes} are implemented using the JiTCODE \cite{cJit} module which converts the equations to be integrated into C-compiled code.
+All planner implementations are performed using the \gls{ompl}~\cite{cOMPL}, and collision detection is performed using the widely used C implementation of PyBullet~\cite{cBullet}.
+Recall that this robust feasibility check is performed not only in the state space but also in the control input space, as illustrated by Figure~\ref{fig:invalid_inputs}.
+The \myglsentry{odes} are implemented using the JiTCODE~\cite{cJit} module which converts the equations to be integrated into C-compiled code.
 The Euler integrator is then used to solve each ODE and take advantage of this compiled function.
-Although the Euler method is less accurate than a Runge-Kutta 4-based method (e.g., dopri5),  it is chosen because the uncertainty tubes are already an approximation, and faster predictions are preferred over higher accuracy in this context.
+Although the Euler method is less accurate than a Runge-Kutta 4-based method (e.g., dopri5), it is chosen because the uncertainty tubes are already an approximation, and faster predictions are preferred over higher accuracy in this context.
+
+\begin{figure} [htp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/samp/Invalid_Inputs.png} 
+    \caption{Non-robust nominal control input profile for the first rotor of a quadrotor (blue) along a specified trajectory, depicted with its uncertainty tube (green) and the control input limits (red).}%
+    \label{fig:invalid_inputs}%
+\end{figure}
+
+\subsubsection{Cost function}\label{sec:sensi_cost}
+
+First, generating a sensitivity-optimal trajectory requires identifying an appropriate sensitivity-based cost function.
+The approaches in~\cite{cPi, cTh} proposed leveraging the Frobenius norm of the sensitivity matrices (Equation~\ref{eq:sensi}).
+However, this formulation does not exploit the available information on the uncertainty ranges, $\delta \p$.
+
+Therefore, in this work the largest eigenvalue of the kernel matrix $\bPi(t) \W \bPi(t)^T$ is considered as \emph{sensitivity norm}, since this represents the largest (worst-case) deviation in the state space. 
+In particular, letting $\lambda_i(t)$ be the eigenvalues of $\bPi(t) \W \bPi(t)^T$, a smooth approximation of the $\max(\cdot)$ operator is performed with the $p$-norm:
+\begin{equation}
+    \lambda_{max}(t)\approx \left(\sum \lambda_{i}(t)^p\right)^{1/p}.
+\end{equation} 
+
+However, such function is neither additive (i.e., considering two desired trajectories ($\q_{d,1}(t), \q_{d,2}(t)$), the cost of their concatenation $c(\q_{d,1}(t)|\q_{d,2}(t)) \neq c(\q_{d,1}(t)) + c(\q_{d,2}(t))$), nor monotonic as depicted in Figure~\ref{fig:monotonic}.
+Therefore, it is unsuitable for global optimization using sampling-based motion planners like~\cite{cRRTstar, cSST}, since they require additive and monotonic objective functions.
+The total cost function $c(\q_d(t))$ for a desired trajectory $\q_d(t)$ is then defined considering its integral along the desired trajectory s.t.:
+\begin{equation} \label{eq:cost_function}
+    c(\q_d(t))=\int_{t_{0}}^{t_{f}}\lambda_{max}(\tau)d\tau.
+\end{equation}
+Minimization of this cost will minimize the largest deviation of the state tube along the whole motion.
+
+\begin{figure} [htp]
+    \centering
+    \includegraphics[width=0.7\linewidth]{figures/samp/non_monotoic.png} 
+    \caption{Non monotonic p-norm profile along a 70-state trajectory for a quadrotor example.}%
+    \label{fig:monotonic}%
+\end{figure}
 
 \subsubsection{Differential drive robot}
 
@@ -397,7 +448,9 @@ It is important to note that this success rate is assessed based on both robust 
 
 However, this robustness comes at the cost of computational efficiency, as highlighted by the significantly higher planning times of the two robust sensitivity-aware variants when compared to their standard counterparts that focus on optimizing trajectory length.
 This is correlated to the time spent solving the \myglsentry{odes}, as depicted in Figure~\ref{fig:profiling_unic}, where the two variants that rely on sensitivity computation spend approximately 80\% of their total computation time solving the \myglsentry{odes}. 
-However, it is worth noting that the \myglsentry{sasst*} is much faster than the \myglsentry{sarrt*} variant, highlighting that reducing the frequency of \myglsentry{odes} leads to a lower planning time.
+This result aligns with the findings of~\cite{cTognon}, which demonstrated that, in a control-aware context, the majority of a planner computation time is taken by the closed-loop system simulation.
+However, in this context, the impact is even more significant due to the additional complexity introduced by the tube computation.
+Nevertheless, it is worth noting that the \myglsentry{sasst*} is much faster than the \myglsentry{sarrt*} variant, highlighting that reducing the frequency of \myglsentry{odes} leads to a lower planning time.
 Furthermore, the results in Figure~\ref{fig:unic_tree} strongly suggest that by incorporating uncertainty tubes, the problem becomes more constrained, requiring more iterations for the planners to converge to lower-cost regions in the state space.
 
 \begin{figure} [ht]
@@ -490,7 +543,7 @@ The algorithm then verifies at each iterations whether a new, lower-cost solutio
 If a better solution is identified, the set of nodes $Q_{sol}$, which enables the reconstruction of this solution, is retrieved (line 6).
 
 Next, for each local trajectories between two consecutive nodes in this set, the \myglsentry{odes} are solved, and the uncertainty tubes computed (line 9-11).
-The algorithm then verifies the robust feasibility of the local trajectory using the robustness test outlined in Section~\ref{sec:robust_CC}. 
+The algorithm then verifies the robust feasibility of the local trajectory using a robustness test w.r.t. obstacles but also control inputs saturation. 
 If a local trajectory is found to be non-robustly feasible, all nodes in the tree connected to $Q_{sol}^i$ are disconnected and reconnected using the RobustReconnect procedure (line 13).
 
 The RobustReconnect procedure may differ depending on the specific \myglsentry{lazysamp} variant used (see Chapter~\ref{chap:sampNN}). 

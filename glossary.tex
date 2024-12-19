@@ -1,3 +1,7 @@
+\usepackage[acronym]{glossaries}
+
+\makenoidxglossaries
+
 \newcommand*\myglsentry[1]{%
   \protect\ifglsused{#1}{%
     \glsentryshort{#1}%
@@ -6,8 +10,10 @@
   }%
 }
 
-\makeglossaries
-
+\newacronym{lmt}{LMT}{Lozano-Pérez, Mason and Taylor}
+\newacronym{lpv}{LPV}{Linear Parameter Variation}
+\newacronym{chomp}{CHOMP}{Covariant Hamiltonian Optimization for Motion Planning}
+\newacronym{bvp}{BVP}{Boundary Value Problem}
 \newacronym{prm}{PRM}{Probabilistic Roadmaps}
 \newacronym{mpc}{MPC}{Model Predictive Control}
 \newacronym{rrt}{RRT}{Rapidly-exploring Random Trees}
@@ -19,6 +25,7 @@
 \newacronym{samp}{SAMP}{Sensitivity-Aware Motion Planner}
 \newacronym{sarrt*}{SARRT*}{Sensitivity-Aware RRT*}
 \newacronym{sarrt}{SARRT}{Sensitivity-Aware RRT}
+\newacronym{sst}{SST}{Stable Sparse RRT}
 \newacronym{sst*}{SST*}{Stable Sparse RRT*}
 \newacronym{sasst*}{SASST*}{Sensitivity-Aware SST*}
 \newacronym{ompl}{OMPL}{Open Motion Planning Library}
