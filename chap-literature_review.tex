@@ -57,7 +57,7 @@ The Reeds-Shepp method~\cite{cReeds} extends this local path generation procedur
 \subsection{Kinodynamic planning}
 
 While the aforementioned path finding methods focus on generating a route between two robot configurations, they do not address the problem on how the robot should move along this route over time.
-Additionally, path planning does not account for the robot dynamic constraints, such as velocity and acceleration. 
+Additionally, path planning does not account for the robot dynamic constraints, such as maximum velocity and acceleration. 
 The problem of generating motion plans that consider both kinematic constraints (e.g., turning radius) and dynamic constraints, ensuring the plans are physically executable, is known as kinodynamic motion planning.
 Therefore, the kinodynamic problem extends beyond searching in the robot configuration space by considering its entire state space.
 
@@ -66,13 +66,11 @@ Therefore, the kinodynamic problem extends beyond searching in the robot configu
 Local planners, or steering methods, focus on generating feasible motion between two states while respecting kinematic and dynamic constraints. 
 They are often used as building blocks in global kinodynamic planners. 
 
-A common approach is to take advantage of polynomial-based methods, such as splines, that are widely used for smooth trajectory interpolation between waypoints.
-For instance, the kino-splines local planner proposed in~\cite{cKino} generates smooth trajectories by solving a two-point \gls{bvp} between initial and final robot states. 
-Based on the system differential flatness, this method ensures the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
-The resulting trajectories respect kinodynamic constraints up to the jerk level and enable time-optimal connections between two given states.
-
-Another example of a spline-based approach, which contrasts with the bang-bang snap strategy of kino-splines, is the minimum snap trajectory generation method~\cite{cMinimumSnap}. 
-This approach, also based on system differential flatness, formulates an optimization problem that minimizes the integral of a weighted combination of the squared position snap and the squared yaw acceleration. 
+A common approach to generating smooth trajectories between robot states is to solve a two-point \gls{bvp} using polynomial-based methods, such as splines, which are widely employed for trajectory interpolation. 
+For instance, the kino-splines local planner proposed in~\cite{cKino} leverages system differential flatness, ensuring the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
+The resulting trajectories respect kinodynamic constraints up to the jerk level, enabling time-optimal connections between two given states. 
+Another example is the minimum snap trajectory generation method~\cite{cMinimumSnap}, which contrasts with the bang-bang snap strategy of kino-splines. 
+Also based on system differential flatness, this approach formulates an optimization problem that minimizes the integral of a weighted combination of squared position snap and squared yaw acceleration.
 It ensures continuity between trajectory segments, satisfies kinematic conditions at the start and end of the motion, and respects actuation limits.
 
 While the local planners mentioned earlier primarily focus on enforcing kinodynamic constraints, Bézier curve-based planners~\cite{cBezier,cBezier2} offer additional benefits due to their inherent smoothness, and their convex hull property.
@@ -114,17 +112,29 @@ However, these methods often encounter difficulties in maintaining robustness wh
 Additionally, they struggle to achieve global optimality and performance, which are typically better addressed by global planning approaches.
 Therefore, considerable research has focused on designing motion planning algorithms that incorporate uncertainty into the trajectory generation process, with the goal of producing robust and feasible plans.
 
-A seminal work in the domain is the \gls{lmt} framework~\cite{cLMT} that address the challenge of computing compliant-motion strategies
+A seminal contribution to the field is the \gls{lmt} framework~\cite{cLMT}, which addresses the challenge of computing compliant motion strategies in the presence of sensor uncertainties and inaccuracies in robot movement. 
+This approach focuses on developing fine-motion strategies, which involve incrementally generating sequences of robot movements that account for inaccuracies in both the robot state and the sensed environment. 
+The authors consider the robot kinematic constraints and sources of error, such as sensor discrepancies or movement inaccuracies.
+By ensuring that the robot motions remain collision-free and adaptable to these uncertainties, the framework aims to achieve robustness in real-world tasks.
+However, a bottleneck of the method is its high computational cost.
 
-{Fine motion planning under uncertainty}
+By leveraging the probabilistic robotic concept~\cite{cProbaRobotic}, approaches such as \gls{pomdp} or, in general, the class of “planning in belief spaces” approaches, are another alternative for providing a principled and general planning framework for dealing with uncertainty.
+They use stochastic uncertainty propagation functions, to minimize the uncertainty along the trajectory to the desired target~\cite{cUncertaintyPOMDP,cNavigationPOMPDP}. 
+\myglsentry{pomdp} model sequential decision-making in environments with uncertainty, considering both actions taken by the agent and the uncertain nature of observations and transitions.
+The proposed frameworks have the advantage of being adaptable to a wide range of non-trivial robot models, with non-Gaussian processes and observation models for trajectory planning with minimum uncertainty.
+However, these methods still suffer from computational bottleneck when dealing with high dimensional problems.
 
-{POMDP}
+When probability distributions over uncertain variables are available, chance-constrained motion planning can be used to generate plans that satisfy probabilistic constraints~\cite{cChance1,cChance2,cChance3}. 
+These constraints ensure that specific conditions, such as safety or feasibility, are met with a certain probability. 
+Typically, a chance constraint is incorporated into an optimization problem, where the objective (e.g., minimizing cost or maximizing reward) is optimized while ensuring that the constraint holds with a high probability (e.g. ensuring that a robot avoids obstacles with 95\% probability).
 
-{Chance-constrained}
+Particle-based methods such as Particle RRT~\cite{cParticleRRT} or RRT-SALM~\cite{cSlamRRT}, use particle filters to model uncertainty. 
+Rather than relying on a single robot state, these algorithms represent the robot state as a set of particles, each corresponding to a possible uncertain state. 
+The particles are propagated through the environment according to the system dynamic, and the tree is expanded by sampling from these particles.
 
-{Particle RRT}
-
-
+The problem of generating open-loop trajectories with minimum state sensitivity has been recently addressed in~\cite{cSensi1} and further expanded upon in~\cite{cSensi2}. 
+This later work introduces a method for generating robust trajectories using an open-loop optimization routine that accounts for deviations in model parameters. 
+In contrast to the aforementioned probabilistic approaches, this framework operates under the assumption of accurate models and demonstrates that minimizing first-order sensitivities leads to reduced deviations from the nominal state when model parameters are imperfect.
 
 \section{Control-aware motion planning}
 
@@ -134,20 +144,31 @@ This controller might deviate from the planned trajectory to address uncertainti
 It is important to note that kinodynamic approaches relying on system dynamics forward propagation, as discussed in Section~\ref{sec:forwardplanning}, do not incorporate feedback actions.
 Instead, they directly sample in the control input space, resulting in an open-loop propagation strategy.
 
-MPC and control-aware from M Tognon
+The idea of merging planning with control for generating “robust planners” or more “global controllers” for dealing with the robustness problem in a more comprehensive way is however not completely novel in the robotics community.
+
+Work has been carried out on the control community side to propose ``less local'' controllers, resulting in the popular \gls{mpc} technique~\cite{cMPC} that iteratively replans an optimal (and feasible) trajectory with a feedback from the current robot state (that may deviate from the desired one because of disturbances/uncertainties). 
+This method enables fast computation of locally optimal trajectories while incorporating the controller feedback action. 
+However, due to its inherently local nature, the \myglsentry{mpc} approach can become trapped in local minima with respect to cost or obstacles. 
+It often lacks guarantees of completeness and relies heavily on an accurate robot model, without explicitly accounting for uncertainties.
+
+The LQR-Trees method~\cite{cLQRTrees} address the problem of computing motion plans that are stabilizable.
+
+MPC and control-aware from M Tognon and LQR trees
 
 \section{Robust control-aware motion planning}
 
 one should guarantee safe operation for all uncertainty realizations within these bounds taking into account for the presence of a feedback controller. This task is referred to as robust control-aware motion planning (or robust feedback motion planning).
 
+\subsection{Tube MPC}
+
 \subsection{FaSTrack}
 
-\subsection{LQR-trees}
+\subsection{Funnel library}
 
 \subsection{Contraction theory}
 
 \subsection{Randomized uncertainty propagation}
 
-\subsection{Sensitivity}
+\subsection{CLosed-loop Sensitivity}
 
 \section{Summary}

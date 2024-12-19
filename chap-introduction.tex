@@ -29,7 +29,7 @@ While this sequential approach, which separates planning and control, has proven
 \end{itemize}
     
 To bridge the gap between the two communities, several approaches have been introduced, including more global controllers such as the well-known \gls{mpc}~\cite{cTMPC}. 
-In addition, the past decade has seen the rise of so-called 'feedback motion planning'~\cite{cControlAwareAerialManip, cContractThMP, cContractThOnlineMP, cMajundarLibrary, cFaSTrack, cRandUpRRT, cRandUP}. 
+In addition, the past decade has seen the rise of so-called 'feedback motion planning'~\cite{cTognon, cContractThMP, cContractThOnlineMP, cMajundarLibrary, cFaSTrack, cRandUpRRT, cRandUP}. 
 However, these methods still face challenges related to generalizability, computational efficiency, and their reliance on potentially inaccurate models of the robot/controller pair due to uncertainties in the knowledge of model parameters.
 
 Therefore, this work, based on the 'feedback motion planning' (or 'control-aware motion planning') paradigm shown in Figure~\ref{fig:ca_strat}, leverage the closed-loop sensitivity concept~\cite{cPi,cTh} (an extension of the sensitivity notion that incorporates the controller behavior with respect to parametric uncertainties), in order to create robust control-aware motion planners for a broad class of systems and controllers, while addressing uncertainties in their model representations.
