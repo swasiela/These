@@ -145,6 +145,7 @@ It is important to note that kinodynamic approaches relying on system dynamics f
 Instead, they directly sample in the control input space, resulting in an open-loop propagation strategy.
 
 The idea of merging planning with control for generating “robust planners” or more “global controllers” for dealing with the robustness problem in a more comprehensive way is however not completely novel in the robotics community.
+This yields to the 'feedback motion planning' (or control-aware motion planning) paradigm.
 
 Work has been carried out on the control community side to propose ``less local'' controllers, resulting in the popular \gls{mpc} technique~\cite{cMPC} that iteratively replans an optimal (and feasible) trajectory with a feedback from the current robot state (that may deviate from the desired one because of disturbances/uncertainties). 
 This method enables fast computation of locally optimal trajectories while incorporating the controller feedback action. 
