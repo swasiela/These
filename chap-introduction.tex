@@ -7,14 +7,14 @@
 Robot motion planning is crucial for ensuring efficient and safe robot behavior.
 However, robots operating in real-world inevitably face uncertainties, including external disturbances (e.g., wind), model inaccuracies, and state estimation errors.
 
-An effective approach to managing the complexity of robots operating in uncertain real-world environments is the "feedforward/feedback" or "planning/control" paradigm. 
+An effective approach to managing the complexity of robots operating in uncertain real-world environments is the decoupled planning and control approach. 
 This process involves two main steps:
 
 \begin{enumerate}
-  \item Planning Phase (Feedforward): A reference trajectory for the robot states and controls is planned based on available information, such as models of the robot and its environment.
+  \item Planning Phase: A reference trajectory for the robot states and controls is planned based on available information, such as models of the robot and its environment.
   This step, typically executed offline, incorporates constraints (e.g., collision avoidance, limited actuation) and optimizes metrics like trajectory length or energy efficiency. 
   However, executing this planned trajectory in open-loop often fails in practice due to uncertainties affecting the planned reference.
-  \item Control Phase (Feedback): To ensure robust execution, a motion controller is employed to close the loop between the planned and actual motion, compensating for unforeseen effects and uncertainties that were not accounted for during planning.
+  \item Control Phase: To ensure robust execution, a motion controller is employed to close the loop between the planned and actual motion, compensating for unforeseen effects and uncertainties that were not accounted for during planning.
 \end{enumerate}
     
 While this sequential approach, which separates planning and control, has proven useful, it exhibits significant limitations:

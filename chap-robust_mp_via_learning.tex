@@ -77,9 +77,9 @@ This enables the reuse of the updated initial conditions for predictions in futu
 Note that a hidden state $h$ is unique according to its parent as the \myglsentry{odes} initial conditions.
 Therefore, its use is only applicable to tree-based planners, where each node has a single parent.
 
-\paragraph{\gls{rrt}}
+\paragraph{Standard \gls{rrt}}
 
-This subsection provides a reminder of the widely used \gls{rrt}~\cite{cRRT} algorithm.
+This paragraph provides a reminder of the widely used \gls{rrt}~\cite{cRRT} algorithm.
 It generates a tree starting from an initial state.
 At each iteration, a new state is sampled $q^{rand}$.
 It's nearest neighbor among the existing tree nodes is found $q^{near}$, and then an extension is attempt starting from $q^{near}$ toward $q^{rand}$ leading to a new state $q^{new}$.

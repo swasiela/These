@@ -67,7 +67,7 @@ Local planners, or steering methods, focus on generating feasible motion between
 They are often used as building blocks in global kinodynamic planners. 
 
 A common approach to generating smooth trajectories between robot states is to solve a two-point \gls{bvp} using polynomial-based methods, such as splines, which are widely employed for trajectory interpolation. 
-For instance, the kino-splines local planner proposed in~\cite{cKino} leverages system differential flatness, ensuring the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
+For instance, the kinosplines local planner proposed in~\cite{cKino} leverages system differential flatness, ensuring the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
 The resulting trajectories respect kinodynamic constraints up to the jerk level, enabling time-optimal connections between two given states. 
 Another example is the minimum snap trajectory generation method~\cite{cMinimumSnap}, which contrasts with the bang-bang snap strategy of kino-splines. 
 Also based on system differential flatness, this approach formulates an optimization problem that minimizes the integral of a weighted combination of squared position snap and squared yaw acceleration.
@@ -103,7 +103,7 @@ These methods utilize system forward dynamic propagation by sampling control inp
 Starting from an initial robot state, the system dynamics are integrated in an open-loop manner to propagate the state, allowing the planner to account for both the robot kinematic limitations and its dynamic behavior. 
 This approach ensures that the generated paths are collision-free and physically executable while eliminating the need for local planners.
 
-\section{Planning under uncertainty}
+\section{Planning under uncertainty}\label{sec:planuncertainty}
 
 While the previous section focused on motion planning algorithms that can deal with kinodynamic constraints of various robot, none of them consider the unavoidable presence of uncertainties (e.g. external disturbances, sensor noise, model parameter mismatches, etc.).
 
@@ -152,24 +152,77 @@ This method enables fast computation of locally optimal trajectories while incor
 However, due to its inherently local nature, the \myglsentry{mpc} approach can become trapped in local minima with respect to cost or obstacles. 
 It often lacks guarantees of completeness and relies heavily on an accurate robot model, without explicitly accounting for uncertainties.
 
-The LQR-Trees method~\cite{cLQRTrees} address the problem of computing motion plans that are stabilizable.
+A seminal work in feedback motion planning is the LQR-Trees method~\cite{cLQRTrees}.
+This addresses the problem of generating global trajectories that are stabilizable.
+While the decoupled planning and control method is effective in many cases, it may result in trajectories that are either not stabilizable or significantly more costly to stabilize compared to alternative, more optimal trajectories.
+Therefore, the LQR-Trees method combines trajectory optimization, feedback control, and Lyapunov verification to construct a tree of locally valid control policies.
+This structure efficiently covers the state space and facilitates the generation of low-cost stabilization trajectories.
+The approach operates as follows:
+\begin{enumerate}
+    \item Local Control via \gls{lqr}: The system starts by generating a trajectory to a goal state using a trajectory optimization method. 
+    A local \myglsentry{lqr} controller is then synthesized to stabilize the system around this trajectory.
 
-MPC and control-aware from M Tognon and LQR trees
+    \item \gls{sos} Verification: A polynomial Lyapunov function is used to certify regions of attraction around the trajectory. 
+    This involves verifying the system stability and feasibility within the computed region using \myglsentry{sos} optimization.
+    
+    \item Tree Construction: The algorithm iteratively adds new trajectories and their associated controllers to a tree structure. 
+    New trajectories are initialized from states that fall outside existing regions of attraction, progressively expanding the tree to cover the state space.
+\end{enumerate}
+While the LQR-Trees approach provides a scalable and efficient solution for motion planning in nonlinear and high-dimensional spaces, effectively bridging the gap between open-loop planning and control, its applicability is constrained to the \myglsentry{lqr} control formulation.
+
+Another notable contribution to control-aware motion planning is presented in~\cite{cTognon}. 
+This work focuses on motion planning methods that account for the system dynamic model and control capabilities, particularly in the context of task constraints imposed by the aerial manipulator mission.
+It introduces an innovative motion planning framework that integrates control limitations by conducting system closed-loop simulations during the extension phase of a sampling-based planner, ensuring the feasibility of the generated trajectories for the manipulator control system.
+However, this method does not explicitly account for uncertainties.
 
 \section{Robust control-aware motion planning}
 
-one should guarantee safe operation for all uncertainty realizations within these bounds taking into account for the presence of a feedback controller. This task is referred to as robust control-aware motion planning (or robust feedback motion planning).
+Although the previously mentioned methods have bridged the gap between motion planning and control, they do not explicitly address uncertainties or how the controller will respond to such uncertainties to mitigate their effects.
+An effective framework should ensure safe operation under uncertainty by considering the role of a feedback controller. 
+This challenge is known as robust control-aware motion planning, or robust feedback motion planning.
 
-\paragraph{Tube MPC}
+To address this challenge, an extension of standard \myglsentry{mpc}, known as \gls{tmpc}, has been introduced in~\cite{cTMPC}.
+\myglsentry{tmpc} is a robust control strategy designed to handle uncertainties in dynamic systems while maintaining performance and stability. 
+It generates a nominal trajectory using \myglsentry{mpc} and defines an invariant "tube" around this trajectory, within which the system state must remain. 
+A feedback controller is then applied to ensure that, despite disturbances or model inaccuracies, the system trajectory stays within the tube, thus maintaining robustness and stability. 
+This approach allows \myglsentry{tmpc} to handle uncertainties effectively while ensuring the system follows a desired trajectory, making it particularly useful in safety-critical applications.
+However, \myglsentry{tmpc} faces similar challenges as its non-robust counterpart, such as the risk of getting trapped in local minima with respect to cost or obstacles.
+Additionally, \myglsentry{tmpc} and \myglsentry{mpc}, being model-based techniques, are highly sensitive to model uncertainties.
 
-\paragraph{FaSTrack}
+The FaSTrack framework~\cite{cFaSTrack} is a motion planning approach designed to address the challenges of fast, adaptive, and robust trajectory generation for dynamic systems, particularly in the context of autonomous vehicles or robots. 
+It integrates real-time feedback to rapidly adjust planned trajectories in response to changes in the environment or the system state. 
+The FasTrack framework relies on a simplified robot dynamic model, and its robustness is ensured by synthesizing a specific control strategy tailored to the system, which helps it adapt to disturbances and uncertainties.
+Therefore, this technique is limited to the specific synthesized controller, and limited by its simplified representation.
 
-\paragraph{Funnel library}
+While the LQR-Trees approach previously focused on trajectory stability and relied solely on \myglsentry{lqr} control, the formulation was later extended in the Funnel Library approach~\cite{cMajundarLibrary}.
+The core idea of the Funnel Library is to generate control policies that ensure the system trajectory remains within a "tube" around a desired reference trajectory, which is a bounded region where the system is guaranteed to stay despite external disturbances.
+The framework extends its former LQR-Trees approache to include controllers of polynomial form that can handle non linearities, disturbances, and model uncertainties.
+It employs an optimization-based method to design an offline library of control policies that are robust to model errors and external uncertainties. 
+A key advantage of the Funnel Library is its ability to perform real-time updates by searching through the library and combining subsequent tubes online. 
+This allows the control policies to adapt dynamically based on feedback, ensuring that the system can respond to environmental or state changes effectively.
+However, the method is limited to controllers of polynomial form, and its planning capabilities are constrained by the finite set of control law in the library.
 
-\paragraph{Contraction theory}
+A seminal contribution to the field is the contraction theory approach, which has served as the foundation for several subsequent works~\cite{cContractThControl,cContractThControlLearning,cContractThMP,cContractThOnlineMP}.
+Contraction theory is a generalization of Lyapunov theory used to analyze and design robust control systems, particularly in the presence of uncertainties or disturbances. 
+The core idea is to ensure that the system state trajectories converge towards a desired reference trajectory, regardless of initial conditions or external disturbances. 
+This is achieved by requiring that the system dynamics exhibit a "contracting" behavior, meaning that the distance between any two trajectories decreases over time. 
+In contraction theory, the system dynamics are typically modeled using differential equations, and the stability of the system is guaranteed by synthesizing a controller associated with a contraction rate such that the contraction condition holds. 
+Contraction theory has been leveraged to design "tubes" by determining bounds on the controller "contraction rate". 
+These tubes are then employed to develop robust motion planning algorithms. 
+Consequently, these methods remain limited to the use of specific controllers, which may not always be amenable to a reasonably simple implementation in real-world cases.
 
-\paragraph{Randomized uncertainty propagation}
+While the aforementioned methods explicitly focus on generating robust trajectories to external disturbances or unmodeled forces (e.g., wind, friction), none of them considers potential mismatches or fluctuations in the robot model parameters during runtime, such as changes in mass or displacements of the center of mass.
+Such robot model inaccuracy can strongly impact their efficiency, as they are strong model based approaches. 
+Moreover, many of these methods hold for a specific class of systems or a specific synthesized controller and, thus, lack generality.
 
-\paragraph{CLosed-loop Sensitivity}
+To tackle some of these issues, the RandUp-RRT proposed in~\cite{cRandUpRRT}, builds upon the aforementioned particle-based RRT, by performing a random uncertainty propagation (RandUP)~\cite{cRandUP}, taking into account a feedback action of a given controller.
+The idea is to estimate for each node of the tree the set of states that can be reached by the system using `particles', which corresponds to a dynamic propagation of the system in the presence of random parameters uncertainty.
+Furthermore, these sets can be approximated for any system and controller.
+However, the guarantee that these reachable sets are conservative relies on additional padding or a large number of particles, and the more particles considered, the longer the computation time will be compared to conventional algorithms.
+Nevertheless, this work is the closest to the one presented in this thesis and will be used as a baseline for comparison.
 
-\section{Summary}
+As mentioned in Section~\ref{sec:planuncertainty}, \emph{sensitivity}-based planning is a concept that explicitly account for parameters model uncertainty.
+However, in the work of~\cite{cSensi1,cSensi2}, it is considered only an open loop manner.
+This concept was recently expanded to include closed-loop sensitivity~\cite{cPi,cTh}, which accounts for any controller applying feedback to an uncertain system, thus enabling the consideration of uncertainty for any robot/controller combination. 
+Building on this recent development, this thesis leverages widely used sampling-based motion planners and the closed-loop sensitivity notion, further discussed in Chapter~\ref{chap:models}, to introduce a new class of robust control-aware motion planners applicable to any robot and controller, specifically addressing parametric uncertainty. 
+For clarity, this thesis refers to this new concept as \emph{sensitivity}.
