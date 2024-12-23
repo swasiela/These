@@ -122,7 +122,7 @@ where $\boldsymbol{n}_i$ is the unit-norm vector of the $i$-th state space compo
 It is important to note that the radius along the $i$-th component represents the maximum possible deviation in that direction and does not directly correspond to the semi-axes of the uncertainty ellipsoid as depicted in Figure~\ref{fig:ellips_radius}.
 
 The quantities $r_{q,i}(t)$ can then be used to bound components of the states $\q(t)$ or inputs $\u(t)$ over time.
-For example, letting $q_{n,i}(t)$ the behavior of the $i$-th state component in the nominal case (non-perturbed case), the so-called \emph{uncertainty tube} along this component is defined s.t.:
+For example, let $q_{n,i}(t)$ be the behavior of the $i$-th state component in the nominal case (non-perturbed case), the so-called \emph{uncertainty tube} along this component is defined s.t.:
 \begin{equation}\label{eq:bounds_q}
   q_{n,i}(t) - r_{q,i}(t) \leq q_i(t) \leq q_{n,i}(t) + r_{q,i}(t),
 \end{equation}
@@ -133,7 +133,7 @@ Additionally, note how, in general, the tube radius does not necessarily increas
 
 \section{Models considered in this thesis}
 
-To demonstrate the versatility of the approaches proposed in this thesis across various robots and controllers, a quadrotor and a differential drive robot are considered in this manuscript, along with two distinct controllers and interpolation methods, which are detailed in the following sections.
+To demonstrate the versatility of the approaches proposed in this thesis across various robots and controllers, a quadrotor and a differential drive robot are considered as benchmarks of the techniques presented in the next chapters, along with two distinct controllers and interpolation methods.
 
 \subsection{Quadrotor robot} \label{sec:quad_model}
 

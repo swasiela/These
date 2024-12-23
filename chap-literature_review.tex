@@ -223,6 +223,13 @@ Nevertheless, this work is the closest to the one presented in this thesis and w
 
 As mentioned in Section~\ref{sec:planuncertainty}, \emph{sensitivity}-based planning is a concept that explicitly account for parameters model uncertainty.
 However, in the work of~\cite{cSensi1,cSensi2}, it is considered only an open loop manner.
-This concept was recently expanded to include closed-loop sensitivity~\cite{cPi,cTh}, which accounts for any controller applying feedback to an uncertain system, thus enabling the consideration of uncertainty for any robot/controller combination. 
-Building on this recent development, this thesis leverages widely used sampling-based motion planners and the closed-loop sensitivity notion, further discussed in Chapter~\ref{chap:models}, to introduce a new class of robust control-aware motion planners applicable to any robot and controller, specifically addressing parametric uncertainty. 
-For clarity, this thesis refers to this new concept as \emph{sensitivity}.
+This concept was recently expanded to include closed-loop sensitivity~\cite{cPi,cTh}\footnote{For clarity, this thesis refers to this new concept as \emph{sensitivity}.}, which accounts for any controller applying feedback to an uncertain system, thus enabling the consideration of uncertainty for any robot/controller combination. 
+
+\section{Summary}
+
+Motion planning under uncertainty is a complex problem that has been approached through various methodologies. 
+Over the past decade, planners have emerged that explicitly consider the feedback controller action in responding to uncertainties. 
+However, the guarantees provided by these planners often depend on having an accurate model of both the robot and the controller. 
+Consequently, uncertainties at this modeling level can compromise the robustness of these approaches. 
+Building on recent advancements in closed-loop sensitivity analysis, this thesis introduces a novel class of robust control-aware motion planners. 
+By leveraging widely used sampling-based motion planning techniques and the concept of closed-loop sensitivity, discussed in detail in Chapter~\ref{chap:models}, the proposed approach enhances robustness against parametric uncertainties and is applicable to a broad range of robots and controllers. 

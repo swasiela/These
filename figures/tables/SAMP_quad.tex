@@ -3,10 +3,11 @@
     \begin{tabular}{l|llll|}
     \cline{2-5}
         & \multicolumn{1}{c|}{RRT$^{*}$} & \multicolumn{1}{c|}{SARRT$^*$} & \multicolumn{1}{c|}{SST$^*$} & \multicolumn{1}{c|}{SASST$^*$} \\ \hline
-    \multicolumn{1}{|c|}{Success (\%)} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\textbf{100.0}}  & \multicolumn{1}{c|}{}  &  \multicolumn{1}{c|}{\textbf{100.0}}   \\ \hline
-    \multicolumn{1}{|c|}{Plan time (s)} & \multicolumn{1}{c|}{}   & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{}  &   \multicolumn{1}{c|}{23194}  \\ \hline
+    \multicolumn{1}{|c|}{Success (\%)} & \multicolumn{1}{c|}{61.2} & \multicolumn{1}{c|}{\textbf{100.0}}  & \multicolumn{1}{c|}{58.5}  &  \multicolumn{1}{c|}{\textbf{100.0}}   \\ \hline
+    \multicolumn{1}{|c|}{Plan time (s)} & \multicolumn{1}{c|}{2801 $\pm$ 427}   & \multicolumn{1}{c|}{43451} & \multicolumn{1}{c|}{2513 $\pm$ 378}  &   \multicolumn{1}{c|}{23194}  \\ \hline
     \end{tabular}
     \caption{
     \label{tab:samp_quad}
-    Average planning time and success rate (no crash) of the simulated motions planned by \myglsentry{rrtstar}, \myglsentry{sarrt*}, \myglsentry{sst*}, and \myglsentry{sasst*} over 3 plans and 30 simulations per plan for the quadrotor.}
+    Average planning time and success rate (no crash) of the simulated motions planned over 10 plans for the \myglsentry{rrtstar} and \myglsentry{sst*}, and 3 trajectories only for the \myglsentry{sarrt*} and \myglsentry{sasst*} due to very high planning time.
+    30 simulations with uncertain parameters where conducted for each plan.}
 \end{table*}

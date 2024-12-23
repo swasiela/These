@@ -21,7 +21,7 @@ Finally, these contributions are experimentally validated in Section~\ref{sec:Ex
 The scenarios include: (i) robust navigation through a narrow window, and (ii) an in-flight ring-catching task. 
 These experiments highlight the robustness and accuracy of the proposed framework under parameter uncertainties in the robot model.
 
-% This chapter is associated to the following publication in RA-L 2024~\cite{cRAL}: Wasiela, S., Cognetti, M., Giordano, P. R., Cortés, J., and Simeon, T. (2024). "Robust Motion Planning with Accuracy Optimization based on Learned Sensitivity Metrics." In IEEE Robotics and Automation Letters (RA-L).
+This chapter is related to the following RA-L 2024 publication~\cite{cRAL}\footnote{The results presented in this chapter slightly differ from those in the article due to improvements in implementation.}.
 
 \section{Robust and accurate planning framework}\label{sec:RASAMP}
 
@@ -107,7 +107,7 @@ Next, an initial filter is applied using the predicted control inputs and uncert
 The nominal trajectory is then computed (line 9). 
 At this stage, the control inputs are recomputed in a closed-loop manner w.r.t. the desired trajectory $\q_d$, even though these control inputs were initially predicted by the GRU.
 However, directly using the predicted control inputs in an open-loop manner could lead to unsuitable nominal trajectories due to the accumulation of prediction errors over time in the simulation process.
-Then, for each state of the nominal trajectory $\q_{n}$, the function \emph{IsStateRobust} (line 10) performs a robust collision checking by using the uncertainty radii.
+Then, for each state of the nominal trajectory $\q_{n}$, the function \emph{IsStateRobust} (line 10) performs a robust collision checking by using the uncertainty radii (for further details see Appendix~\ref{chap:appendixA}).
 If the extension is valid, the final state of the desired trajectory is inserted in the tree as a new node, embedding at the same time the final hidden state $h_{F}$ to be reused as initial condition in next iterations (line 10-12).
 Finally, the algorithm returns a global trajectory connecting ${q}^{init}$ and ${q}^{goal}$ if one exists in the tree (lines 15).
 
