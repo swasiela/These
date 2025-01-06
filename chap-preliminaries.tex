@@ -79,7 +79,7 @@ This optimization produces a trajectory s.t. the closed-loop evolution of $\q(t)
   \label{fig:ellips_radius}%
 \end{figure}
 
-Another important feature of the sensitivity matrices is that it is possible to derive the so-called \emph{uncertainty tubes}, that bounds the closed-loop system trajectory $\q(t)$/$\u(t)$ around its nominal trajectory $\q_n(t)$/$\u_n(t)$ as shown in~\cite{cTube} and illustrated in Figure~\ref{fig:tubes}.
+Another important feature of the sensitivity matrices is that it is possible to derive the so-called \emph{uncertainty tubes}, that bounds the closed-loop system trajectory $\q(t)$ and $\u(t)$ around their nominal trajectory $\q_n(t)$ and $\u_n(t)$, as shown in~\cite{cTube} and illustrated in Figure~\ref{fig:tubes}.
 The rest of this subsection shows how to establish such bounds around the nominal state trajectory $\q_n(t)$ by focusing solely on the state-sensitivity matrix $\bPi(t)$ for clarity. 
 However, it is important to note that the same procedure can also be applied to compute bounds around the nominal input trajectory $\u_n(t)$ by leveraging the input-sensitivity matrix $\bTheta(t)$.
 
@@ -213,9 +213,10 @@ The dynamic model is then defined as follows:
 In line with Section~\ref{sec:sensi}, let the vector $\p = [m \, x_{cx} \, x_{cy} \, x_{cz} \, J_{x} \, J_{y} \,J_{z} \, k_f \, k_{\tau}]^T \in \mathbb{R}^{9}$ with $J_{x}, \, J_{y},$ and $J_{z}$ the main inertia coefficients, represent all the parameters used in the robot model outlined above that are subject to uncertainty. 
 This vector can be adjusted based on the various scenarios presented in this thesis.
 
-Finally, as tracking controller, we consider the widely used Lee (or geometric) controller~\cite{cLee} to compute the control input vector $\u$.
-This controller takes advantage of the well-known quadrotor flat outputs ~\cite{cFlat} to track a desired trajectory defined as $\q_d(t) = [\boldsymbol{x}_d(t) \, \boldsymbol{v}_d(t) \, \boldsymbol{a}_d(t) \, \psi_d(t) \, \Dot{\psi}_d(t)]^T \in \mathbb{R}^{11}$ composed of the desired linear positions, velocities, accelerations, yaw orientation angle, and yaw angular velocity.
-Note that, since the quadrotor is an under-actuated system, not all states can be controlled. This is why only the desired yaw angle is incorporated into the desired trajectory.
+Finally, as tracking controller, consider the widely used Lee (or geometric) controller~\cite{cLee} to compute the control input vector $\u$.
+This controller takes advantage of the well-known quadrotor flat outputs~\cite{cFlat} to track a desired trajectory defined as $\q_d(t) = [\boldsymbol{x}_d(t) \, \boldsymbol{v}_d(t) \, \boldsymbol{a}_d(t) \, \psi_d(t) \, \Dot{\psi}_d(t)]^T \in \mathbb{R}^{11}$ composed of the desired linear positions, velocities, accelerations, yaw orientation angle, and yaw angular velocity.
+Note that, since the quadrotor is an under-actuated system, not all states can be controlled. 
+This is why only the desired yaw angle is incorporated into the desired trajectory.
 
 Let the linear position error and linear velocity error be defined as follows:
 \begin{equation}\label{eq:pos_error}

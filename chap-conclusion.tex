@@ -52,7 +52,8 @@ Simulation results have shown promising outcomes.
 However, further investigation into a more effective noisy state generation process, based on adaptive sampling, could help reduce the algorithm sensitivity to its hyperparameters.
 
 The \myglsentry{lazysamp} variants can be further improved by developing a more sophisticated and robust reconnection procedure that not only maintains a set of non-robust parents but also leverages the GRU-based architecture to ensure robust node reconnections.
-Consequently, the lazy robust feasibility checks remain in place to minimize the frequency of predictions, and the deep learning-based reconnection strategy reduces the number of reconnection attempts per node.
+The \myglsentry{lazysamp} variants encounter difficulties in efficiently robustly reconnecting the tree when facing numerous obstacles. 
+Therefore, lazy robust feasibility checks may be employed to minimize prediction frequency, and a deep learning-based reconnection strategy may be used to decrease the number of reconnection attempts per node, resulting in a faster convergence toward a robust solution.
 
 Addressing additional constraints, as mentioned earlier, in the presence of external disturbances and state estimation uncertainties can be challenging to learn using the proposed learning architecture, as these factors can lead to more complex closed-loop sensitivity computations.
 Therefore, the learning process can be improved to handle more complex dynamics, whether from the robot or the sensitivity formulation, by leveraging a \gls{pinns} learning procedure that integrates \myglsentry{odes} dynamics within the loss function.
