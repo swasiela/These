@@ -58,16 +58,11 @@ This algorithm iteratively samples both the trajectory from DeepSAMP and the con
 Indeed, as demonstrated in~\cite{AliIROS}, optimizing both factors concurrently results in minimizing the uncertainty.
 The algorithm produces two offline outputs: $(i)$ a robust desired trajectory $\q_d^{tot}$ optimized for accuracy at the desired states, and $(ii)$ the optimized controller gains vector $k_{c}^{opt}$, considered constant throughout the trajectory.
 
-\subsection{Deep Sensitivity-Aware Motion Planner (DeepSAMP)}\label{sec:RSAMP}
+\subsection{Global robust motion planning via learned sensitivity metrics}\label{sec:RSAMP}
 
-For clarity in the pseudo-code, the temporal notation is omitted in this subsection. 
-Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent instantaneous vectors (e.g., $q^{rand}$ denotes a random state, and $h_0$ represents the initial hidden state of the GRU at a given state vector, etc.).
+\subsubsection{Sampling-based motion planning with \myglsentry{rnns}}
 
-\subsubsection{Overview}
-
-\paragraph{Sampling-based motion planning with \myglsentry{rnns}}
-
-This subsection explains how the deep learning method presented in Chapter~\ref{chap:NN} can be incorporated into any sampling-based tree planner in order to create \gls{deepsamp} variants, which use the learned model to predict uncertainty tubes.
+This paragraph explains how the deep learning method presented in Chapter~\ref{chap:NN} can be incorporated into any sampling-based tree planner in order to create \gls{deepsamp} variants, which use the learned model to predict uncertainty tubes.
 As highlighted before, a key challenge in computing such tubes for a given trajectory lies in the high computational cost of numerically integrating the dynamics of $\bPi(t)$ and $\bTheta(t)$.
 Additionally, when extending the tree and computing these sensitivity matrices, various initial conditions (such as the initial control input, $\bPi_0$, etc.) need to be incorporated into the tree nodes (as outlined in Chapter~\ref{chap:samp}).
 
@@ -77,7 +72,7 @@ This enables the reuse of the updated initial conditions for predictions in futu
 Note that a hidden state $h$ is unique according to its parent as the \myglsentry{odes} initial conditions.
 Therefore, its use is only applicable to tree-based planners, where each node has a single parent.
 
-\paragraph{Standard \gls{rrt}}
+\subsubsection{Standard \gls{rrt}}
 
 This paragraph provides a reminder of the widely used \gls{rrt}~\cite{cRRT} algorithm.
 It generates a tree starting from an initial state.
@@ -137,7 +132,7 @@ This approach first leverages the predicted control inputs and associated tubes 
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Robust local accuracy optimization \emph{(A-Optim)} }\label{sec:AOptim}
+\subsection{Robust local accuracy optimization}\label{sec:AOptim}
 
 This subsection introduces robust local optimizer variants, highlighting their capability to address accuracy-related costs effectively.
 
@@ -238,10 +233,10 @@ Note that the idea behind the proposed algorithm is to explore the vicinity of t
             \State $\{Q_d^{1}, Q_d^{2}\} \gets$ SampleOnTraj$(\q_{d,best}, K, \delta);$
             \For {each $q_d^{1} \in Q_d^{1}$}
                 \For {each $q_d^{2} \in Q_d^{2}$}
-                    \State $\q_{d,shct} \gets $LocalPlan$(q_d^{1}, q_d^{2});$
+                    \State $\q_{d,shct} \gets $Steer$(q_d^{1}, q_d^{2});$
                     \If{CollisionFree$(\q_{d,shct})$}
-                        \State $\q_{d,start} \gets $LocalPlan$(q_d^{init}, q_d^{1});$
-                        \State $\q_{d,end} \gets $LocalPlan$(q_d^{2}, q_d^{goal});$
+                        \State $\q_{d,start} \gets $Steer$(q_d^{init}, q_d^{1});$
+                        \State $\q_{d,end} \gets $Steer$(q_d^{2}, q_d^{goal});$
                         \State $Q_{d,new} \gets \q_{d,start}+\q_{d,shct}+\q_{d,end};$
                     \EndIf
                 \EndFor 

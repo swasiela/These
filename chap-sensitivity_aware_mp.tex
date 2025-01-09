@@ -6,160 +6,54 @@ This chapter introduces the first major contribution of this thesis, by leveragi
 The contribution of this chapter is twofold:
 \begin{enumerate}
     \item Firstly, it addresses the generation of a desired trajectory with minimal sensitivity, ensuring that the closed-loop evolution of $\q(t)$ closely matches its nominal evolution, $\q_n(t)$. 
-    While previous work has explored sensitivity optimization for generating locally sensitivity-optimal trajectories \cite{cPi,cTh}, this approach has never been applied within a global sampling-based planning framework that accounts for obstacles. 
+    While previous works have explored sensitivity optimization for generating locally sensitivity-optimal trajectories \cite{cPi,cTh}, this approach has never been applied within a global sampling-based planning framework that accounts for obstacles. 
     Therefore, the first contribution is to propose methods for efficiently performing global sensitivity-optimal motion planning.
     \item Secondly, this chapter introduces, for the first time, the use of sensitivity-based uncertainty tubes to enforce constraints in both the state and input spaces. 
     This enables the generation of intrinsically-robust motions (i.e. accounting for the controller behavior with respect to uncertainty) that ensures robustness with respect to collision avoidance with obstacles of the environment, and also with the actuators limits.
 \end{enumerate}
-This chapter is organized as follows: Section~\ref{sec:unified} introduces a unified approach that enables robust trajectory planning with optimal sensitivity by incorporating the sensitivity computation and tube generation from Section~\ref{sec:tubes} directly into the optimal tree-building process, such as in \myglsentry{rrtstar}.
-This approach is tested on the robot models described in Chapter~\ref{chap:models} showing poor scalability to the system complexity.
-Finally, a decoupled approach that shows better efficiency for more complex systems, is introduced in Section~\ref{sec:decoupled}, followed by conclusions in Section~\ref{sec:concl}.
-% This chapter is organized as follows: it first presents in Section~\ref{sec:metrics} how the uncertainty tubes of Section~\ref{sec:tubes} are used to enforce robust constraints in the planning process, as well as the development of an appropriate cost function for performing global sensitivity optimization.
-% Then, in Section~\ref{sec:unified}, a unified approach is presented, which allows for planning a robust trajectory with optimal sensitivity by directly incorporating the sensitivity computation into the optimal tree-building process (e.g., \myglsentry{rrtstar}). 
-% This approach is tested on the robot models described in Chapter~\ref{chap:models} showing poor scalability to the system complexity.
-% Finally, a decoupled approach that shows better efficiency for more complex systems, is introduced in Section~\ref{sec:decoupled}, followed by conclusions in Section~\ref{sec:concl}.
+This chapter is organized as follows: Section~\ref{sec:samp} presents a unified approach that combines robust trajectory planning with global sensitivity optimization by integrating the sensitivity computation and tube generation from Section~\ref{sec:tubes} directly into the optimal tree-building process, such as in \myglsentry{rrtstar} or \myglsentry{sst*}. 
+This method enables the simultaneous generation of globally robust and sensitivity-optimal trajectories. 
+The approach is evaluated on the robot models discussed in Chapter~\ref{chap:models}.
+Then, Section~\ref{sec:decoupled} introduces a decoupled approach that sacrifices the global optimality of the unified method in favor of computational efficiency, demonstrating improved scalability for more complex systems while maintaining near sensitivity optimality.
+Finally, some conclusions are drawn in Section~\ref{sec:concl}.
 
 This chapter is related to the following ICRA 2023 publication~\cite{cSAMP}\footnote{The results presented in this chapter slightly differ from those in the article due to improvements in implementation.}.
 
-% \section{Practical Considerations}\label{sec:metrics}
+\section{Global robust sensitivity-optimal planning}\label{sec:samp}
 
-% This section first presents how the uncertainty tubes from Section~\ref{sec:tubes} are used to perform robust feasibility checks, followed by the selection of an appropriate cost function for global sampling-based sensitivity optimization.
+This section presents how the sensitivity matrices and resulting uncertainty tube computations, outlined in Section~\ref{sec:sensi_and_tubes}, can be integrated into an asymptotically-optimal tree planner to generate robust and sensitivity-optimal trajectories. 
+Here, it introduces a unified approach that allows the planning of globally robust trajectories while simultaneously optimizing sensitivity within a single planner.
 
-% \subsection{Robust feasibility check}\label{sec:robust_CC}
+The core idea of the method is to compute the state/input sensitivity matrices (and the resulting uncertainty tubes) at each iteration of the sampling-based algorithm. 
+As detailed in Section~\ref{sec:sensi_and_tubes}, these sensitivity matrices and uncertainty tubes are computed by forward-integrating a system of \myglsentry{odes} (see Equations~(\ref{eq:dyna}),~(\ref{eq:ctrl}), and~(\ref{eq:dyna_sensi})). 
+In the context of a sampling-based approach, this integration of the \myglsentry{odes} must be performed starting from a set of non-zero initial conditions (e.g., $\bPi_0$, $\q^0$, etc.), denoted $S_0$, whenever extending a node that is not the root.
 
-% As previously mentioned in Chapter~\ref{chap:related_work}, sampling-based algorithms generate global trajectories by combining multiple continuous local trajectories.
-% During the process, each of these local trajectories are subject to collision checks to determine their feasibility.
-% However, in this thesis, the collision check is extended to include a more general feasibility test, which also accounts for the control input space. 
-% This extension ensures that the generated trajectories are not only free from obstacles but also prevent control inputs from reaching saturation. 
-% Additionally, it accounts for uncertainty in both the state and control input spaces, further enhancing the robustness of the trajectories.
-% The following subsection describes how these extended feasibility check is performed to ensure the robustness of each local trajectory in this context.
-% It is important to note that these test is not continuous; rather, it is performed along a discrete representation of the local trajectories.
-
-% \paragraph{Robust collision checking}
-% In this thesis, collision detection is performed using the widely used C implementation of PyBullet~\cite{cBullet}, which operates as follows: 
-% \begin{enumerate}
-%     \item It starts with a broad-phase collision detection using \myglsentry{AABBs} to quickly eliminate pairs of objects that are too far apart to collide, allowing the more computationally intensive collision checks to focus only on pairs that are potentially close to each other.
-%     \item Then, it performs a narrow-phase collision detection that, after potential collision pairs are identified, checks for each pair. 
-%     For each identified potential collision pair, this phase uses a more precise robot representation (as defined by the user) and specialized collision algorithms to detect actual intersections and determine contact points, normals, and penetration depths.
-% \end{enumerate}
-
-% Extending this procedure to account for robot state uncertainty aims to verify that the resulting extended bounding volume, which the robot may occupy due to the uncertainty, is clear of obstacles.
-% In this thesis, such bounding volume is computed by considering only the uncertainty in the position subspace for simplicity (i.e., the $\{x,y,z\}$-subspace for the quadrotor or the $\{x,y\}$-subspace for the differential drive robot).
-% Also note, that the collision tests presented in this thesis are generic to the robots presented in Chapter~\ref{chap:models}. 
-% One can consider less conservative approaches for each robot specifically (e.g. considering a bounding sphere for each propeller of the quadrotor only).
-% Several strategies are evaluated based on their computational efficiency, conservatism, and library capabilities:
-% \begin{enumerate}
-%     \item The simplest method to account for position uncertainty in collision checking is to compare the distance between the current robot AABB and the nearest obstacle, incorporating the maximum possible deviations by using the worst-case uncertainty tube radius from Equation~(\ref{eq:radius}) (see~\ref{chap:appendixA} for proof).
-%     This check corresponds to a uniform scaling of the AABB by the maximum uncertainty radius as depicted in Figure~\ref{fig:CC1}. 
-%     Since the C PyBullet library does not support re-scaling an existing collision shape on the fly, a new shape must be created whenever scaling is required. 
-%     By using this straightforward distance check, one can avoid the need to create new shapes.
-%     However, this method represent a conservative approach as all directions are scaled in the same way.
-%     \item As mentioned above, a less conservative approach involves creating an extended AABB by scaling the current robot AABB in all directions according to their respective uncertainty radii as shown in Figure~\ref{fig:CC2}. 
-%     However, this method requires the creation of a new collision shape for each collision test.
-%     \item The approaches mentioned above, though efficient, are conservative because they only use the current robot AABB and do not leverage narrow-phase collision checks that consider the precise robot mesh representation. 
-%     However, generating the accurate extended collision shape that incorporates uncertainty, required for the second phase, is challenging, as the library supports only standard primitives like boxes, spheres, cylinders, etc.
-%     To address this, the third approach approximates the extended collision shape by sampling on the surface of the uncertainty ellipsoid bounding box defined by the uncertainty tube radii, rather than creating a new collision shape (see Figure~\ref{fig:CC3}). 
-%     While this method more accurately approximates the true extended collision shape than the two first approaches, it requires multiple calls to the collision-checking function for each robot state tested.
-% \end{enumerate}
-
-% \begin{figure}[htp]
-%     \centering
-%     % Row 1
-%     \begin{subfigure}{0.4\textwidth}
-%         \centering
-%         \includegraphics[width=\linewidth]{figures/samp/CC1.png}
-%         \caption{}
-%         \label{fig:CC1}
-%     \end{subfigure}
-%     % \hfill
-%     \begin{subfigure}{0.4\textwidth}
-%         \centering
-%         \includegraphics[width=\linewidth]{figures/samp/CC2.png}
-%         \caption{}
-%         \label{fig:CC2}
-%     \end{subfigure}
-    
-%     % Row 2
-%     \begin{subfigure}{0.4\textwidth}
-%         \centering
-%         \includegraphics[width=\linewidth]{figures/samp/CC3.png}
-%         \caption{}
-%         \vspace{-0.3cm}
-%         \label{fig:CC3}
-%     \end{subfigure}
-%     % \hfill
-%     \begin{subfigure}{0.4\textwidth}
-%         \centering
-%         \includegraphics[width=\linewidth]{figures/samp/CCall.png}
-%         \caption{}
-%         \vspace{-0.3cm}
-%         \label{fig:CCall}
-%     \end{subfigure}
-
-%     \caption{Figure showing the space covered by each of the three methods: (a) uniformly scaled AABB, (b) extended AABB, and (c) sampling-based approximation of the extended collision shape, for a differential drive robot with its associated uncertainty ellipsoid bounding box (green) based on computed uncertainty radii. Comparison of the three methods is shown in (d).}
-%     \label{fig:CCmethods}
-% \end{figure}
-
-% These different approaches enable progressively more precise collision testing, from the first to the third method, as illustrated in the Figure~\ref{fig:CCall} that shows a comparison of the resulting tested collision shapes according to the aforementioned methods for the 2D differential drive robot.
-% However, this increased accuracy comes at the cost of longer computational times, as noted earlier. 
-% To quantify this, the mean running time of each method was evaluated based on 1.000 robust collision tests performed using the quadrotor model described in Section~\ref{sec:quad_model}. 
-% The results indicate that the first method, which involves a simple distance check, has an average runtime of 3 microseconds. 
-% The second method, which creates an extended uncertain AABB, takes 7 microseconds to compute. 
-% Finally, the method that approximates the true extended collision shape requires 45 microseconds. 
-% It is worth mentioning that this last approach involves 14 samples (each corner and the center of each face), and therefore, its runtime can be approximated as linear with respect to the number of samples, compared to a simple test.
-
-% Finally, in this thesis, the second approach is used for robust collision checking, as it offers a more precise approximation of the extended collision shape with only a minor increase in computation time than the first approach. 
-% However, the third approach is employed in the scenario presented in Section~\ref{sec:AOptim}, as it demands a higher level of collision accuracy.
-% Although the methods employed in this thesis for robust collision checking rely on the uncertainty ellipsoid bounding box computed using Equation~\ref{eq:radius}, the tubes are represented by ellipsoids in the various figures of this manuscript for smoother visualization.
-
-% \paragraph{Robust saturation checking}
-% Then, in this manuscript, the feasibility check is not restricted to the aforementioned collision test, but it also verifies that the robot control inputs does not saturate.
-% This test is performed by checking that the tube associated with each control input remains in its feasibility domain.
-% An example of infeasible input for the quadrotor case is presented in Figure.\ref{fig:invalid_inputs}, where the tube (green) around the nominal control input of the first actuator (blue) exceeds the maximum allowed input (red).
-% Note that this simple test is less costly than the robust collision checking one, it is therefore performed first by mean of computational efficiency. 
-
-% \begin{figure} [htp]
-%     \centering
-%     \includegraphics[width=0.8\linewidth]{figures/samp/Invalid_Inputs.png} 
-%     \caption{Non-robust nominal control input profile for the first rotor of a quadrotor (blue) along a specified trajectory, depicted with its uncertainty tube (green) and the control input limits (red).}%
-%     \label{fig:invalid_inputs}%
-% \end{figure}
-
-\section{Integrated approach}\label{sec:unified}
-
-This section present how the sensitivity matrices and resulting uncertainty tubes computation can be incorporated into an assymptotically-optimal tree planner in order to generate robust and sensitivity-optimal trajectories.  
-
-\subsection{Overview}\label{sec:general_method}
-
-\paragraph{Sampling-based motion planning with system dynamic}
-
-As shown in Section~\ref{sec:sensi_and_tubes}, the state/input sensitivity matrices (and resulting uncertainty tubes) are computed by forward integrating the set of \myglsentry{odes} (see Equation~(\ref{eq:dyna}), Equation~(\ref{eq:ctrl}), and Equation~(\ref{eq:dyna_sensi})).
-This computation is performed using the controller time step along a given desired trajectory.
-In a sampling-based framework, this computation must be performed at each new extension to compute the trajectory cost and the associated uncertainty tubes for the robust feasibility check.
-% Although the \myglsentry{odes} need to be solved at each controller time step, it is important to note that the robust feasibility check presented in Section~\ref{sec:robust_CC} can be conducted using a coarser time step.
-
-Furthermore, in a sampling-based context, solving the \myglsentry{odes} from a set of non-zero initial conditions (e.g. $\bPi_0$, $\q^0$ etc.), denoted $S_0$, is required when an extension is made from a node that is not the root.
-Therefore, after a feasible extension is made and the new node is added to the structure, the set of final conditions (e.g. $\bPi_F$, $\q^F$,  etc.), denoted $S_F$, must be embedded within the new node.
-These conditions are then reused as initial conditions for future extensions.
-Moreover, it is important to note that the initial conditions of a given node are determined by the trajectory from the root node. 
-As a result, these initial conditions are specific to the parent node, making them applicable only in tree-based planners, where each node has exactly one parent.
-Indeed, graph-based planners, such as \myglsentry{prm}~\cite{cPRM}, are unable to leverage such mechanisms due to their high degree of connectivity.
+The management of these initial conditions is achieved by embedding the set of final conditions (e.g., $\bPi_F$, $\q^F$, etc.), denoted $S_F$, into the structure's nodes after each extension. 
+These final conditions are then reused as initial conditions for future extensions. 
+It is important to note that the initial conditions of a given node are determined by the trajectory from the root node. 
+Consequently, these initial conditions are specific to the parent node, making this approach applicable only in tree-based planners, where each node has exactly one parent. 
+In contrast, graph-based planners, such as \myglsentry{prm}~\cite{cPRM}, cannot leverage this mechanism due to their higher degree of connectivity.
 Additionally, note that, since dynamics are taken into account, the algorithms presented in this thesis utilize directed data structures (i.e., structures like directed trees that represent dependencies and directionality in motion).
 
-This mechanism is subsequently applied in Section~\ref{sec:samp} to the tree-based planners presented in the following paragraphs.
+This mechanism is then applied in Sections~\ref{sec:sarrt*} and~\ref{sec:sasst*} to the asymptotically optimal tree-based planners introduced in the following subsection, with the aim of developing robust, sensitivity-aware variants, commonly referred to as \gls{samp}. 
+Note that, while the subsequent sections of this chapter focus on asymptotically optimal planner variants for generating globally robust sensitivity-optimal trajectories, these principles can also be easily adapted to non-asymptotically optimal planners (see Chapter~\ref{chap:sampNN}), such as the standard \gls{rrt}.
+
+\subsection{Standard asymptotically optimal planners}\label{sec:standard_planners}
+
+This subsection presents the standard asymptotically optimal sampling-based planners, which form the basis for the \myglsentry{samp} variants developed in Sections~\ref{sec:sarrt*} and~\ref{sec:sasst*}.
 
 \paragraph{Standard RRT*}
 
-The vanilla \gls{rrtstar}~\cite{cRRTstar} is a widely used asymptotically optimal sampling-based planner that extends the standard \gls{rrt}~\cite{cRRT} algorithm by incorporating a rewiring step to iteratively improve the quality of the trajectories in the generated tree.
+The vanilla \gls{rrtstar}~\cite{cRRTstar} is a widely used asymptotically optimal sampling-based planner that extends the standard \gls{rrt} algorithm~\cite{cRRT} by incorporating a rewiring step to iteratively improve the quality of the trajectories in the generated tree.
 It achieves this by first optimally connecting the samples to the tree and then re-evaluating the connections between sampled nodes and their neighbors based on a cost metric. 
 This process ensures that the tree progressively converges toward an optimal solution as the number of samples increases.
 The \myglsentry{rrtstar} tree extension process and tree rewiring phase are illustrated in Figure~\ref{fig:rrtstar}.
 
-\begin{figure} [htp]
+\begin{figure} [h]
     \centering
     \includegraphics[width=0.95\linewidth]{figures/samp/rrtstar.png} 
     \caption{Illustration of the \myglsentry{rrtstar} tree extension procedure.
-    The first phase (left) consists of extending the nearest node in the tree, $q^{near}$, towards a randomly sampled state,$q^{rand}$, in order to add a new collision-free state, $q^{new}$, to the tree.
+    The first phase (left) consists of extending the nearest node in the tree, $q^{near}$, towards a randomly sampled state, $q^{rand}$, in order to add a new collision-free state, $q^{new}$, to the tree.
     Then, an optimal connection phase is performed (middle), where the new node is optimally connected to the node with the minimum cost, $q^{min}$, from the start, within a neighborhood defined by a distance $\delta$.
     Finally, within this same neighborhood, a rewiring phase (right) is attempted to optimally reconnect the existing nodes if the cost of passing through the new state improves their current cost.}%
     \label{fig:rrtstar}%
@@ -167,13 +61,13 @@ The \myglsentry{rrtstar} tree extension process and tree rewiring phase are illu
 
 \paragraph{Standard SST*}
 
-The standard \gls{sst*}~\cite{cSST} is another asymptotically optimal sampling-based planner that, unlike \myglsentry{rrtstar}, does not utilize a local planner but instead relies on system dynamics forward propagation.
+The standard \gls{sst*}~\cite{cSST} is another asymptotically optimal sampling-based planner that, unlike \myglsentry{rrtstar}, does not utilize a steering method but to extend its tree but instead relies on system dynamics forward propagation.
 This method grows a tree in the state space by employing Monte Carlo forward dynamic propagation to explore feasible trajectories by sampling control inputs.
-To improve efficiency, \myglsentry{sst} employs a pruning mechanism that preserves only the locally optimal solutions, thanks to a witness and representative system as illustrated in Figure~\ref{fig:sst}.
+To improve efficiency, \myglsentry{sst*} employs a pruning mechanism that preserves only the locally optimal solutions, thanks to a witness and representative system as illustrated in Figure~\ref{fig:sst}.
 This approach ensures that the planner focuses on promising regions of the state space, reducing redundant computations while maintaining theoretical guarantees of near-optimality. 
-By combining these features, \myglsentry{sst} offers a powerful solution for kinodynamic motion planning in complex systems.
+By combining these features, \myglsentry{sst*} offers a powerful solution for kinodynamic motion planning in complex systems.
 
-\begin{figure} [htp]
+\begin{figure} [t!]
     \centering
     \includegraphics[width=0.95\linewidth]{figures/samp/sst.png} 
     \caption{Illustration of the \myglsentry{sst} tree extension procedure where green dots represent witnesses, and blue dots are current witnesses representative (i.e. the node with the best cost in the witness neighborhood) (extracted from~\cite{cSST}).
@@ -184,15 +78,7 @@ By combining these features, \myglsentry{sst} offers a powerful solution for kin
     \label{fig:sst}%
 \end{figure}
 
-\subsection{Sensitivity-Aware Motion Planner (SAMP)}\label{sec:samp}
-
-The following subsection describes how the concepts outlined above can be incorporated into different tree planners to develop robust, sensitivity-aware variants, generally referred to as \gls{samp}.
-Note that although the following sections of this chapter focus on asymptotically-optimal planner variants to generate globally sensitivity-optimal trajectories, the same principles can easily be applied to non-asymptotically optimal planners (see Chapter~\ref{chap:sampNN}), such as the standard \gls{rrt}.
-
-For clarity in the pseudo-code, the temporal notation is omitted in this subsection. 
-Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent instantaneous vectors (e.g., $q^{rand}$ denotes a random state, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given state vector, etc.).
-
-\subsubsection{Sensitivity-Aware RRT* (SARRT*)}
+\subsection{Sensitivity-Aware RRT* (SARRT*)}\label{sec:sarrt*}
 
 \begin{algorithm}[htp]
     \caption{SARRT$^* [q^{init}, q^{goal}]$}\label{alg:SARRT*}
@@ -201,7 +87,7 @@ Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a de
         \While{\textbf{not} StopCondition$(T, {q^{goal}})$}  
             \State $q^{rand} \gets $Sample()$;$
             \State $q^{nearest} \gets$ Nearest$(T,{q^{rand}});$
-            \State $\q_d \gets$ LocalPlan$({q^{nearest}},{q^{rand}});$
+            \State $\q_d \gets$ Steer$({q^{nearest}},{q^{rand}});$
             \State $S_0 \gets $GetNodeConditions$({q^{nearest}});$
             \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
             \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
@@ -221,7 +107,7 @@ Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a de
     \begin{algorithmic}[1]
         \State $c^{min} \gets$ Cost$(q^{rand});$
         \For {each $q^{near} \in Q^{near}$}
-            \State $\q_d \gets$ LocalPlan$(q^{near},q^{rand});$
+            \State $\q_d \gets$ Steer$(q^{near},q^{rand});$
             \State $S_0 \gets $GetNodeConditions$({q^{near}});$
             \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
             \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
@@ -240,7 +126,7 @@ Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a de
     \caption{RobustRewire$[T, Q^{near}, q^{min}]$}\label{alg:RobustRewire}
     \begin{algorithmic}[1]
         \For {each $q^{near} \in Q^{near} \backslash \{q^{min}\}$}
-            \State $\q_d \gets$ LocalPlan$(q^{rand}, q^{near});$
+            \State $\q_d \gets$ Steer$(q^{rand}, q^{near});$
             \State $S_0 \gets $GetNodeConditions$({q^{rand}});$
             \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
             \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
@@ -256,61 +142,68 @@ Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a de
     \end{algorithmic}
 \end{algorithm}
 
-The first implementation presented in Algorithm~\ref{alg:SARRT*} is a variant of the widely used \myglsentry{rrtstar}~\cite{cRRTstar}, denoted \gls{sarrt*} as a particular instance of \myglsentry{samp}.
-The tree is initialized with the desired initial and goal robot states, $(q^{init}, q^{goal})$ (line 1), and the algorithm continues until a user-defined stopping criterion is met (line 2).
+% For clarity in the pseudo-code, the temporal notation is omitted from this subsection. 
+% Thus, bold symbols refer to trajectory vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent values at a single state (e.g., $q^{rand}$ denotes a random state, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given trajectory state, etc.).
+
+The first implementation presented in Algorithm~\ref{alg:SARRT*}\footnote{For clarity in the pseudo-code, the temporal notation is omitted from this subsection. 
+Thus, bold symbols refer to trajectory vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent values at a single state (e.g., $q^{rand}$ denotes a random state, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given trajectory state, etc.).} is a variant of the widely used \myglsentry{rrtstar}~\cite{cRRTstar}, denoted as \gls{sarrt*}, as a particular instance of \myglsentry{samp}.
+The tree is initialized with the desired initial and goal robot states, $(q^{init}, q^{goal})$ (line 1), and the algorithm continues until a user-defined stopping condition is met (line 2).
 Such a criterion can include a maximum number of iterations, a maximum runtime, a cost convergence threshold, etc.
 
 The first stage of the algorithm follows the same standard procedure as the vanilla \myglsentry{rrtstar}, including sampling a desired robot state $q^{rand}$ and finding its nearest neighbor $q^{nearest}$ in the tree structure (lines 3 and 4, respectively) using an efficient distance metric (further discussed in Section~\ref{sec:samp_simu}).
-Then, a local planner (such as the ones presented in Section~\ref{sec:kinosplines} and~\ref{sec:dubins}) is employed to generate a desired local trajectory $\q_d$ that extends $q^{nearest}$ toward $q^{rand}$.
+Then, a steering method (such as the ones presented in Section~\ref{sec:kinosplines} and~\ref{sec:dubins}) is employed to generate a desired local trajectory $\q_d$ that extends $q^{nearest}$ toward $q^{rand}$.
 Note that if a maximum local distance is imposed, $q^{rand}$ is adjusted accordingly.
-Next, the set of \myglsentry{odes} is solved (line 7) to compute the nominal trajectory $\q_n$, the nominal control inputs $\u_n$, and the uncertainty tubes $(\Rq, \Ru)$, utilizing the initial conditions $S_0$ (line 6).
+Next, the set of \myglsentry{odes} is solved (line 7) to compute the nominal trajectory $\q_n$, the nominal control inputs $\u_n$, and the uncertainty tubes' radii $(\Rq, \Ru)$, utilizing the initial conditions $S_0$ (line 6).
 
 A robust feasibility check is then performed along the nominal trajectory and control inputs (line 8).
 This test includes a robust collision check that accounts for the robot shape expansion due to uncertainty tubes along the state trajectory, as well as a robust verification that the control inputs do not saturate (for further details see Appendix~\ref{chap:appendixA}).
 Remember that this test is carried out along the nominal values, as the uncertainty tubes are valid around them, as detailed in Section~\ref{sec:tubes}.
-If the extension is feasible, the new node parent is temporarily set to $q^{nearest}$, and the final conditions $S_F$ are temporarily stored within $q^{rand}$ (line 9-10).
+If the extension is feasible, the new node parent is set to $q^{nearest}$, and the final conditions $S_F$ are stored within $q^{rand}$ (line 9-10).
 
-Next, to identify the optimal parent of $q^{rand}$, which is temporarily assigned to $q^{min}$, an additional search is conducted within a specified neighborhood $Q^{near}$ (line 11).
+Next, the newly added node is initially connected to its nearest neighbor, but this connection does not consider the total trajectory cost from the root node. 
+Therefore, an optimal connection procedure is performed. 
+To determine the optimal parent of $q^{rand}$, which is temporarily assigned to $q^{min}$, an additional search is conducted within a specified neighborhood $Q^{near}$ (line 11).
 Such procedure, depicted in Algorithm~\ref{alg:RobustOptimalConnect}, starts by computing the cost of the unique trajectory from the root node to $q^{rand}$ (line 1).
 Then, the optimal parent $q^{min}$ is set to the node in $Q^{near}$ that allows a robust extension with the minimum cost to get to $q^{rand}$ (line 2-9).
 Finally, the new node is inserted in the tree with an edge connecting it to its optimal parent (line 10-11).
 
-Now that the optimal feasible extension is added to the tree, the \myglsentry{sarrt*} checks if any optimal rewiring can be performed using Algorithm~\ref{alg:RobustRewire}.
+Now that the optimal feasible extension is added to the tree, \myglsentry{sarrt*} checks if any optimal rewiring can be performed using Algorithm~\ref{alg:RobustRewire}.
 This rewiring phase checks, for each neighbor $q^{near}$ within $Q^{near}$, whether the trajectory from the root to $q^{near}$, passing through the newly added node $q^{rand}$, can be improved (lines 1-6).
-In such case, the parent of $q^{near}$ is updated accordingly, and the final \myglsentry{odes} conditions ($S_F$) are also modified (lines 7-10).
+In such case, the parent of $q^{near}$ is updated accordingly, and the final \myglsentry{odes} conditions $S_F$ (e.g. final robot simulated state $\q^F$, etc.) are also modified (lines 7-10).
 Note that such final conditions are reused as initial conditions in subsequent expansions.
 Finally, in contrast to the standard \myglsentry{rrtstar}, each child of the newly rewired node must be rechecked for robust feasibility, as their uncertainty tubes and control inputs may have changed due to the updated trajectory resulting from the rewiring (line 11).
-Note that this final operation requires re-solving the \myglsentry{odes} for each child node.
+Note that this final operation requires re-solving the \myglsentry{odes} for each child node, as the new trajectory from the root may modify the tubes, potentially resulting in trajectories that are no longer robust.
 
-\subsubsection{Sensitivity-Aware SST* (SASST*)}
+\subsection{Sensitivity-Aware SST* (SASST*)}\label{sec:sasst*}
 
-It is important to note that a single iteration of \myglsentry{sarrt*} presented above requires solving the set of \myglsentry{odes} multiple times which leads to a prohibitive computation time per iteration as shown in Section~\ref{sec:samp_simu}.
-To mitigate this impact, this subsection proposes a robust sensitivity-aware variant of the \gls{sst*}~\cite{cSST}, denoted \gls{sasst*} as a particular instance of \myglsentry{samp}. 
+It is important to note that a single iteration of \myglsentry{sarrt*} presented above requires solving the set of \myglsentry{odes} multiple times which leads to a prohibitive computation time per iteration as it will be shown in Section~\ref{sec:samp_simu}.
+To mitigate this, this subsection proposes a robust sensitivity-aware variant of \gls{sst*}~\cite{cSST}, denoted \gls{sasst*}, as a particular instance of \myglsentry{samp}. 
 
-The \myglsentry{sst*} algorithm has two key features: it reduces the number of collision checks to just one per iteration and uses Monte Carlo propagation to sample the control input space and perform forward dynamic propagation, eliminating the need for a local planner.
-However, since the system closed-loop dynamics is used for sensitivity computation rather than open-loop Monte Carlo propagation, the latter is replaced by a desired trajectory computed by a local planner.
+The \myglsentry{sst*} algorithm has two key features: it reduces the number of collision checks to just one per iteration, and it uses Monte Carlo propagation to sample the control input space and perform forward dynamic propagation in an open-loop manner, eliminating the need for a steering method.
+However, since the system closed-loop dynamics is required for sensitivity computation rather than open-loop Monte Carlo propagation, the latter is replaced by a desired trajectory computed by a steering method and subsequently tracked by the closed-loop system.
 
-The \myglsentry{sasst*} variant, detailed in Algorithm~\ref{alg:SASST*}, starts with metrics and tree initialization (line 1-4) by splitting it into two subsets: $V_{active}$ and $V_{inactive}.$
+The \myglsentry{sasst*} variant, detailed in Algorithm~\ref{alg:SASST*}, starts with planner parameters and tree initialization (line 1-4) by splitting it into two subsets: $V_{active}$ and $V_{inactive}.$
 Nodes in $V_{active}$ are those with the optimal trajectory cost from the root within their local neighborhoods. 
-In contrast, nodes in $V_{inactive}$ while suboptimal in trajectory cost, are preserved in the tree to maintain connectivity, as they have children with better trajectory costs in their respective neighborhoods. 
+In contrast, nodes in $V_{inactive}$, even if suboptimal in trajectory cost, are preserved in the tree to maintain connectivity, as they have children with better trajectory costs in their respective neighborhoods. 
 
-Then, to define local neighborhoods, the algorithm leverages an auxiliary set of states called "witnesses," denoted as $W$ (line 5). 
+Then, to define local neighbors, the algorithm leverages an auxiliary set of states called "witnesses," denoted as $W$ (line 5). 
 Each witness $w \in W$ is associated with a single representative node in the tree, stored in the $w.rep$ field of the witness (line 6).
 This representative node corresponds to the trajectory with the lowest cost from the root within a distance $\delta_s$ of the witness $w$.
-Any nodes within the $\delta_s$-neighborhood of $w$ that have a higher trajectory cost than $w.rep$ are removed from the active set $V_{active}$.
+Any node within the $\delta_s$-neighborhood of $w$ that have a higher trajectory cost than $w.rep$ are removed from the active set $V_{active}$.
 
-Next, until a user defined criterion is met, the algorithm performs for N iterations:
+Next, until a user-defined condition is met, the algorithm performs for N iterations:
 \begin{enumerate}
     \item A best-first selection that samples a random state from the state space and finds the best node in terms of cost from the root within a distance of $\delta_{BN}$ in the active set of the tree. 
     This node, referred as $q^{selected}$, represents the state to be propagated (line 9).
     \item Then, instead of the original Monte Carlo propagation, a random state $q^{rand}$ is sampled within a maximum distance of $q^{selected}$ (line 10), analogous to sampling a control input and propagation duration in the vanilla algorithm.
-    The local trajectory connecting the two state is computed (line 11) and, as discussed in Section~\ref{sec:general_method}, the set of \myglsentry{odes} is solved (line 12-13) before performing a robust feasibility check (line 14) (see Appendix~\ref{chap:appendixA}).
-    \item If the local trajectory is robustly feasible, the set $W$ is used by the IsNodeLocallyTheBestSST procedure (line 15) to check whether the newly sampled state $q^{rand}$ dominates the $\delta_s$-neighborhood of its closest witness and to update the witness set $W$ accordingly.
+    The local trajectory connecting the two state is computed (line 11) and, the set of \myglsentry{odes} is solved (line 12-13) before performing a robust feasibility check (line 14) (see Appendix~\ref{chap:appendixA}).
+    \item If the local trajectory is robustly feasible, the set $W$ is utilized by the IsNodeLocallyTheBestSST procedure (line 15) to determine whether the newly sampled state $q^{rand}$ dominates the $\delta_s$-neighborhood of its nearest witness (i.e., whether $q^{rand}$ has a lower cost than the current witness of the neighborhood it belongs to). 
+    The procedure then updates the witness set $W$ accordingly.
     \item Then, the sample is added to the tree (line 16-17), and the sets of active and inactive nodes are updated.
     Nodes that no longer belong to any of these sets are pruned (line 18).
 \end{enumerate}
 
-Finally, after the N iterations, if the stopping criterion is not met, the hyperparameters of the algorithm are updated (line 19-21).
+Finally, after the N iterations, if the stopping condition is not met, the hyperparameters of the algorithm are updated (line 19-21).
 These parameters are responsible for the algorithm asymptotic optimality and convergence. 
 The algorithm gradually reduces the radii $\delta_s$ and $\delta_{BN}$, enabling it to explore new homotopic classes over time.
 
@@ -329,7 +222,7 @@ Note that in this implementation the \myglsentry{odes} need to be solved only on
             \For{N iterations}
                 \State $\{q^{selected}, q^{rand}\} \gets $BestFirstSelectionSST$(V_{active}, \delta_{BN});$
                 \State $q^{rand} \gets$ Sample$(q^{selected}, d_{max});$
-                \State $\q_d \gets$ LocalPlan$({q^{selected}},{q^{rand}});$
+                \State $\q_d \gets$ Steer$({q^{selected}},{q^{rand}});$
                 \State $S_0 \gets $GetNodeConditions$({q^{selected}});$
                 \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
                 \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
@@ -348,15 +241,238 @@ Note that in this implementation the \myglsentry{odes} need to be solved only on
     \end{algorithmic}
 \end{algorithm}
 
+% \section{Integrated approach}\label{sec:unified}
+
+% This section present how the sensitivity matrices and resulting uncertainty tubes computation can be incorporated into an assymptotically-optimal tree planner in order to generate robust and sensitivity-optimal trajectories.  
+
+% \subsection{Overview}\label{sec:general_method}
+
+% \paragraph{Sampling-based motion planning with system dynamic}
+
+% As shown in Section~\ref{sec:sensi_and_tubes}, the state/input sensitivity matrices (and resulting uncertainty tubes) are computed by forward integrating the set of \myglsentry{odes} (see Equation~(\ref{eq:dyna}), Equation~(\ref{eq:ctrl}), and Equation~(\ref{eq:dyna_sensi})).
+% This computation is performed using the controller time step along a given desired trajectory.
+% In a sampling-based framework, this computation must be performed at each new extension to compute the trajectory cost and the associated uncertainty tubes for the robust feasibility check.
+% % Although the \myglsentry{odes} need to be solved at each controller time step, it is important to note that the robust feasibility check presented in Section~\ref{sec:robust_CC} can be conducted using a coarser time step.
+
+% Furthermore, in a sampling-based context, solving the \myglsentry{odes} from a set of non-zero initial conditions (e.g. $\bPi_0$, $\q^0$ etc.), denoted $S_0$, is required when an extension is made from a node that is not the root.
+% Therefore, after a feasible extension is made and the new node is added to the structure, the set of final conditions (e.g. $\bPi_F$, $\q^F$,  etc.), denoted $S_F$, must be embedded within the new node.
+% These conditions are then reused as initial conditions for future extensions.
+% Moreover, it is important to note that the initial conditions of a given node are determined by the trajectory from the root node. 
+% As a result, these initial conditions are specific to the parent node, making them applicable only in tree-based planners, where each node has exactly one parent.
+% Indeed, graph-based planners, such as \myglsentry{prm}~\cite{cPRM}, are unable to leverage such mechanisms due to their high degree of connectivity.
+% Additionally, note that, since dynamics are taken into account, the algorithms presented in this thesis utilize directed data structures (i.e., structures like directed trees that represent dependencies and directionality in motion).
+
+% This mechanism is subsequently applied in Section~\ref{sec:samp} to the tree-based planners presented in the following paragraphs.
+
+% \paragraph{Standard RRT*}
+
+% The vanilla \gls{rrtstar}~\cite{cRRTstar} is a widely used asymptotically optimal sampling-based planner that extends the standard \gls{rrt}~\cite{cRRT} algorithm by incorporating a rewiring step to iteratively improve the quality of the trajectories in the generated tree.
+% It achieves this by first optimally connecting the samples to the tree and then re-evaluating the connections between sampled nodes and their neighbors based on a cost metric. 
+% This process ensures that the tree progressively converges toward an optimal solution as the number of samples increases.
+% The \myglsentry{rrtstar} tree extension process and tree rewiring phase are illustrated in Figure~\ref{fig:rrtstar}.
+
+% \begin{figure} [htp]
+%     \centering
+%     \includegraphics[width=0.95\linewidth]{figures/samp/rrtstar.png} 
+%     \caption{Illustration of the \myglsentry{rrtstar} tree extension procedure.
+%     The first phase (left) consists of extending the nearest node in the tree, $q^{near}$, towards a randomly sampled state,$q^{rand}$, in order to add a new collision-free state, $q^{new}$, to the tree.
+%     Then, an optimal connection phase is performed (middle), where the new node is optimally connected to the node with the minimum cost, $q^{min}$, from the start, within a neighborhood defined by a distance $\delta$.
+%     Finally, within this same neighborhood, a rewiring phase (right) is attempted to optimally reconnect the existing nodes if the cost of passing through the new state improves their current cost.}%
+%     \label{fig:rrtstar}%
+% \end{figure}
+
+% \paragraph{Standard SST*}
+
+% The standard \gls{sst*}~\cite{cSST} is another asymptotically optimal sampling-based planner that, unlike \myglsentry{rrtstar}, does not utilize a steering method but to extend its tree but instead relies on system dynamics forward propagation.
+% This method grows a tree in the state space by employing Monte Carlo forward dynamic propagation to explore feasible trajectories by sampling control inputs.
+% To improve efficiency, \myglsentry{sst} employs a pruning mechanism that preserves only the locally optimal solutions, thanks to a witness and representative system as illustrated in Figure~\ref{fig:sst}.
+% This approach ensures that the planner focuses on promising regions of the state space, reducing redundant computations while maintaining theoretical guarantees of near-optimality. 
+% By combining these features, \myglsentry{sst} offers a powerful solution for kinodynamic motion planning in complex systems.
+
+% \begin{figure} [htp]
+%     \centering
+%     \includegraphics[width=0.95\linewidth]{figures/samp/sst.png} 
+%     \caption{Illustration of the \myglsentry{sst} tree extension procedure where green dots represent witnesses, and blue dots are current witnesses representative (i.e. the node with the best cost in the witness neighborhood) (extracted from~\cite{cSST}).
+%     Dynamic propagation from $x_{selected}$ generates a new node $x_{new}$, which has a better trajectory cost than its current witness representative node $x_{peer}$.
+%     In this case, $x_{peer}$ is pruned, and the newly propagated edge is incorporated into the tree as the new witness representative.
+%     If $x_{peer}$ had children with the lowest trajectory cost in their respective neighborhoods, $x_{peer}$ would remain in the tree but would no longer be considered for further propagation. 
+%     Inversely, if $x_{new}$ has a worse trajectory cost than $x_{peer}$, the old node $x_{peer}$ remains in the tree, and the propagation from $x_{selected}$ to $x_{new}$ is ignored.}%
+%     \label{fig:sst}%
+% \end{figure}
+
+% \subsection{Sensitivity-Aware Motion Planner (SAMP)}\label{sec:samp}
+
+% The following subsection describes how the concepts outlined above can be incorporated into different tree planners to develop robust, sensitivity-aware variants, generally referred to as \gls{samp}.
+% Note that although the following sections of this chapter focus on asymptotically-optimal planner variants to generate globally sensitivity-optimal trajectories, the same principles can easily be applied to non-asymptotically optimal planners (see Chapter~\ref{chap:sampNN}), such as the standard \gls{rrt}.
+
+% For clarity in the pseudo-code, the temporal notation is omitted in this subsection. 
+% Thus, bold symbols refer to time-dependent vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent instantaneous vectors (e.g., $q^{rand}$ denotes a random state, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given state vector, etc.).
+
+% \subsubsection{Sensitivity-Aware RRT* (SARRT*)}
+
+% \begin{algorithm}[htp]
+%     \caption{SARRT$^* [q^{init}, q^{goal}]$}\label{alg:SARRT*}
+%     \begin{algorithmic}[1]
+%         \State $T \gets$ InitTree$({q^{init}, q^{goal}});$
+%         \While{\textbf{not} StopCondition$(T, {q^{goal}})$}  
+%             \State $q^{rand} \gets $Sample()$;$
+%             \State $q^{nearest} \gets$ Nearest$(T,{q^{rand}});$
+%             \State $\q_d \gets$ Steer$({q^{nearest}},{q^{rand}});$
+%             \State $S_0 \gets $GetNodeConditions$({q^{nearest}});$
+%             \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
+%             \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
+%                 \State $q^{min} \gets q^{nearest};$
+%                 \State SetNodeConditions$({q^{rand}}, S_{F});$
+%                 \State $Q^{near} \gets$ NearestNodes$(T,{q^{rand}});$
+%                 \State RobustOptimalConnection$(T, Q^{near}, q^{rand}, q^{min});$
+%                 \State RobustRewire$(T, Q^{near}, q^{min});$
+%             \EndIf
+%         \EndWhile
+%         \State \textbf{return} GetTrajectory$(T, q^{init}, q^{goal})$;
+%     \end{algorithmic}
+% \end{algorithm}
+
+% \begin{algorithm}[htp]
+%     \caption{RobustOptimalConnection$[T, Q^{near}, q^{rand}, q^{min}]$}\label{alg:RobustOptimalConnect}
+%     \begin{algorithmic}[1]
+%         \State $c^{min} \gets$ Cost$(q^{rand});$
+%         \For {each $q^{near} \in Q^{near}$}
+%             \State $\q_d \gets$ Steer$(q^{near},q^{rand});$
+%             \State $S_0 \gets $GetNodeConditions$({q^{near}});$
+%             \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
+%             \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
+%                 \If {Cost$(q^{near}) + J(\q_d) < c^{min}$}
+%                     \State $q^{min} \gets q^{near}; c^{min} \gets$ Cost$(q^{near}) + J(\q_d);$
+%                     \State SetNodeConditions$({q^{rand}}, S_{F});$
+%                 \EndIf
+%             \EndIf
+%         \EndFor
+%         \State AddNewNode$(T, {q^{rand}});$
+%         \State AddNewEdge$(T, {q^{min}}, {q^{rand}});$
+%     \end{algorithmic}
+% \end{algorithm}
+
+% \begin{algorithm}[htp]
+%     \caption{RobustRewire$[T, Q^{near}, q^{min}]$}\label{alg:RobustRewire}
+%     \begin{algorithmic}[1]
+%         \For {each $q^{near} \in Q^{near} \backslash \{q^{min}\}$}
+%             \State $\q_d \gets$ Steer$(q^{rand}, q^{near});$
+%             \State $S_0 \gets $GetNodeConditions$({q^{rand}});$
+%             \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
+%             \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
+%                 \If {Cost$(q^{rand}) + J(\q_d) <$ Cost$(q^{near})$}
+%                     \State $q^{parent} \gets$ GetParent$(q^{near});$
+%                     \State RemoveEdge$(T, q^{parent}, q^{near});$
+%                     \State AddNewEdge$(T, q^{rand}, q^{near});$
+%                     \State SetNodeConditions$(q^{near}, S_{F});$
+%                     \State UpdateChildren$(T, q^{near});$
+%                 \EndIf
+%             \EndIf
+%         \EndFor
+%     \end{algorithmic}
+% \end{algorithm}
+
+% The first implementation presented in Algorithm~\ref{alg:SARRT*} is a variant of the widely used \myglsentry{rrtstar}~\cite{cRRTstar}, denoted \gls{sarrt*} as a particular instance of \myglsentry{samp}.
+% The tree is initialized with the desired initial and goal robot states, $(q^{init}, q^{goal})$ (line 1), and the algorithm continues until a user-defined stopping criterion is met (line 2).
+% Such a criterion can include a maximum number of iterations, a maximum runtime, a cost convergence threshold, etc.
+
+% The first stage of the algorithm follows the same standard procedure as the vanilla \myglsentry{rrtstar}, including sampling a desired robot state $q^{rand}$ and finding its nearest neighbor $q^{nearest}$ in the tree structure (lines 3 and 4, respectively) using an efficient distance metric (further discussed in Section~\ref{sec:samp_simu}).
+% Then, a steering method (such as the ones presented in Section~\ref{sec:kinosplines} and~\ref{sec:dubins}) is employed to generate a desired local trajectory $\q_d$ that extends $q^{nearest}$ toward $q^{rand}$.
+% Note that if a maximum local distance is imposed, $q^{rand}$ is adjusted accordingly.
+% Next, the set of \myglsentry{odes} is solved (line 7) to compute the nominal trajectory $\q_n$, the nominal control inputs $\u_n$, and the uncertainty tubes $(\Rq, \Ru)$, utilizing the initial conditions $S_0$ (line 6).
+
+% A robust feasibility check is then performed along the nominal trajectory and control inputs (line 8).
+% This test includes a robust collision check that accounts for the robot shape expansion due to uncertainty tubes along the state trajectory, as well as a robust verification that the control inputs do not saturate (for further details see Appendix~\ref{chap:appendixA}).
+% Remember that this test is carried out along the nominal values, as the uncertainty tubes are valid around them, as detailed in Section~\ref{sec:tubes}.
+% If the extension is feasible, the new node parent is temporarily set to $q^{nearest}$, and the final conditions $S_F$ are temporarily stored within $q^{rand}$ (line 9-10).
+
+% Next, to identify the optimal parent of $q^{rand}$, which is temporarily assigned to $q^{min}$, an additional search is conducted within a specified neighborhood $Q^{near}$ (line 11).
+% Such procedure, depicted in Algorithm~\ref{alg:RobustOptimalConnect}, starts by computing the cost of the unique trajectory from the root node to $q^{rand}$ (line 1).
+% Then, the optimal parent $q^{min}$ is set to the node in $Q^{near}$ that allows a robust extension with the minimum cost to get to $q^{rand}$ (line 2-9).
+% Finally, the new node is inserted in the tree with an edge connecting it to its optimal parent (line 10-11).
+
+% Now that the optimal feasible extension is added to the tree, the \myglsentry{sarrt*} checks if any optimal rewiring can be performed using Algorithm~\ref{alg:RobustRewire}.
+% This rewiring phase checks, for each neighbor $q^{near}$ within $Q^{near}$, whether the trajectory from the root to $q^{near}$, passing through the newly added node $q^{rand}$, can be improved (lines 1-6).
+% In such case, the parent of $q^{near}$ is updated accordingly, and the final \myglsentry{odes} conditions ($S_F$) are also modified (lines 7-10).
+% Note that such final conditions are reused as initial conditions in subsequent expansions.
+% Finally, in contrast to the standard \myglsentry{rrtstar}, each child of the newly rewired node must be rechecked for robust feasibility, as their uncertainty tubes and control inputs may have changed due to the updated trajectory resulting from the rewiring (line 11).
+% Note that this final operation requires re-solving the \myglsentry{odes} for each child node.
+
+% \subsubsection{Sensitivity-Aware SST* (SASST*)}
+
+% It is important to note that a single iteration of \myglsentry{sarrt*} presented above requires solving the set of \myglsentry{odes} multiple times which leads to a prohibitive computation time per iteration as shown in Section~\ref{sec:samp_simu}.
+% To mitigate this impact, this subsection proposes a robust sensitivity-aware variant of the \gls{sst*}~\cite{cSST}, denoted \gls{sasst*} as a particular instance of \myglsentry{samp}. 
+
+% The \myglsentry{sst*} algorithm has two key features: it reduces the number of collision checks to just one per iteration and uses Monte Carlo propagation to sample the control input space and perform forward dynamic propagation, eliminating the need for a steering method.
+% However, since the system closed-loop dynamics is used for sensitivity computation rather than open-loop Monte Carlo propagation, the latter is replaced by a desired trajectory computed by a steering method.
+
+% The \myglsentry{sasst*} variant, detailed in Algorithm~\ref{alg:SASST*}, starts with metrics and tree initialization (line 1-4) by splitting it into two subsets: $V_{active}$ and $V_{inactive}.$
+% Nodes in $V_{active}$ are those with the optimal trajectory cost from the root within their local neighborhoods. 
+% In contrast, nodes in $V_{inactive}$ while suboptimal in trajectory cost, are preserved in the tree to maintain connectivity, as they have children with better trajectory costs in their respective neighborhoods. 
+
+% Then, to define local neighborhoods, the algorithm leverages an auxiliary set of states called "witnesses," denoted as $W$ (line 5). 
+% Each witness $w \in W$ is associated with a single representative node in the tree, stored in the $w.rep$ field of the witness (line 6).
+% This representative node corresponds to the trajectory with the lowest cost from the root within a distance $\delta_s$ of the witness $w$.
+% Any nodes within the $\delta_s$-neighborhood of $w$ that have a higher trajectory cost than $w.rep$ are removed from the active set $V_{active}$.
+
+% Next, until a user defined criterion is met, the algorithm performs for N iterations:
+% \begin{enumerate}
+%     \item A best-first selection that samples a random state from the state space and finds the best node in terms of cost from the root within a distance of $\delta_{BN}$ in the active set of the tree. 
+%     This node, referred as $q^{selected}$, represents the state to be propagated (line 9).
+%     \item Then, instead of the original Monte Carlo propagation, a random state $q^{rand}$ is sampled within a maximum distance of $q^{selected}$ (line 10), analogous to sampling a control input and propagation duration in the vanilla algorithm.
+%     The local trajectory connecting the two state is computed (line 11) and, as discussed in Section~\ref{sec:general_method}, the set of \myglsentry{odes} is solved (line 12-13) before performing a robust feasibility check (line 14) (see Appendix~\ref{chap:appendixA}).
+%     \item If the local trajectory is robustly feasible, the set $W$ is used by the IsNodeLocallyTheBestSST procedure (line 15) to check whether the newly sampled state $q^{rand}$ dominates the $\delta_s$-neighborhood of its closest witness and to update the witness set $W$ accordingly.
+%     \item Then, the sample is added to the tree (line 16-17), and the sets of active and inactive nodes are updated.
+%     Nodes that no longer belong to any of these sets are pruned (line 18).
+% \end{enumerate}
+
+% Finally, after the N iterations, if the stopping criterion is not met, the hyperparameters of the algorithm are updated (line 19-21).
+% These parameters are responsible for the algorithm asymptotic optimality and convergence. 
+% The algorithm gradually reduces the radii $\delta_s$ and $\delta_{BN}$, enabling it to explore new homotopic classes over time.
+
+% Note that in this implementation the \myglsentry{odes} need to be solved only once per iteration compared to the \myglsentry{sarrt*} implementation.
+
+% \begin{algorithm}[htp]
+%     \caption{SASST$^* [q^{init}, q^{goal}, N_0, \delta_{BN,0}, \delta_{s,0}, \xi]$}\label{alg:SASST*}
+%     \begin{algorithmic}[1]
+%         \State $j \gets 0; N \gets N_0;$
+%         \State $\delta_{s} \gets \delta_{s,0}; \delta_{BN} \gets \delta_{BN,0};$
+%         \State $V_{active} \gets \{q^{init}, q^{goal}\}, V_{inactive} \gets \emptyset;$
+%         \State $T \gets$ InitTree$(V_{active}, V_{inactive});$
+%         \State $w_0 \gets q^{init}, w_G \gets q^{goal}, W \gets \{w_0, w_G\};$
+%         \State $w_0.rep \gets q^{init}, w_G.rep \gets q^{goal};$
+%         \While{\textbf{not} StopCondition$(T, {q^{goal}})$}  
+%             \For{N iterations}
+%                 \State $\{q^{selected}, q^{rand}\} \gets $BestFirstSelectionSST$(V_{active}, \delta_{BN});$
+%                 \State $q^{rand} \gets$ Sample$(q^{selected}, d_{max});$
+%                 \State $\q_d \gets$ Steer$({q^{selected}},{q^{rand}});$
+%                 \State $S_0 \gets $GetNodeConditions$({q^{selected}});$
+%                 \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
+%                 \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
+%                     \If{IsNodeLocallyTheBestSST$(q^{rand}, W, \delta_s)$}
+%                         \State $V_{active} \gets V_{active} \cup \{q^{rand}\};$
+%                         \State AddNewEdge$(T, q^{selected}, q^{rand});$
+%                         \State PruneDominatedNodesSST$(q^{rand}, V_{active}, V_{inactive});$
+%                     \EndIf
+%                 \EndIf
+%             \EndFor
+%             \State $\delta_s \gets \xi\delta_s; \delta_{BN}\gets\xi\delta_{BN};$
+%             \State $j \gets j+1;$
+%             \State $N \gets (1+$log $j)\xi^{-(d+1)j}N_0;$
+%         \EndWhile
+%         \State \textbf{return} GetTrajectory$(T, q^{init}, q^{goal})$;
+%     \end{algorithmic}
+% \end{algorithm}
+
 \subsection{Simulation results}\label{sec:samp_simu}
 
-This subsection presents the results of trajectory planning using the previously discussed variants, evaluated based on computation time, and robustness for the two systems introduced in Chapter~\ref{chap:models}.
+This subsection presents the results of trajectory planning using the previously discussed variants, evaluated based on computation time, and robustness for the two systems (quadrotor and differential drive robots) introduced in Chapter~\ref{chap:models}.
 To assess the impact of planning robust, globally sensitivity-optimal trajectories, both \myglsentry{sarrt*} and \myglsentry{sasst*} are compared with their respective non-robust vanilla versions, which focus on optimizing trajectory length.
-The objective is to verify the ability of the proposed variants to generate robust solutions, and to evaluate the computational overhead of solving the huge number of \myglsentry{odes} during the random-trees expansions until an asymptotically optimal solution is found.
+The objective is to verify the ability of the proposed variants to generate robust solutions, and to evaluate the computational overhead of solving the huge number\footnote{From few thousands for non asymptotically optimal planners, up to a hundred of thousands for asymptotically optimal planners.} of \myglsentry{odes} during the random-trees expansions until an asymptotically optimal solution is found.
 Results are obtained from the implementations of the planners within the \gls{ompl}~\cite{cOMPL}, and collision detection is performed using the widely used C implementation of PyBullet~\cite{cBullet}.
 The \myglsentry{odes} are solved using the JiTCODE~\cite{cJit} module which converts the equations to be integrated into C-compiled code.
 The Euler integrator is then used to solve each ODE and take advantage of this compiled function.
-Although the Euler method is less accurate than a Runge-Kutta 4-based method (e.g., dopri5), it is chosen because the uncertainty tubes are already an approximation, and faster computational efficiency are preferred over higher accuracy in this context.
+Although the Euler method is less accurate than a Runge-Kutta 4-based method (e.g., dopri5), it is chosen because the uncertainty tubes are already based on a first-order approximation (see Section~\ref{sec:tubes}), and faster computational efficiency are preferred over higher accuracy in this context.
 
 \subsubsection{Cost function}\label{sec:sensi_cost}
 
@@ -416,7 +532,7 @@ This adjustment does not compromise the algorithm properties, as longer trajecto
 While this approach requires more iterations to ensure adequate space coverage and cost convergence, it results in more efficient tree growth under robustness constraints, as illustrated in Figure~\ref{fig:unic_tree}.
 Note that the choice of this maximum local distance is also required for the applicability of the methods proposed in Chapter~\ref{chap:NN} and Chapter~\ref{chap:sampNN}.
 
-Consequently, throughout this thesis, a maximum local trajectory length of 1.0 (meters or seconds according to the local planner used) is also applied to the proposed \myglsentry{sarrt*} variant.
+Consequently, throughout this thesis, a maximum local trajectory length of 1.0 (meters or seconds according to the steering method used) is also applied to the proposed \myglsentry{sarrt*} variant.
 
 Finally, all algorithms use a time step of 0.05s for the solving the \myglsentry{odes} and to perform the robust feasibility checks, and the stopping criterion of the planners is defined by a cost convergence threshold of 5\%.
 
@@ -532,9 +648,9 @@ Table~\ref{tab:samp_quad} shows comparative results averaged for each planner ov
 The perturbations are uniformly sampled within an ellipsoid with semi-axis defined by $\delta \p$ as explained in Section~\ref{sec:tubes}.
 First, it is important to note robust efficiency of the proposed \myglsentry{samp} variants which achieve both 100\% robustness compared to their non-robust vanilla implementation, as highlighted by Figure~\ref{fig:robust_quad}.
 
-However, as explained in Section~\ref{sec:unified}, the set of \myglsentry{odes} must be solved at each algorithm iteration, one per iteration in the case of \myglsentry{sasst*} and at least tens to hundreds of times for the \myglsentry{sarrt*}.
+However, as explained in Section~\ref{sec:samp}, the set of \myglsentry{odes} must be solved at each algorithm iteration, one per iteration in the case of \myglsentry{sasst*} and at least tens to hundreds of times for the \myglsentry{sarrt*}.
 Although this result in high computation times for simple systems like the differential drive robot presented above, the planning time depicted in Table~\ref{tab:samp_quad} and the cost convergence rate show in Figure~\ref{fig:samp_quad_time} highlight the intractability of such optimal planning techniques for the quadrotor case, which involve solving hundreds of \myglsentry{odes}.
-Similar to the differential drive robot, the prohibitively long planning time is closely linked to the time spent solving the \myglsentry{odes}, as shown in Figure~\ref{fig:profiling_quad}, where the \emph{CC} procedure refers to standard collision checking or the robust feasibility check, \emph{Cost} is the trajectory cost computation procedure, \emph{NN} stands for the nearest neighbor search, \emph{Sampling} and \emph{LocalPlan} refer to the state space sampling and local trajectory planning respectively, \emph{Tree} procedure is in charge of the data structure management (e.g. pruning, child cost update, etc.), and finally \emph{ODEs} stands for the sensitivity and tubes computations.
+Similar to the differential drive robot, the prohibitively long planning time is closely linked to the time spent solving the \myglsentry{odes}, as shown in Figure~\ref{fig:profiling_quad}, where the \emph{CC} procedure refers to standard collision checking or the robust feasibility check, \emph{Cost} is the trajectory cost computation procedure, \emph{NN} stands for the nearest neighbor search, \emph{Sampling} and \emph{Steer} refer to the state space sampling and local trajectory planning respectively, \emph{Tree} procedure is in charge of the data structure management (e.g. pruning, child cost update, etc.), and finally \emph{ODEs} stands for the sensitivity and tubes computations.
 Therefore, the frequency of \myglsentry{odes} solving must be further reduced, as even the \myglsentry{sasst*}, which performs only a single computation per iteration, faces challenges due to the tens of thousands of iterations required to adequately explore the space.
 
 \subsubsection{Conclusion}
@@ -557,7 +673,7 @@ The proposed decoupled approach is based on a lazy sensitivity-aware variant, ge
 This trajectory is then locally optimized for minimizing the cost function~(\ref{eq:cost_function}) via a robust variant of the `shortcut' technique classically used to smooth solutions of randomized planners~\cite{cShortcut}. 
 Note that in the following section, the \myglsentry{rrtstar} is preferred over the \myglsentry{sst*} because maintaining a set of non-robust parents in the tree structure contradicts the pruning principle of the \myglsentry{sst*}, which only retains locally optimal nodes based on cost, thereby limiting the effectiveness of the robust reconnection process.
 
-\subsection{Lazy Sensitivity-Aware RRT* (LazySARRT*)}\label{sec:lazy_rrt*}
+\subsection{Global robust motion planning with lazy strategy}\label{sec:lazy_rrt*}
 
 \begin{algorithm}[htp]
     \caption{LazySARRT$^* [q^{init}, q^{goal}]$}\label{alg:LazySARRT*}
@@ -571,7 +687,7 @@ Note that in the following section, the \myglsentry{rrtstar} is preferred over t
             \If{$Q_{sol} \neq \emptyset$}
                 \For { i = 0 and  i < size($Q_{sol}$)-1}
                     \State $S_0 \gets $GetNodeConditions$(Q_{sol}^{i});$
-                    \State $\q_d \gets $LocalPlan$(Q_{sol}^{i}, Q_{sol}^{i+1});$
+                    \State $\q_d \gets $Steer$(Q_{sol}^{i}, Q_{sol}^{i+1});$
                     \State $\left \{\q_n, \u_n, \Rq, \Ru, S_F \right \}  \gets $SolveODEs$(\q_d, S_0);$
                     \If {\textbf{not} IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
                         \State $T \gets $RobustReconnect$(T, Q_{sol}^{i});$
@@ -626,7 +742,7 @@ The output of \myglsentry{lazysarrt*} is a (near) time-optimal trajectory that i
 It is however not optimized in terms of the sensitivity. 
 Therefore, its robustness can be further improved.
 
-\subsection{Sensitivity-Aware Shortcut}
+\subsection{Local robust sensitivity optimization}
 
 \begin{algorithm}[htp]
     \caption{SAShortcut [$\q_{d,SARRT^*}$]}\label{alg:SAshortcut}
@@ -635,10 +751,10 @@ Therefore, its robustness can be further improved.
         \State $q_d^{init} \gets \q_{d,best}^0; q_d^{goal} \gets \q_{d,best}^F;$
         \While{\textbf{not} StopCondition$()$} 
             \State $\{q_d^{1}, q_d^{2}\} \gets$ SampleOnTraj$(\q_{d,best});$
-            \State $\q_{d,shct} \gets $LocalPlan$(q_d^{1}, q_d^{2});$
+            \State $\q_{d,shct} \gets $Steer$(q_d^{1}, q_d^{2});$
             \If{CollisionFree$(\q_{d,shct})$}
-                \State $\q_{d,start} \gets $LocalPlan$(q_d^{init}, q_d^{1});$
-                \State $\q_{d,end} \gets $LocalPlan$(q_d^{2}, q_d^{goal});$
+                \State $\q_{d,start} \gets $Steer$(q_d^{init}, q_d^{1});$
+                \State $\q_{d,end} \gets $Steer$(q_d^{2}, q_d^{goal});$
                 \State $\q_{d,new} \gets \q_{d,start}+\q_{d,shct}+\q_{d,end};$
                 \State $S_0 \gets $GetNodeConditions$(q_d^{init});$
                 \State $\{\q_n, \u_n, \Rq, \Ru, S_F\}  \gets $SolveODEs$(\q_{d,new}, S_0);$

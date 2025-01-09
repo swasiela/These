@@ -380,41 +380,15 @@
 
 % #endregion
 
-% Commands to format MAX-SMT constants representing top or bottom args
-\newcommand{\argtop}[1]{{\ensuremath{\bar{#1}}}}
-\newcommand{\argbot}[1]{{\ensuremath{\ubar{#1}}}}
-
-\newcommand{\ptype}[1]{\textttpit{#1}} % for planing params types
-\newcommand{\pvar}[1]{\ensuremath{\operatorname{?\mathit{#1}}}} % for planning params vars (add subscript outside)
-\newcommand{\pconst}[1]{\ensuremath{\operatorname{\mathit{#1}}}} % for planning params constants (add subscript outside)
-\newcommand{\poper}[1]{{\textttp{#1}}} % for planning params operators (action, tasks)
-\newcommand{\psf}[1]{{\textttp{#1}}} % for planning state variables
-
-\newcommand{\htnmaker}{\textsc{HTN-Maker}}
-\newcommand{\htnlearn}{\textsc{HTNLearn}}
-\newcommand{\wordhtn}{\textsc{Word2HTN}}
-\newcommand{\wordvec}{\textsc{Word2Vec}}
-\newcommand{\bnfsym}[1]{\ensuremath{\langle\texttt{#1}\rangle}}
-
 %%%%%%%%%%%%%%%%%%%%%%%%
 %	  TODO commands    %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 \ifdefined\notodo
   \newcommand{\todomarker}[2][]{}
-  \newcommand{\arthur}[1]{}
-  \newcommand{\philippe}[1]{}
-  \newcommand{\pcomment}[2][]{}
-  \newcommand{\pinline}[1]{}
-  \newcommand{\acomment}[1]{}
 \else
   \setlength{\marginparwidth}{0.85in}
   \newcommand{\todomarker}[2][]{\todo[inline,size=\normalsize,#1]{TODO #2}}
-  \newcommand{\arthur}[1]{{\color{blue} \textbf{#1}}}
-  \newcommand{\philippe}[1]{{\color{ForestGreen} \textbf{#1}}}
-  \newcommand{\pcomment}[2][]{\todo[backgroundcolor=ForestGreen!25,linecolor=ForestGreen,caption={P},prepend,size=\tiny,#1]{#2}}
-  \newcommand{\pinline}[1]{\todo[backgroundcolor=ForestGreen!25,author={Philippe},inline,size=\normalsize]{#1}}
-  \newcommand{\acomment}[1]{\todo[linecolor=blue,backgroundcolor=blue!25,bordercolor=blue,caption={A},prepend,size=\tiny]{#1}}
 \fi
 
 

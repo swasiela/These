@@ -3,7 +3,7 @@
 This thesis addresses the problem of generating robust and accurate trajectories taking into account uncertainties in the robot dynamic model. 
 Based on the notion of \emph{closed-loop sensitivity}, which quantifies deviations in the closed-loop trajectories of any robot/controller pair against uncertainties in the robot model parameters, so-called 'uncertainty tubes' can be derived for bounded parameter variations.
 Such tubes bound the system evolution both in the state and control input spaces.
-Based on the 'feedback motion planning' paradigm, this work leverages these 'uncertainty tubes' to enforce robust constraints within sampling-based planners.
+Based on the 'control-aware motion planning' paradigm, this work leverages these 'uncertainty tubes' to enforce robust constraints within sampling-based planners.
 
 The first contribution of this thesis focuses on generating globally sensitivity-optimal trajectories while enforcing robust constraints thanks to uncertainty tubes.
 However, results show that computing these uncertainty tubes at each iteration of a sampling-based planner is a bottleneck for the method.

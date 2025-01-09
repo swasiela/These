@@ -9,14 +9,14 @@ This chapter provides an overview of the related work on the key concepts that t
 \subsection{Path planning}
 
 This subsection provides an overview of various path planning approaches. 
-For a more detailed survey, please refer to~\cite{cLavalle, cKavraki, cFrazzoli}.
-The path planning problem focuses on finding a collision-free and/or optimal path between two configurations: a starting configuration and a goal configuration. 
-The work of~\cite{cConfigSpace} introduced the configuration space concept as a general framework for planning motions in arbitrary kinematic systems.
-This idea provided a solid foundation for the field and, as noted in~\cite{cSpatialPlan}, formally established the motion planning problem as the task of finding a path within the configuration space.
+For a more detailed survey, please refer to~\cite{cLavalle, cFrazzoli, cKavraki}.
+The path planning problem focuses on finding a collision-free possibly optimal path between a starting configuration and a goal configuration. 
+The work of~\cite{cConfigSpace} introduced the configuration space concept as a general framework for planning motions of a general class of kinematic systems.
+This idea provided a solid foundation for the field and, as noted in~\cite{cSpatialPlan}, formally established the motion planning problem as the task of finding a feasible path within the configuration space.
 
 However, planning motion in the configuration space poses significant challenges due to the problem computational complexity. 
-A key stone in addressing this issue is the introduction of artificial potential fields~\cite{cAPF}, which create a repulsive force field around obstacles and an attractive force field toward the target.
-However, although this strategy has proven to be efficient, it sacrifices guarantees such as algorithm completeness and optimality.
+An alternative local approach is the introduction of artificial potential fields~\cite{cAPF}, which create a repulsive force field around obstacles and an attractive force field toward the target.
+However, although this strategy has proven to be efficient, it sacrifices guarantees such as algorithm completeness and global optimality.
 
 Another common approach to the path planning problem involves search-based techniques. 
 These methods operate on a discrete representation of the configuration space, where vertices correspond to a finite set of robot configurations, and edges represent possible transitions between these configurations.
@@ -38,19 +38,27 @@ Once the graph is built, a graph search query is performed to compute the desire
 The other planner family among sampling-based planners are tree-based planners such as the well-known \gls{rrt}~\cite{cRRT}.
 This algorithm generates a tree starting from an initial configuration.
 At each iteration, a new configuration is sampled $q^{rand}$.
-It's nearest neighbor among the existing tree nodes is found $q^{near}$, and then an extension is attempt starting from $q^{near}$ toward $q^{rand}$ leading to a new configuration $q^{new}$.
+Its nearest neighbor $q^{near}$ among the existing tree nodes is found, and then an extension is attempted starting from $q^{near}$ toward $q^{rand}$ leading to a new configuration $q^{new}$.
 If the extension is collision free, the new configuration is added to the tree as a new node with an edge connecting the two nodes.
 
-Therefore, sampling-based motion planners have become one of the most widely used strategy for generating global motion paths in the presence of obstacles, due to their efficiency in handling complex and high-dimensional configuration spaces, as well as their completeness guarantee.
+Therefore, sampling-based motion planners have become the most widely used strategy for generating global motion paths in the presence of obstacles, due to their practical efficiency in handling complex and high-dimensional configuration spaces, as well as their completeness guarantee.
 Advances in sampling-based planners have then focused on generating feasible and cost-effective paths through various strategies, such as the transition-based approach~\cite{cTRRT}. 
 These strategies often achieve asymptotic optimality by employing optimal connection procedures during the tree or graph construction process~\cite{cRRTstar, cTRRTstar, cFMT}.
 Research on sampling-based planners has expanded into various areas, such as developing suitable sampling strategies~\cite{cSampling}, exploring lazy collision checking approaches~\cite{cLazy1}, extending to the molecular domain~\cite{cMolecular}, and more.
 
-The aforementioned sampling-based methods are generally referred to as global planning methods, as they rely on local planning techniques to generate the edges that connect the sampled configurations.
-Such local planning methods are not considered global, as they do not address the entire motion planning problem. 
-A local planner is typically fast; however, the generated path may not fully satisfy the problem constraints (e.g., it could result in collisions).
-Traditional local strategies typically involve path segments, but local planners often need to account for additional constraints.
-For example, significant work has been done to enforce kinematic constraints on these local plans, ensuring the kinematic feasibility of the resulting global paths.
+% The aforementioned sampling-based methods are generally referred to as global planning methods, as they rely on local planning techniques to generate the edges that connect the sampled configurations.
+% Such local planning methods do not consider obstacle avoidance.
+% A local planner is typically fast; however, the generated path may not fully satisfy the problem constraints (e.g., it could result in collisions).
+% Traditional local strategies typically involve path segments, but local planners often need to account for additional constraints.
+% For example, significant work has been done to enforce kinematic constraints on these local plans, ensuring the kinematic feasibility of the resulting global paths.
+% Such work includes, for example, Dubins path generation~\cite{cDubins}, which enables connecting two configurations under forward motion constraints and curvature constraints for car-like robots. 
+% The Reeds-Shepp method~\cite{cReeds} extends this local path generation procedure to car-like robots capable of moving both forward and backward.
+
+The aforementioned sampling-based methods are commonly known as global planning methods, as they depend on local planning techniques, referred to as steering methods, to generate the edges connecting sampled configurations. 
+A steering method is a local planner that connects an initial configuration to a goal without accounting for obstacle avoidance. 
+While typically fast, steering methods may produce paths that do not fully adhere to problem constraints, potentially leading to collisions.
+Traditional steering methods often involve simple path segments, but they frequently need to accommodate additional constraints.
+For instance, significant work has been done to enforce kinematic constraints on these local paths, ensuring the kinematic feasibility of the resulting global paths.
 Such work includes, for example, Dubins path generation~\cite{cDubins}, which enables connecting two configurations under forward motion constraints and curvature constraints for car-like robots. 
 The Reeds-Shepp method~\cite{cReeds} extends this local path generation procedure to car-like robots capable of moving both forward and backward.
 
@@ -63,17 +71,27 @@ Therefore, the kinodynamic problem extends beyond searching in the robot configu
 
 \subsubsection{Local planners}
 
-Local planners, or steering methods, focus on generating feasible motion between two states while respecting kinematic and dynamic constraints. 
-They are often used as building blocks in global kinodynamic planners. 
+% Local planners, or steering methods, focus on generating feasible motion between two states while respecting kinematic and dynamic constraints. 
+% They are often used as building blocks in global kinodynamic planners. 
 
-A common approach to generating smooth trajectories between robot states is to solve a two-point \gls{bvp} using polynomial-based methods, such as splines, which are widely employed for trajectory interpolation. 
-For instance, the kinosplines local planner proposed in~\cite{cKino} leverages system differential flatness, ensuring the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
-The resulting trajectories respect kinodynamic constraints up to the jerk level, enabling time-optimal connections between two given states. 
-Another example is the minimum snap trajectory generation method~\cite{cMinimumSnap}, which contrasts with the bang-bang snap strategy of kino-splines. 
-Also based on system differential flatness, this approach formulates an optimization problem that minimizes the integral of a weighted combination of squared position snap and squared yaw acceleration.
-It ensures continuity between trajectory segments, satisfies kinematic conditions at the start and end of the motion, and respects actuation limits.
+% A common approach to generating smooth trajectories between robot states is to solve a two-point \gls{bvp} using polynomial-based methods, such as splines, which are widely employed for trajectory interpolation. 
+% For instance, the kinosplines local planner proposed in~\cite{cKino} leverages system differential flatness, ensuring the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
+% The resulting trajectories respect kinodynamic constraints up to the jerk level, enabling time-optimal connections between two given states. 
+% Another example is the minimum snap trajectory generation method~\cite{cMinimumSnap}, which contrasts with the bang-bang snap strategy of kino-splines. 
+% Also based on system differential flatness, this approach formulates an optimization problem that minimizes the integral of a weighted combination of squared position snap and squared yaw acceleration.
+% It ensures continuity between trajectory segments, satisfies kinematic conditions at the start and end of the motion, and respects actuation limits.
 
-While the local planners mentioned earlier primarily focus on enforcing kinodynamic constraints, Bézier curve-based planners~\cite{cBezier,cBezier2} offer additional benefits due to their inherent smoothness, and their convex hull property.
+% While the local planners mentioned earlier primarily focus on enforcing kinodynamic constraints, Bézier curve-based planners~\cite{cBezier,cBezier2} offer additional benefits due to their inherent smoothness, and their convex hull property.
+% Their convex hull property ensures that the trajectory remains within the convex hull of its control points. 
+% This simplifies collision detection, as it guarantees that if the convex hull is free of obstacles, the entire trajectory will be too. 
+% Additionally, adjusting control points affects only a localized portion of the trajectory, allowing precise modifications without affecting the entire trajectory. 
+% This approach is particularly useful in environments where efficient collision detection is crucial.
+% Furthermore, its smoothness also naturally accommodates velocity, acceleration, and higher-order dynamic constraints, making it suitable for kinodynamic motion planning in various robotic systems. 
+
+Local planners are essential components in motion planning, focusing on generating feasible motion between two robot states while adhering to various constraints such as kinematic constraints, dynamic constraints, and obstacle avoidance. 
+These planners operate on a localized scale and are crucial for refining or connecting segments of a global motion plan, ensuring that the overall trajectory remains feasible and optimized.
+
+Among the widely used local planners, Bézier curve-based planners~\cite{cBezier,cBezier2} stand out due to their inherent smoothness and the advantageous convex hull property.
 Their convex hull property ensures that the trajectory remains within the convex hull of its control points. 
 This simplifies collision detection, as it guarantees that if the convex hull is free of obstacles, the entire trajectory will be too. 
 Additionally, adjusting control points affects only a localized portion of the trajectory, allowing precise modifications without affecting the entire trajectory. 
@@ -92,25 +110,46 @@ While \myglsentry{chomp} can handle differentiable cost function due its gradien
 This process also accounts for kinodynamic constraints and obstacle avoidance by adding state cost penalty in the cost function formulation.
 While \myglsentry{stomp} is computationally more expensive than \myglsentry{chomp} as it relies on several sampling-based rollouts, its ability to handle more complex cost functions and find better solutions in challenging environments makes it highly versatile for kinodynamic motion planning.
 
-\subsubsection{Forward propagation}\label{sec:forwardplanning}
+\subsubsection{Global planners}\label{sec:forwardplanning}
 
-Global sampling-based motion planners can generate globally kinodynamically feasible trajectories by leveraging the aforementioned local planners to connect their sampled state.
-However, such local planners may not be available for every system.
-Therefore, algorithms were developed to bypass this need by performing dynamic system forward propagation instead of solving a complex \myglsentry{bvp}.
+% Global sampling-based motion planners can generate globally kinodynamically feasible trajectories by leveraging the aforementioned local planners to connect their sampled state.
+% However, such local planners may not be available for every system.
+% Therefore, algorithms were developed to bypass this need by performing dynamic system forward propagation instead of solving a complex \myglsentry{bvp}.
 
-Kinodynamic motion planners, such as Kinodynamic RRT~\cite{cKinoRRT} and \gls{sst}~\cite{cSST}, are designed to address the challenges of planning for robots with complex dynamics without relying on a local planner. 
+% Kinodynamic motion planners, such as Kinodynamic RRT~\cite{cKinoRRT} and \gls{sst}~\cite{cSST}, are designed to address the challenges of planning for robots with complex dynamics without relying on a local planner. 
+% These methods utilize system forward dynamic propagation by sampling control inputs and propagation time. 
+% Starting from an initial robot state, the system dynamics are integrated in an open-loop manner to propagate the state, allowing the planner to account for both the robot kinematic limitations and its dynamic behavior. 
+% This approach ensures that the generated paths are collision-free and physically executable while eliminating the need for local planners.
+
+As mentioned above, global sampling-based planners leverage local planning techniques, referred to as steering methods, which do not account for obstacles. 
+Therefore, to adhere to kinodynamic constraints, sampling-based planners can utilize kinodynamic steering methods.
+
+A common approach to generating kinodynamic steering methods involves solving a two-point \gls{bvp} using polynomial-based methods, such as splines, which are widely employed for trajectory interpolation. 
+For instance, the kinosplines local planner proposed in~\cite{cKino} leverages system differential flatness, ensuring the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
+The resulting trajectories respect kinodynamic constraints up to the jerk level, enabling time-optimal connections between two given states.
+Another example is the minimum snap trajectory generation method~\cite{cMinimumSnap}, which contrasts with the bang-bang snap strategy of kinosplines. 
+Also based on system differential flatness, this approach formulates an optimization problem that minimizes the integral of a weighted combination of squared position snap and squared yaw acceleration.
+It ensures continuity between trajectory segments, satisfies kinematic conditions at the start and end of the motion, and respects actuation limits.
+
+Global sampling-based motion planners can generate globally kinodynamically feasible trajectories by leveraging the aforementioned kinodynamic steering methods to connect their sampled states.
+However, such local steering techniques may not be available for every systems, as solving the associated \myglsentry{bvp} can be particularly challenging. 
+To overcome this, algorithms were developed to bypass this need by performing dynamic system forward propagation instead of solving a complex \myglsentry{bvp}.
+
+Kinodynamic motion planners, such as Kinodynamic RRT~\cite{cKinoRRT} and \gls{sst}~\cite{cSST}, are designed to address the challenges of planning for robots with complex dynamics without relying on a steering method. 
 These methods utilize system forward dynamic propagation by sampling control inputs and propagation time. 
 Starting from an initial robot state, the system dynamics are integrated in an open-loop manner to propagate the state, allowing the planner to account for both the robot kinematic limitations and its dynamic behavior. 
-This approach ensures that the generated paths are collision-free and physically executable while eliminating the need for local planners.
+This approach ensures that the generated paths are collision-free and physically executable while eliminating the need for local steering methods.
 
 \section{Planning under uncertainty}\label{sec:planuncertainty}
 
-While the previous section focused on motion planning algorithms that can deal with kinodynamic constraints of various robot, none of them consider the unavoidable presence of uncertainties (e.g. external disturbances, sensor noise, model parameter mismatches, etc.).
+While the previous section focused on motion planning algorithms that can deal with kinodynamic constraints of various robot, they do not consider the unavoidable presence of uncertainties (e.g. external disturbances, sensor noise, model parameter mismatches, etc.).
 
-A common approach to managing uncertainties is to compensate for them in real-time using robust controllers, such as H-infinity or \gls{lpv} methods.
+A common approach to managing uncertainties is to compensate for them in real-time using robust control strategies, such as H-infinity~\cite{cHinf} or \gls{lpv}~\cite{cLPV} methods.
+For instance, the work of~\cite{cCastillo} proposes an adaptive law strategy for estimating the parameters of unknown disturbances, integrating them into a closed-loop system.
+In~\cite{cMarilena} \gls{cbf} are leveraged to design closed-form controllers that ensure both the safety and stability of system execution in the presence of obstacles.
 However, these methods often encounter difficulties in maintaining robustness when applied to non-robust reference trajectories, due to their inherently local nature.
 Additionally, they struggle to achieve global optimality and performance, which are typically better addressed by global planning approaches.
-Therefore, considerable research has focused on designing motion planning algorithms that incorporate uncertainty into the trajectory generation process, with the goal of producing robust and feasible plans.
+Therefore, research has focused on designing motion planning algorithms that incorporate uncertainty into the trajectory generation process, with the goal of producing robust and feasible plans.
 
 A seminal contribution to the field is the \gls{lmt} framework~\cite{cLMT}, which addresses the challenge of computing compliant motion strategies in the presence of sensor uncertainties and inaccuracies in robot movement. 
 This approach focuses on developing fine-motion strategies, which involve incrementally generating sequences of robot movements that account for inaccuracies in both the robot state and the sensed environment. 
@@ -124,7 +163,7 @@ They use stochastic uncertainty propagation functions, to minimize the uncertain
 The proposed frameworks have the advantage of being adaptable to a wide range of non-trivial robot models, with non-Gaussian processes and observation models for trajectory planning with minimum uncertainty.
 However, these methods still suffer from computational bottleneck when dealing with high dimensional problems.
 
-When probability distributions over uncertain variables are available, chance-constrained motion planning can be used to generate plans that satisfy probabilistic constraints~\cite{cChance1,cChance2,cChance3}. 
+When probability distributions over uncertain variables are available, chance-constrained motion planning can be used to generate plans that satisfy probabilistic constraints~\cite{cChance3,cChance1,cChance2,}. 
 These constraints ensure that specific conditions, such as safety or feasibility, are met with a certain probability. 
 Typically, a chance constraint is incorporated into an optimization problem, where the objective (e.g., minimizing cost or maximizing reward) is optimized while ensuring that the constraint holds with a high probability (e.g. ensuring that a robot avoids obstacles with 95\% probability).
 
@@ -139,13 +178,13 @@ In contrast to the aforementioned probabilistic approaches, this framework opera
 \section{Control-aware motion planning}
 
 The algorithms presented so far have been designed to handle kinodynamic constraints and/or ensure robustness against various uncertainties.
-However, none of them typically consider the inevitable presence of a feedback controller responsible for executing the generated trajectories. 
+However, they do not typically consider the inevitable presence of a feedback controller responsible for executing the generated trajectories. 
 This controller might deviate from the planned trajectory to address uncertainties and disturbances, which can quickly compromise feasibility and optimality of the plan.
 It is important to note that kinodynamic approaches relying on system dynamics forward propagation, as discussed in Section~\ref{sec:forwardplanning}, do not incorporate feedback actions.
 Instead, they directly sample in the control input space, resulting in an open-loop propagation strategy.
 
 The idea of merging planning with control for generating “robust planners” or more “global controllers” for dealing with the robustness problem in a more comprehensive way is however not completely novel in the robotics community.
-This yields to the 'feedback motion planning' (or control-aware motion planning) paradigm.
+This yields to the 'control-aware motion planning' paradigm.
 
 Work has been carried out on the control community side to propose ``less local'' controllers, resulting in the popular \gls{mpc} technique~\cite{cMPC} that iteratively replans an optimal (and feasible) trajectory with a feedback from the current robot state (that may deviate from the desired one because of disturbances/uncertainties). 
 This method enables fast computation of locally optimal trajectories while incorporating the controller feedback action. 
@@ -153,7 +192,7 @@ However, due to its inherently local nature, the \myglsentry{mpc} approach can b
 It often lacks guarantees of completeness and relies heavily on an accurate robot model, without explicitly accounting for uncertainties.
 
 A seminal work in feedback motion planning is the LQR-Trees method~\cite{cLQRTrees}.
-This addresses the problem of generating global trajectories that are stabilizable.
+It addresses the problem of generating global trajectories that are stabilizable.
 While the decoupled planning and control method is effective in many cases, it may result in trajectories that are either not stabilizable or significantly more costly to stabilize compared to alternative, more optimal trajectories.
 Therefore, the LQR-Trees method combines trajectory optimization, feedback control, and Lyapunov verification to construct a tree of locally valid control policies.
 This structure efficiently covers the state space and facilitates the generation of low-cost stabilization trajectories.
@@ -191,16 +230,16 @@ Additionally, \myglsentry{tmpc} and \myglsentry{mpc}, being model-based techniqu
 
 The FaSTrack framework~\cite{cFaSTrack} is a motion planning approach designed to address the challenges of fast, adaptive, and robust trajectory generation for dynamic systems, particularly in the context of autonomous vehicles or robots. 
 It integrates real-time feedback to rapidly adjust planned trajectories in response to changes in the environment or the system state. 
-The FasTrack framework relies on a simplified robot dynamic model, and its robustness is ensured by synthesizing a specific control strategy tailored to the system, which helps it adapt to disturbances and uncertainties.
+The FaSTrack framework relies on a simplified robot dynamic model, and its robustness is ensured by synthesizing a specific control strategy tailored to the system, which helps it adapt to disturbances and uncertainties.
 Therefore, this technique is limited to the specific synthesized controller, and limited by its simplified representation.
 
 While the LQR-Trees approach previously focused on trajectory stability and relied solely on \myglsentry{lqr} control, the formulation was later extended in the Funnel Library approach~\cite{cMajundarLibrary}.
 The core idea of the Funnel Library is to generate control policies that ensure the system trajectory remains within a "tube" around a desired reference trajectory, which is a bounded region where the system is guaranteed to stay despite external disturbances.
-The framework extends its former LQR-Trees approache to include controllers of polynomial form that can handle non linearities, disturbances, and model uncertainties.
+The framework extends its former LQR-Trees approaches to include controllers of polynomial form that can handle non linearities, disturbances, and model uncertainties.
 It employs an optimization-based method to design an offline library of control policies that are robust to model errors and external uncertainties. 
 A key advantage of the Funnel Library is its ability to perform real-time updates by searching through the library and combining subsequent tubes online. 
 This allows the control policies to adapt dynamically based on feedback, ensuring that the system can respond to environmental or state changes effectively.
-However, the method is limited to controllers of polynomial form, and its planning capabilities are constrained by the finite set of control law in the library.
+However, the method is limited to controllers of polynomial form, and its planning capabilities are constrained by the finite set of control laws in the library.
 
 A seminal contribution to the field is the contraction theory approach, which has served as the foundation for several subsequent works~\cite{cContractThControl,cContractThControlLearning,cContractThMP,cContractThOnlineMP}.
 Contraction theory is a generalization of Lyapunov theory used to analyze and design robust control systems, particularly in the presence of uncertainties or disturbances. 
@@ -209,7 +248,8 @@ This is achieved by requiring that the system dynamics exhibit a "contracting" b
 In contraction theory, the system dynamics are typically modeled using differential equations, and the stability of the system is guaranteed by synthesizing a controller associated with a contraction rate such that the contraction condition holds. 
 Contraction theory has been leveraged to design "tubes" by determining bounds on the controller "contraction rate". 
 These tubes are then employed to develop robust motion planning algorithms. 
-Consequently, these methods remain limited to the use of specific controllers, which may not always be amenable to a reasonably simple implementation in real-world cases.
+However, this approach is restricted to the specific synthesized controllers, that may not always be easily implementable in real-world scenarios. 
+Additionally, requiring contraction at every point along a trajectory can be too restrictive and challenging.
 
 While the aforementioned methods explicitly focus on generating robust trajectories to external disturbances or unmodeled forces (e.g., wind, friction), none of them considers potential mismatches or fluctuations in the robot model parameters during runtime, such as changes in mass or displacements of the center of mass.
 Such robot model inaccuracy can strongly impact their efficiency, as they are strong model based approaches. 
