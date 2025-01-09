@@ -58,7 +58,7 @@ This algorithm iteratively samples both the trajectory from DeepSAMP and the con
 Indeed, as demonstrated in~\cite{AliIROS}, optimizing both factors concurrently results in minimizing the uncertainty.
 The algorithm produces two offline outputs: $(i)$ a robust desired trajectory $\q_d^{tot}$ optimized for accuracy at the desired states, and $(ii)$ the optimized controller gains vector $k_{c}^{opt}$, considered constant throughout the trajectory.
 
-\subsection{Global robust motion planning via learned sensitivity metrics}\label{sec:RSAMP}
+\subsection{Robust motion planning via deep learning}\label{sec:RSAMP}
 
 \subsubsection{Sampling-based motion planning with \myglsentry{rnns}}
 
@@ -525,7 +525,7 @@ This section provides an experimental validation of both the deep learning-based
     \label{fig: exp setup}%
 \end{figure}
 
-\subsection{Robust planning} \label{sec:RobustPlanExp}
+\subsection{Robust motion planning via deep learning} \label{sec:RobustPlanExp}
 
 The window scenario, depicted in Figure~\ref{fig: fig1robust} and evaluated in simulation in Section~\ref{sec:RobustPlanSimu}, is experimentally validated on a real quadrotor.
 In this scenario, uncertainties are added to the system by randomly attaching a mass of up to 80g (not known by the controller) to the drone as depicted in Figure~\ref{fig: drone_mass}.
@@ -547,7 +547,7 @@ The experimental results confirm the simulation observations, providing an overa
     \label{fig: exp window}%
 \end{figure}
 
-\subsection{Accuracy optimization} \label{sec:AccOptExp}
+\subsection{Robust motion planning with accuracy optimization} \label{sec:AccOptExp}
 
 \begin{figure} [htp]
     \begin{subfigure}{0.63\linewidth}
