@@ -101,7 +101,7 @@ Such initial condition is used together with the above-mentioned desired traject
 Next, an initial filter is applied using the predicted control inputs and uncertainty tubes, with a robust control input check for saturation (line 8).
 The nominal trajectory is then computed (line 9). 
 At this stage, the control inputs are recomputed in a closed-loop manner w.r.t. the desired trajectory $\q_d$, even though these control inputs were initially predicted by the GRU.
-However, directly using the predicted control inputs in an open-loop manner could lead to unsuitable nominal trajectories due to the accumulation of prediction errors over time in the simulation process.
+Indeed, directly using the predicted control inputs in an open-loop manner could lead to unsuitable nominal trajectories due to the accumulation of prediction errors over time in the simulation process.
 Then, for each state of the nominal trajectory $\q_{n}$, the function \emph{IsStateRobust} (line 10) performs a robust collision checking by using the uncertainty radii (for further details see Appendix~\ref{chap:appendixA}).
 If the extension is valid, the final state of the desired trajectory is inserted in the tree as a new node, embedding at the same time the final hidden state $h_{F}$ to be reused as initial condition in next iterations (line 10-12).
 Finally, the algorithm returns a global trajectory connecting ${q}^{init}$ and ${q}^{goal}$ if one exists in the tree (lines 15).
