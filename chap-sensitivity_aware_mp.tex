@@ -1,6 +1,7 @@
 \chapter{Robust Motion Planning with Global Sensitivity Optimization}\label{chap:samp}
 \markboth{Robust Motion Planning with Global Sensitivity Optimization}{}% To set left/right header
-\localtableofcontents \newpage
+
+% \localtableofcontents \newpage
 
 This chapter introduces the first major contribution of this thesis, by leveraging the sensitivity concept discussed in Chapter~\ref{chap:models}.
 The contribution of this chapter is twofold:
@@ -40,16 +41,7 @@ Note that, while the subsequent sections of this chapter focus on asymptotically
 
 \subsection{Standard asymptotically optimal planners}\label{sec:standard_planners}
 
-This subsection presents the standard asymptotically optimal sampling-based planners, which form the basis for the \myglsentry{samp} variants developed in Sections~\ref{sec:sarrt*} and~\ref{sec:sasst*}.
-
-\paragraph{Standard RRT*}
-
-The vanilla \gls{rrtstar}~\cite{cRRTstar} is a widely used asymptotically optimal sampling-based planner that extends the standard \gls{rrt} algorithm~\cite{cRRT} by incorporating a rewiring step to iteratively improve the quality of the trajectories in the generated tree.
-It achieves this by first optimally connecting the samples to the tree and then re-evaluating the connections between sampled nodes and their neighbors based on a cost metric. 
-This process ensures that the tree progressively converges toward an optimal solution as the number of samples increases.
-The \myglsentry{rrtstar} tree extension process and tree rewiring phase are illustrated in Figure~\ref{fig:rrtstar}.
-
-\begin{figure} [h]
+\begin{figure} [h!]
     \centering
     \includegraphics[width=0.95\linewidth]{figures/samp/rrtstar.png} 
     \caption{Illustration of the \myglsentry{rrtstar} tree extension procedure.
@@ -59,15 +51,7 @@ The \myglsentry{rrtstar} tree extension process and tree rewiring phase are illu
     \label{fig:rrtstar}%
 \end{figure}
 
-\paragraph{Standard SST*}
-
-The standard \gls{sst*}~\cite{cSST} is another asymptotically optimal sampling-based planner that, unlike \myglsentry{rrtstar}, does not utilize a steering method but to extend its tree but instead relies on system dynamics forward propagation.
-This method grows a tree in the state space by employing Monte Carlo forward dynamic propagation to explore feasible trajectories by sampling control inputs.
-To improve efficiency, \myglsentry{sst*} employs a pruning mechanism that preserves only the locally optimal solutions, thanks to a witness and representative system as illustrated in Figure~\ref{fig:sst}.
-This approach ensures that the planner focuses on promising regions of the state space, reducing redundant computations while maintaining theoretical guarantees of near-optimality. 
-By combining these features, \myglsentry{sst*} offers a powerful solution for kinodynamic motion planning in complex systems.
-
-\begin{figure} [t!]
+\begin{figure} [h!]
     \centering
     \includegraphics[width=0.95\linewidth]{figures/samp/sst.png} 
     \caption{Illustration of the \myglsentry{sst} tree extension procedure where green dots represent witnesses, and blue dots are current witnesses representative (i.e. the node with the best cost in the witness neighborhood) (extracted from~\cite{cSST}).
@@ -78,9 +62,26 @@ By combining these features, \myglsentry{sst*} offers a powerful solution for ki
     \label{fig:sst}%
 \end{figure}
 
+This subsection presents the standard asymptotically optimal sampling-based planners, which form the basis for the \myglsentry{samp} variants developed in Sections~\ref{sec:sarrt*} and~\ref{sec:sasst*}.
+
+\paragraph{Standard RRT*}
+
+The vanilla \gls{rrtstar}~\cite{cRRTstar} is a widely used asymptotically optimal sampling-based planner that extends the standard \gls{rrt} algorithm~\cite{cRRT} by incorporating a rewiring step to iteratively improve the quality of the trajectories in the generated tree.
+It achieves this by first optimally connecting the samples to the tree and then re-evaluating the connections between sampled nodes and their neighbors based on a cost metric. 
+This process ensures that the tree progressively converges toward an optimal solution as the number of samples increases.
+The \myglsentry{rrtstar} tree extension process and tree rewiring phase are illustrated in Figure~\ref{fig:rrtstar}.
+
+\paragraph{Standard SST*}
+
+The standard \gls{sst*}~\cite{cSST} is another asymptotically optimal sampling-based planner that, unlike \myglsentry{rrtstar}, does not utilize a steering method but to extend its tree but instead relies on system dynamics forward propagation.
+This method grows a tree in the state space by employing Monte Carlo forward dynamic propagation to explore feasible trajectories by sampling control inputs.
+To improve efficiency, \myglsentry{sst*} employs a pruning mechanism that preserves only the locally optimal solutions, thanks to a witness and representative system as illustrated in Figure~\ref{fig:sst}.
+This approach ensures that the planner focuses on promising regions of the state space, reducing redundant computations while maintaining theoretical guarantees of near-optimality. 
+By combining these features, \myglsentry{sst*} offers a powerful solution for kinodynamic motion planning in complex systems.
+
 \subsection{Sensitivity-Aware RRT* (SARRT*)}\label{sec:sarrt*}
 
-\begin{algorithm}[htp]
+\begin{algorithm}[h!]
     \caption{SARRT$^* [q^{init}, q^{goal}]$}\label{alg:SARRT*}
     \begin{algorithmic}[1]
         \State $T \gets$ InitTree$({q^{init}, q^{goal}});$
@@ -102,7 +103,25 @@ By combining these features, \myglsentry{sst*} offers a powerful solution for ki
     \end{algorithmic}
 \end{algorithm}
 
-\begin{algorithm}[htp]
+% For clarity in the pseudo-code, the temporal notation is omitted from this subsection. 
+% Thus, bold symbols refer to trajectory vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent values at a single state (e.g., $q^{rand}$ denotes a random state, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given trajectory state, etc.).
+
+The first implementation presented in Algorithm~\ref{alg:SARRT*}\footnote{For clarity in the pseudo-code, the temporal notation is omitted from this subsection. 
+Thus, bold symbols refer to trajectory vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent values at a single state (e.g., $q^{rand}$ denotes a random state, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given trajectory state, etc.).} is a variant of the widely used \myglsentry{rrtstar}~\cite{cRRTstar}, denoted as \gls{sarrt*}, as a particular instance of \myglsentry{samp}.
+The tree is initialized with the desired initial and goal robot states, $(q^{init}, q^{goal})$ (line 1), and the algorithm continues until a user-defined stopping condition is met (line 2).
+Such a criterion can include a maximum number of iterations, a maximum runtime, a cost convergence threshold, etc.
+
+The first stage of the algorithm follows the same standard procedure as the vanilla \myglsentry{rrtstar}, including sampling a desired robot state $q^{rand}$ and finding its nearest neighbor $q^{nearest}$ in the tree structure (lines 3 and 4, respectively) using an efficient distance metric (further discussed in Section~\ref{sec:samp_simu}).
+Then, a steering method (such as the ones presented in Section~\ref{sec:kinosplines} and~\ref{sec:dubins}) is employed to generate a desired local trajectory $\q_d$ that extends $q^{nearest}$ toward $q^{rand}$.
+Note that if a maximum local distance is imposed, $q^{rand}$ is adjusted accordingly.
+Next, the set of \myglsentry{odes} is solved (line 7) to compute the nominal trajectory $\q_n$, the nominal control inputs $\u_n$, and the uncertainty tubes' radii $(\Rq, \Ru)$, utilizing the initial conditions $S_0$ (line 6).
+
+A robust feasibility check is then performed along the nominal trajectory and control inputs (line 8).
+This test includes a robust collision check that accounts for the robot shape expansion due to uncertainty tubes along the state trajectory, as well as a robust verification that the control inputs do not saturate (for further details see Appendix~\ref{chap:appendixA}).
+Remember that this test is carried out along the nominal values, as the uncertainty tubes are valid around them, as detailed in Section~\ref{sec:tubes}.
+If the extension is feasible, the new node parent is set to $q^{nearest}$, and the final conditions $S_F$ are stored within $q^{rand}$ (line 9-10).
+
+\begin{algorithm}[h!]
     \caption{RobustOptimalConnection$[T, Q^{near}, q^{rand}, q^{min}]$}\label{alg:RobustOptimalConnect}
     \begin{algorithmic}[1]
         \State $c^{min} \gets$ Cost$(q^{rand});$
@@ -122,7 +141,14 @@ By combining these features, \myglsentry{sst*} offers a powerful solution for ki
     \end{algorithmic}
 \end{algorithm}
 
-\begin{algorithm}[htp]
+Next, the newly added node is initially connected to its nearest neighbor, but this connection does not consider the total trajectory cost from the root node. 
+Therefore, an optimal connection procedure is performed. 
+To determine the optimal parent of $q^{rand}$, which is temporarily assigned to $q^{min}$, an additional search is conducted within a specified neighborhood $Q^{near}$ (line 11).
+Such procedure, depicted in Algorithm~\ref{alg:RobustOptimalConnect}, starts by computing the cost of the unique trajectory from the root node to $q^{rand}$ (line 1).
+Then, the optimal parent $q^{min}$ is set to the node in $Q^{near}$ that allows a robust extension with the minimum cost to get to $q^{rand}$ (line 2-9).
+Finally, the new node is inserted in the tree with an edge connecting it to its optimal parent (line 10-11).
+
+\begin{algorithm}[h!]
     \caption{RobustRewire$[T, Q^{near}, q^{min}]$}\label{alg:RobustRewire}
     \begin{algorithmic}[1]
         \For {each $q^{near} \in Q^{near} \backslash \{q^{min}\}$}
@@ -141,31 +167,6 @@ By combining these features, \myglsentry{sst*} offers a powerful solution for ki
         \EndFor
     \end{algorithmic}
 \end{algorithm}
-
-% For clarity in the pseudo-code, the temporal notation is omitted from this subsection. 
-% Thus, bold symbols refer to trajectory vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent values at a single state (e.g., $q^{rand}$ denotes a random state, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given trajectory state, etc.).
-
-The first implementation presented in Algorithm~\ref{alg:SARRT*}\footnote{For clarity in the pseudo-code, the temporal notation is omitted from this subsection. 
-Thus, bold symbols refer to trajectory vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent values at a single state (e.g., $q^{rand}$ denotes a random state, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given trajectory state, etc.).} is a variant of the widely used \myglsentry{rrtstar}~\cite{cRRTstar}, denoted as \gls{sarrt*}, as a particular instance of \myglsentry{samp}.
-The tree is initialized with the desired initial and goal robot states, $(q^{init}, q^{goal})$ (line 1), and the algorithm continues until a user-defined stopping condition is met (line 2).
-Such a criterion can include a maximum number of iterations, a maximum runtime, a cost convergence threshold, etc.
-
-The first stage of the algorithm follows the same standard procedure as the vanilla \myglsentry{rrtstar}, including sampling a desired robot state $q^{rand}$ and finding its nearest neighbor $q^{nearest}$ in the tree structure (lines 3 and 4, respectively) using an efficient distance metric (further discussed in Section~\ref{sec:samp_simu}).
-Then, a steering method (such as the ones presented in Section~\ref{sec:kinosplines} and~\ref{sec:dubins}) is employed to generate a desired local trajectory $\q_d$ that extends $q^{nearest}$ toward $q^{rand}$.
-Note that if a maximum local distance is imposed, $q^{rand}$ is adjusted accordingly.
-Next, the set of \myglsentry{odes} is solved (line 7) to compute the nominal trajectory $\q_n$, the nominal control inputs $\u_n$, and the uncertainty tubes' radii $(\Rq, \Ru)$, utilizing the initial conditions $S_0$ (line 6).
-
-A robust feasibility check is then performed along the nominal trajectory and control inputs (line 8).
-This test includes a robust collision check that accounts for the robot shape expansion due to uncertainty tubes along the state trajectory, as well as a robust verification that the control inputs do not saturate (for further details see Appendix~\ref{chap:appendixA}).
-Remember that this test is carried out along the nominal values, as the uncertainty tubes are valid around them, as detailed in Section~\ref{sec:tubes}.
-If the extension is feasible, the new node parent is set to $q^{nearest}$, and the final conditions $S_F$ are stored within $q^{rand}$ (line 9-10).
-
-Next, the newly added node is initially connected to its nearest neighbor, but this connection does not consider the total trajectory cost from the root node. 
-Therefore, an optimal connection procedure is performed. 
-To determine the optimal parent of $q^{rand}$, which is temporarily assigned to $q^{min}$, an additional search is conducted within a specified neighborhood $Q^{near}$ (line 11).
-Such procedure, depicted in Algorithm~\ref{alg:RobustOptimalConnect}, starts by computing the cost of the unique trajectory from the root node to $q^{rand}$ (line 1).
-Then, the optimal parent $q^{min}$ is set to the node in $Q^{near}$ that allows a robust extension with the minimum cost to get to $q^{rand}$ (line 2-9).
-Finally, the new node is inserted in the tree with an edge connecting it to its optimal parent (line 10-11).
 
 Now that the optimal feasible extension is added to the tree, \myglsentry{sarrt*} checks if any optimal rewiring can be performed using Algorithm~\ref{alg:RobustRewire}.
 This rewiring phase checks, for each neighbor $q^{near}$ within $Q^{near}$, whether the trajectory from the root to $q^{near}$, passing through the newly added node $q^{rand}$, can be improved (lines 1-6).
@@ -464,19 +465,11 @@ Note that in this implementation the \myglsentry{odes} need to be solved only on
 %     \end{algorithmic}
 % \end{algorithm}
 
-\subsection{Simulation results}\label{sec:samp_simu}
+\subsection{Cost function}\label{sec:sensi_cost}
 
-This subsection presents the results of trajectory planning using the previously discussed variants, evaluated based on computation time, and robustness for the two systems (quadrotor and differential drive robots) introduced in Chapter~\ref{chap:models}.
-To assess the impact of planning robust, globally sensitivity-optimal trajectories, both \myglsentry{sarrt*} and \myglsentry{sasst*} are compared with their respective non-robust vanilla versions, which focus on optimizing trajectory length.
-The objective is to verify the ability of the proposed variants to generate robust solutions, and to evaluate the computational overhead of solving the huge number\footnote{From few thousands for non asymptotically optimal planners, up to a hundred of thousands for asymptotically optimal planners.} of \myglsentry{odes} during the random-trees expansions until an asymptotically optimal solution is found.
-Results are obtained from the implementations of the planners within the \gls{ompl}~\cite{cOMPL}, and collision detection is performed using the widely used C implementation of PyBullet~\cite{cBullet}.
-The \myglsentry{odes} are solved using the JiTCODE~\cite{cJit} module which converts the equations to be integrated into C-compiled code.
-The Euler integrator is then used to solve each ODE and take advantage of this compiled function.
-Although the Euler method is less accurate than a Runge-Kutta 4-based method (e.g., dopri5), it is chosen because the uncertainty tubes are already based on a first-order approximation (see Section~\ref{sec:tubes}), and faster computational efficiency are preferred over higher accuracy in this context.
-
-\subsubsection{Cost function}\label{sec:sensi_cost}
-
-First, generating a sensitivity-optimal trajectory requires identifying an appropriate sensitivity-based cost function.
+While the previously mentioned \myglsentry{samp} variants are sensitivity-aware in the sense that they leverage sensitivity-based uncertainty tubes, they can be applied to optimize various non sensitivity-based cost functions, such as length or obstacle clearance.
+However, as stated earlier, the goal is to generate robust and sensitivity-optimal trajectories.
+To achieve this, the first step is to define an appropriate sensitivity-based cost function.
 The approaches in~\cite{cPi, cTh} proposed leveraging the Frobenius norm of the sensitivity matrices (Equation~\ref{eq:sensi}).
 However, this formulation does not exploit the available information on the uncertainty ranges, $\delta \p$, and the subsequent uncertainty tubes.
 
@@ -501,6 +494,16 @@ Minimization of this cost will smooth deviation of the state tube along the whol
     \caption{Non monotonic p-norm (a) and its integration (b) along a 70-state trajectory for a quadrotor example.}%
     \label{fig:monotonic}%
 \end{figure}
+
+\subsection{Simulation results}\label{sec:samp_simu}
+
+This subsection presents the results of trajectory planning using the previously discussed variants, evaluated based on computation time, and robustness for the two systems (quadrotor and differential drive robots) introduced in Chapter~\ref{chap:models}.
+To assess the impact of planning robust, globally sensitivity-optimal trajectories, both \myglsentry{sarrt*} and \myglsentry{sasst*} are compared with their respective non-robust vanilla versions, which focus on optimizing trajectory length.
+The objective is to verify the ability of the proposed variants to generate robust solutions, and to evaluate the computational overhead of solving the huge number\footnote{From few thousands for non asymptotically optimal planners, up to a hundred of thousands for asymptotically optimal planners.} of \myglsentry{odes} during the random-trees expansions until an asymptotically optimal solution is found.
+Results are obtained from the implementations of the planners within the \gls{ompl}~\cite{cOMPL}, and collision detection is performed using the widely used C implementation of PyBullet~\cite{cBullet}.
+The \myglsentry{odes} are solved using the JiTCODE~\cite{cJit} module which converts the equations to be integrated into C-compiled code.
+The Euler integrator is then used to solve each ODE and take advantage of this compiled function.
+Although the Euler method is less accurate than a Runge-Kutta 4-based method (e.g., dopri5), it is chosen because the uncertainty tubes are already based on a first-order approximation (see Section~\ref{sec:tubes}), and faster computational efficiency are preferred over higher accuracy in this context.
 
 \subsubsection{Differential drive robot}\label{sec:unic_setup_samp}
 
@@ -551,6 +554,22 @@ Finally, all algorithms use a time step of 0.05s for the solving the \myglsentry
 
 \input{figures/tables/SAMP_unicycle.tex}
 
+\begin{figure} [h!]
+    \centering
+    \includegraphics[width=0.6\linewidth]{figures/samp/unicycle_cost_conv.png} 
+    \caption{Differential drive robot application: Evolution of the sensitivity as a function of the planning time of a \myglsentry{sasst*} (green), and of \myglsentry{sarrt*} (red).}%
+    \label{fig:samp_unic_time}%
+\end{figure}
+
+\begin{figure} [h!]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/samp/non_robust_unic.png}
+    \includegraphics[width=0.9\linewidth]{figures/samp/robust_unic.png}
+    \caption{Differential drive robot application: Planned trajectory (black) produced by the \myglsentry{rrtstar} (top) and the \myglsentry{sarrt*} (bottom). 
+    Simulated trajectories under uncertainty are displayed in green in the case of success, and in red in the case of a crash.}%
+    \label{fig:robust_unic}%
+\end{figure}
+
 Table~\ref{tab:samp_unicycle} presents comparative results averaged for each planner across 10 trajectories planned in the environment shown in Figure~\ref{fig:robust_unic}. 
 Each of these 10 plans was simulated 30 times with varying values for the uncertain parameters.
 The perturbations are uniformly sampled within an ellipsoid with semi-axis defined by $\delta \p$ as explained in Section~\ref{sec:tubes}.
@@ -568,26 +587,10 @@ However, in this context, the impact is even more significant due to the additio
 Nevertheless, it is worth noting that the \myglsentry{sasst*} is much faster than the \myglsentry{sarrt*} variant as highlighted in Table~\ref{tab:samp_unicycle} and in Figure~\ref{fig:samp_unic_time} that show how the \myglsentry{sasst*} is able to converge faster than \myglsentry{sarrt*}, highlighting that reducing the frequency of \myglsentry{odes} leads to a lower planning time.
 Furthermore, the results in Figure~\ref{fig:unic_tree} strongly suggest that by incorporating uncertainty tubes, the problem becomes more constrained, requiring more iterations for the planners to converge to lower-cost regions in the state space.
 
-\begin{figure} [H]
-    \centering
-    \includegraphics[width=0.6\linewidth]{figures/samp/unicycle_cost_conv.png} 
-    \caption{Evolution of the sensitivity as a function of the planning time of a \myglsentry{sasst*} (green), and of \myglsentry{sarrt*} (red) for the differential drive robot application.}%
-    \label{fig:samp_unic_time}%
-\end{figure}
-
-\begin{figure} [H]
-    \centering
-    \includegraphics[width=0.9\linewidth]{figures/samp/non_robust_unic.png}
-    \includegraphics[width=0.9\linewidth]{figures/samp/robust_unic.png}
-    \caption{Planned trajectory (black) produced by the \myglsentry{rrtstar} (top) and the \myglsentry{sarrt*} (bottom). 
-    Simulated trajectories under uncertainty are displayed in green in the case of success, and in red in the case of a crash.}%
-    \label{fig:robust_unic}%
-\end{figure}
-
-\begin{figure} [H]
+\begin{figure} [h!]
     \centering
     \includesvg[width=0.8\linewidth]{figures/samp/profiling_unic.svg} 
-    \caption{Profiling of vanilla planners and robust \myglsentry{samp} variants, illustrating the contributions of various procedures to the total planning time over 1.000 iterations for the differential drive robot case.}%
+    \caption{Differential drive robot application: Profiling of vanilla planners and robust \myglsentry{samp} variants, illustrating the contributions of various procedures to the total planning time over 1.000 iterations.}%
     \label{fig:profiling_unic}%
 \end{figure}
 
@@ -619,6 +622,24 @@ Finally, all algorithms use a time step of 0.05s for the solving the \myglsentry
 
 \input{figures/tables/SAMP_quad.tex}
 
+\begin{figure} [h!]
+    \centering
+    \includesvg[width=0.6\linewidth]{figures/samp/sensi_cost_quad.svg} 
+    \caption{Quadrotor application: Evolution of the sensitivity as a function of the planning time of a \myglsentry{sasst*} (green), and of \myglsentry{sarrt*} (red).}%
+    \label{fig:samp_quad_time}%
+\end{figure}
+
+\begin{figure} [h!]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/samp/non_robust_quad.png}
+    \includegraphics[width=0.8\linewidth]{figures/samp/robust_quad.png}
+    \caption{Quadrotor application: Planned trajectory (black) produced by the \myglsentry{rrtstar} (top) and the \myglsentry{sarrt*} (bottom). 
+    Simulated trajectories under uncertainty are displayed in green in the case of success, and in red in the case of a crash.
+    Note that explicitly considering the uncertainty tubes during planning does not allow the \myglsentry{sarrt*} to pass through the narrow passage.
+    Additionally, it is important to note that the display tubes are augmented by the drone wingspan.}%
+    \label{fig:robust_quad}%
+\end{figure}
+
 Table~\ref{tab:samp_quad} shows comparative results averaged for each planner over 10 plans for the \myglsentry{rrtstar} and \myglsentry{sst*}, and 3 trajectories only for the \myglsentry{sarrt*} and \myglsentry{sasst*} due to very high planning time, and 30 simulations with uncertain parameters. 
 The perturbations are uniformly sampled within an ellipsoid with semi-axis defined by $\delta \p$ as explained in Section~\ref{sec:tubes}.
 First, it is important to note robust efficiency of the proposed \myglsentry{samp} variants which achieve both 100\% robustness compared to their non-robust vanilla implementation, as highlighted by Figure~\ref{fig:robust_quad}.
@@ -628,28 +649,10 @@ Although this results in high computation times for simple systems like the diff
 Similar to the differential drive robot, the prohibitively long planning time is closely linked to the time spent solving the \myglsentry{odes}, as shown in Figure~\ref{fig:profiling_quad}, where the \emph{CC} procedure refers to standard collision checking or the robust feasibility check, \emph{Cost} is the trajectory cost computation procedure, \emph{NN} stands for the nearest neighbor search, \emph{Sampling} and \emph{Steer} refer to the state space sampling and local trajectory planning respectively, \emph{Tree} procedure is in charge of the data structure management (e.g. pruning, child cost update, etc.), and finally \emph{ODEs} stands for the sensitivity and tubes computations.
 Therefore, the frequency of \myglsentry{odes} solving must be further reduced, as even the \myglsentry{sasst*}, which performs only a single computation per iteration, faces challenges due to the tens of thousands of iterations required to adequately explore the space.
 
-\begin{figure} [H]
-    \centering
-    \includesvg[width=0.6\linewidth]{figures/samp/sensi_cost_quad.svg} 
-    \caption{Evolution of the sensitivity as a function of the planning time of a \myglsentry{sasst*} (green), and of \myglsentry{sarrt*} (red) for the quadrotor application.}%
-    \label{fig:samp_quad_time}%
-\end{figure}
-
-\begin{figure} [H]
-    \centering
-    \includegraphics[width=0.8\linewidth]{figures/samp/non_robust_quad.png}
-    \includegraphics[width=0.8\linewidth]{figures/samp/robust_quad.png}
-    \caption{Planned trajectory (black) produced by the \myglsentry{rrtstar} (top) and the \myglsentry{sarrt*} (bottom). 
-    Simulated trajectories under uncertainty are displayed in green in the case of success, and in red in the case of a crash.
-    Note that explicitly considering the uncertainty tubes during planning does not allow the \myglsentry{sarrt*} to pass through the narrow passage.
-    Additionally, it is important to note that the display tubes are augmented by the drone wingspan.}%
-    \label{fig:robust_quad}%
-\end{figure}
-
-\begin{figure} [H]
+\begin{figure} [t!]
     \centering
     \includesvg[width=0.8\linewidth]{figures/samp/profiling_quad.svg} 
-    \caption{Profiling of vanilla planners and robust variants, illustrating the contributions of various procedures to the total planning time over 1.000 iterations for the quadrotor case.
+    \caption{Quadrotor application: Profiling of vanilla planners and robust variants, illustrating the contributions of various procedures to the total planning time over 1.000 iterations.
     }%
     \label{fig:profiling_quad}%
 \end{figure}
@@ -671,7 +674,7 @@ This method minimizes the frequency of solving the \myglsentry{odes}, offering a
 
 Since the cost function of Equation~(\ref{eq:cost_function}) corresponds to the integration of the sensitivity over the trajectory, starting with an initial (near) time-optimal trajectory is a reasonable strategy for generating initial solutions of relatively high quality (i.e. near the optimal solution) w.r.t. the sensitivity cost.
 The proposed decoupled approach is based on a lazy sensitivity-aware variant, referred to as \gls{lazysamp}, that first plans a robust (near) time-optimal trajectory.
-This trajectory is then locally optimized for minimizing the cost function~(\ref{eq:cost_function}) via a robust variant of the `shortcut' technique classically used to smooth solutions of randomized planners~\cite{cShortcut}. 
+This trajectory is then locally optimized for minimizing the cost function~(\ref{eq:cost_function}) via a robust variant of the ``shortcut'' technique classically used to smooth solutions of randomized planners~\cite{cShortcut}. 
 
 The following section introduces a lazy robust checking strategy. 
 Although Section~\ref{sec:samp_simu} demonstrates that \myglsentry{sst*} achieves faster convergence, this lazy approach cannot be applied to \myglsentry{sst*}. 
@@ -680,7 +683,7 @@ It requires prompt evaluation of node quality and trajectory costs to retain onl
 Delaying collision checks, as in the lazy approach, would compromise the \myglsentry{sst*} ability to efficiently prune suboptimal nodes and update its witness set dynamically, potentially resulting in an inefficient and cluttered tree. 
 Consequently, the lazy robust checking strategy outlined in the next subsection is implemented with \myglsentry{rrtstar}.
 
-\subsection{Global robust motion planning with lazy strategy}\label{sec:lazy_rrt*}
+\subsection{Global robust motion planning with lazy strategy (LazySARRT*)}\label{sec:lazy_rrt*}
 
 This subsection present the \gls{lazysarrt*}, as a particular instance of \myglsentry{lazysamp}, that plans a robust (near) time-optimal trajectory.
 The algorithm not only provides a (near) time-optimal trajectory but also ensures that the resulting trajectory is robustly feasible w.r.t. the state uncertainties and also that control inputs remain in their allowed bounds.
@@ -713,15 +716,6 @@ Consequently, unlike the \myglsentry{samp} methods described in Section~\ref{sec
     \end{algorithmic}
 \end{algorithm}
 
-Algorithm~\ref{alg:LazySARRT*} provides the pseudo-code of the \myglsentry{lazysarrt*} algorithm.
-The first stage applies the standard \myglsentry{rrtstar} (line 1-5) where the Extend procedure performs the standard collision checking (i.e. without uncertainty tubes), optimal connection, and rewiring phase for the given sample  $q^{rand}$ as in~\cite{cRRTstar}.
-The algorithm then verifies at each iteration whether a new, lower-cost solution has been discovered. 
-If a better solution is identified, the set of nodes $Q_{sol}$, which enables the reconstruction of this solution, is retrieved (line 6).
-
-Next, for each local trajectories between two consecutive nodes in this set, the \myglsentry{odes} are solved, and the uncertainty tubes computed (line 9-11).
-The algorithm then verifies the robust feasibility of the local trajectory using a robustness test ((see Appendix~\ref{chap:appendixA})) w.r.t. obstacles but also control inputs saturation. 
-If a local trajectory is found to be non-robustly feasible, all nodes in the tree connected to $Q_{sol}^i$ are disconnected and reconnected using the RobustReconnect procedure explain below (line 13).
-
 \begin{figure} [h!]
     \centering
     \includegraphics[width=0.8\linewidth]{figures/samp/lazyrrtstar.png} 
@@ -732,6 +726,15 @@ If a local trajectory is found to be non-robustly feasible, all nodes in the tre
     }%
     \label{fig:lazysarrt*}%
 \end{figure}
+
+Algorithm~\ref{alg:LazySARRT*} provides the pseudo-code of the \myglsentry{lazysarrt*} algorithm.
+The first stage applies the standard \myglsentry{rrtstar} (line 1-5) where the Extend procedure performs the standard collision checking (i.e. without uncertainty tubes), optimal connection, and rewiring phase for the given sample  $q^{rand}$ as in~\cite{cRRTstar}.
+The algorithm then verifies at each iteration whether a new, lower-cost solution has been discovered. 
+If a better solution is identified, the set of nodes $Q_{sol}$, which enables the reconstruction of this solution, is retrieved (line 6).
+
+Next, for each local trajectories between two consecutive nodes in this set, the \myglsentry{odes} are solved, and the uncertainty tubes computed (line 9-11).
+The algorithm then verifies the robust feasibility of the local trajectory using a robustness test ((see Appendix~\ref{chap:appendixA})) w.r.t. obstacles but also control inputs saturation. 
+If a local trajectory is found to be non-robustly feasible, all nodes in the tree connected to $Q_{sol}^i$ are disconnected and reconnected using the RobustReconnect procedure explain below (line 13).
 
 The RobustReconnect procedure may differ depending on the specific \myglsentry{lazysamp} variant used (see Chapter~\ref{chap:sampNN}). 
 In the case of \myglsentry{lazysarrt*}, where maintaining an optimal tree is required, it is illustrated by Figure~\ref{fig:lazysarrt*} and operates as follows:
@@ -777,7 +780,7 @@ Therefore, its robustness can be further improved.
     \end{algorithmic}
 \end{algorithm}
 
-In order to improve the sensitivity-based cost function, a local optimization is performed using a simple robust sensitivity-aware variant of the 'shortcut' smoothing algorithm~\cite{cShortcut}, called \gls{SAshortcut} and described in Algorithm~\ref{alg:SAshortcut}. 
+In order to improve the sensitivity-based cost function, a local optimization is performed using a simple robust sensitivity-aware variant of the ``shortcut'' smoothing algorithm~\cite{cShortcut}, called \gls{SAshortcut} and described in Algorithm~\ref{alg:SAshortcut}. 
 % A more detailed discussion regarding the robust sensitivity-aware local optimization can be found in Chapter~\ref{chap:sampNN}.
 
 The algorithm is first initialized with the robust trajectory resulting from the \myglsentry{lazysarrt*} presented above (line 1).
@@ -817,7 +820,7 @@ The average cost find by the decoupled approach is of $0.925 \pm 0.032$ against 
 \begin{figure}[h!]
     \centering
     \includegraphics[width=0.7\linewidth]{figures/samp/sensi_cost_unic.png}
-    \caption{Trajectory cost resulting of the decoupled approach over 3 runs (red, green, blue) for the differential drive robot, the dashed purple cost correspond to the sensitivity-optimal reference trajectory found by the \myglsentry{sasst*}.}
+    \caption{Differential drive robot application: Trajectory cost resulting of the decoupled approach over 3 runs (red, green, blue), the dashed purple cost correspond to the sensitivity-optimal reference trajectory found by the \myglsentry{sasst*}.}
     \label{fig:sensi_cost_unic}
 \end{figure}
 
@@ -853,7 +856,7 @@ The mean values associated with \myglsentry{sasst*} were obtained over 3 runs (d
     \subfloat[\centering ]{{\includegraphics[width=0.45\linewidth]{figures/samp/U_shape_3in1_after.png} }}%
     \\
     \includegraphics[width=0.7\linewidth]{figures/samp/U_shape_3in1_sensi.png}
-    \caption{Three trajectories (red, green, blue) produced by \myglsentry{lazysarrt*} (a), and the three trajectories resulting from \myglsentry{SAshortcut} (b), with the evolution of their respective sensitivity (bottom). 
+    \caption{Quadrotor application: Three trajectories (red, green, blue) produced by \myglsentry{lazysarrt*} (a), and the three trajectories resulting from \myglsentry{SAshortcut} (b), with the evolution of their respective sensitivity (bottom). 
     The dashed black trajectory (a, b) and the dashed purple cost (bottom) correspond to the sensitivity-optimal reference trajectory found by the \myglsentry{sasst*}.}
     \label{fig:U_shape}
 \end{figure}
@@ -865,7 +868,7 @@ The mean values associated with \myglsentry{sasst*} were obtained over 3 runs (d
     \\
     \subfloat[\centering ]{{\includegraphics[width=0.4\linewidth]{figures/samp/2Ways_high_3in1_before.png} }}%
     \subfloat[\centering ]{{\includegraphics[width=0.4\linewidth]{figures/samp/2Ways_high_3in1_after.png} }}%
-    \caption{Trajectories planned by: (a) the \myglsentry{lazysarrt*} with low parameter uncertainties, (b) after the \myglsentry{SAshortcut} with low parameter uncertainties, (c) the \myglsentry{lazysarrt*} with high parameter uncertainties, and (d) after the \myglsentry{SAshortcut} with high parameter uncertainties.
+    \caption{Quadrotor application: Trajectories planned by: (a) the \myglsentry{lazysarrt*} with low parameter uncertainties, (b) after the \myglsentry{SAshortcut} with low parameter uncertainties, (c) the \myglsentry{lazysarrt*} with high parameter uncertainties, and (d) after the \myglsentry{SAshortcut} with high parameter uncertainties.
     Note that one (near) sensitivity-optimal trajectory planned by the \myglsentry{sasst*} is displayed in dashed black.}%
     \label{fig:2way}%
 \end{figure}
@@ -875,7 +878,7 @@ The mean values associated with \myglsentry{sasst*} were obtained over 3 runs (d
     \includegraphics[width=0.58\linewidth]{figures/samp/3D_full_view.png}
     \includegraphics[width=0.58\linewidth]{figures/samp/3D_ZYprofile.png}
     \includegraphics[width=0.58\linewidth]{figures/samp/3D_sensi.png}
-    \caption{Trajectories produced by \myglsentry{lazysarrt*} (green), \myglsentry{SAshortcut} (red), and \myglsentry{sasst*} (dashed black) in a 3D environment (top). 
+    \caption{Quadrotor application: Trajectories produced by \myglsentry{lazysarrt*} (green), \myglsentry{SAshortcut} (red), and \myglsentry{sasst*} (dashed black) in a 3D environment (top). 
     A profile view along the YZ plane is given (middle) as well as the evolution of the sensitivity (red) and the optimal one found by the \myglsentry{sasst*} (dashed blue) (bottom).}
     \label{fig:3D}
 \end{figure}

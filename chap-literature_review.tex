@@ -142,13 +142,13 @@ This approach ensures that the generated paths are collision-free and physically
 
 \section{Planning under uncertainty}\label{sec:planuncertainty}
 
-While the previous section focused on motion planning algorithms that can deal with kinodynamic constraints of various robot, they do not consider the unavoidable presence of uncertainties (e.g. external disturbances, sensor noise, model parameter mismatches, etc.).
+While the previous section focused on motion planning algorithms that can deal with kinodynamic constraints of various types of robots, they do not consider the unavoidable presence of uncertainties (e.g. external disturbances, sensor noise, model parameter mismatches, etc.).
 
 A common approach to managing uncertainties is to compensate for them in real-time using robust control strategies, such as H-infinity~\cite{cHinf} or \gls{lpv}~\cite{cLPV} methods.
 For instance, the work of~\cite{cCastillo} proposes an adaptive law strategy for estimating the parameters of unknown disturbances, integrating them into a closed-loop system.
 In~\cite{cMarilena} \gls{cbf} are leveraged to design closed-form controllers that ensure both the safety and stability of system execution in the presence of obstacles.
 However, these methods often encounter difficulties in maintaining robustness when applied to non-robust reference trajectories, due to their inherently local nature.
-Additionally, they struggle to achieve global optimality and performance, which are typically better addressed by global planning approaches.
+Additionally, they struggle to achieve global optimality, which are typically better addressed by global planning approaches.
 Therefore, research has focused on designing motion planning algorithms that incorporate uncertainty into the trajectory generation process, with the goal of producing robust and feasible plans.
 
 A seminal contribution to the field is the \gls{lmt} framework~\cite{cLMT}, which addresses the challenge of computing compliant motion strategies in the presence of sensor uncertainties and inaccuracies in robot movement. 
@@ -178,13 +178,13 @@ In contrast to the aforementioned probabilistic approaches, this framework opera
 \section{Control-aware motion planning}
 
 The algorithms presented so far have been designed to handle kinodynamic constraints and/or ensure robustness against various uncertainties.
-However, they do not typically consider the inevitable presence of a feedback controller responsible for executing the generated trajectories. 
+However, they do not takes into account the inevitable presence of a feedback controller responsible for executing the generated trajectories. 
 This controller might deviate from the planned trajectory to address uncertainties and disturbances, which can quickly compromise feasibility and optimality of the plan.
 It is important to note that kinodynamic approaches relying on system dynamics forward propagation, as discussed in Section~\ref{sec:forwardplanning}, do not incorporate feedback actions.
 Instead, they directly sample in the control input space, resulting in an open-loop propagation strategy.
 
-The idea of merging planning with control for generating “robust planners” or more “global controllers” for dealing with the robustness problem in a more comprehensive way is however not completely novel in the robotics community.
-This yields to the 'control-aware motion planning' paradigm.
+The idea of merging planning with control for generating ``robust planners'' or more ``global controllers'' for dealing with the robustness problem in a more comprehensive way is however not completely novel in the robotics community.
+This yields to the ``control-aware motion planning'' paradigm.
 
 Work has been carried out on the control community side to propose ``less local'' controllers, resulting in the popular \gls{mpc} technique~\cite{cMPC} that iteratively replans an optimal (and feasible) trajectory with a feedback from the current robot state (that may deviate from the desired one because of disturbances/uncertainties). 
 This method enables fast computation of locally optimal trajectories while incorporating the controller feedback action. 
@@ -210,8 +210,8 @@ The approach operates as follows:
 While the LQR-Trees approach provides a scalable and efficient solution for motion planning in nonlinear and high-dimensional spaces, effectively bridging the gap between open-loop planning and control, its applicability is constrained to the \myglsentry{lqr} control formulation.
 
 Another notable contribution to control-aware motion planning is presented in~\cite{cTognon}. 
-This work focuses on motion planning methods that account for the system dynamic model and control capabilities, particularly in the context of task constraints imposed by the aerial manipulator mission.
-It introduces an innovative motion planning framework that integrates control limitations by conducting system closed-loop simulations during the extension phase of a sampling-based planner, ensuring the feasibility of the generated trajectories for the manipulator control system.
+This work focuses on motion planning methods that account for the system dynamic model and control capabilities, particularly in the context of task constraints planning.
+It introduces an innovative motion planning framework that integrates control limitations and redundancy optimization by conducting system closed-loop simulations during the extension phase of a sampling-based planner, ensuring the feasibility of the generated trajectories for the manipulator control system.
 However, this method does not explicitly account for uncertainties.
 
 \section{Robust control-aware motion planning}
@@ -220,9 +220,9 @@ Although the previously mentioned methods have bridged the gap between motion pl
 An effective framework should ensure safe operation under uncertainty by considering the role of a feedback controller. 
 This challenge is known as robust control-aware motion planning, or robust feedback motion planning.
 
-To address this challenge, an extension of standard \myglsentry{mpc}, known as \gls{tmpc}, has been introduced in~\cite{cTMPC}.
+To address this challenge, an extension of the standard \myglsentry{mpc}, known as \gls{tmpc}, was introduced in~\cite{cTMPC}.
 \myglsentry{tmpc} is a robust control strategy designed to handle uncertainties in dynamic systems while maintaining performance and stability. 
-It generates a nominal trajectory using \myglsentry{mpc} and defines an invariant "tube" around this trajectory, within which the system state must remain. 
+It generates a nominal trajectory using \myglsentry{mpc} and defines an invariant ``tub'' around this trajectory, within which the system state must remain. 
 A feedback controller is then applied to ensure that, despite disturbances or model inaccuracies, the system trajectory stays within the tube, thus maintaining robustness and stability. 
 This approach allows \myglsentry{tmpc} to handle uncertainties effectively while ensuring the system follows a desired trajectory, making it particularly useful in safety-critical applications.
 However, \myglsentry{tmpc} faces similar challenges as its non-robust counterpart, such as the risk of getting trapped in local minima with respect to cost or obstacles.
@@ -256,20 +256,21 @@ Such robot model inaccuracy can strongly impact their efficiency, as they are st
 Moreover, many of these methods hold for a specific class of systems or a specific synthesized controller and, thus, lack generality.
 
 To tackle some of these issues, the RandUp-RRT proposed in~\cite{cRandUpRRT}, builds upon the aforementioned particle-based RRT, by performing a random uncertainty propagation (RandUP)~\cite{cRandUP}, taking into account a feedback action of a given controller.
-The idea is to estimate for each node of the tree the set of states that can be reached by the system using `particles', which corresponds to a dynamic propagation of the system in the presence of random parameters uncertainty.
+The idea is to estimate for each node of the tree the set of states that can be reached by the system using ``particles'', which corresponds to a dynamic propagation of the system in the presence of random parameters uncertainty.
 Furthermore, these sets can be approximated for any system and controller.
 However, the guarantee that these reachable sets are conservative relies on additional padding or a large number of particles, and the more particles considered, the longer the computation time will be compared to conventional algorithms.
-Nevertheless, this work is the closest to the one presented in this thesis and will be used as a baseline for comparison.
+This work is the closest to the one presented in this thesis and will be used as a baseline for comparison.
 
-As mentioned in Section~\ref{sec:planuncertainty}, \emph{sensitivity}-based planning is a concept that explicitly account for parameters model uncertainty.
-However, in the work of~\cite{cSensi1,cSensi2}, it is considered only an open loop manner.
-This concept was recently expanded to include closed-loop sensitivity~\cite{cPi,cTh}\footnote{For clarity, this thesis refers to this new concept as \emph{sensitivity}.}, which accounts for any controller applying feedback to an uncertain system, thus enabling the consideration of uncertainty for any robot/controller combination. 
+As mentioned in Section~\ref{sec:planuncertainty}, \emph{sensitivity}-based planning is a concept that explicitly accounts for parameters model uncertainty.
+However, in the work of~\cite{cSensi1,cSensi2}, it is considered only in an open loop manner.
+This concept was recently expanded to include closed-loop sensitivity~\cite{cPi,cTh}\footnote{For clarity, this thesis refers to this new concept as \emph{sensitivity}.}, which accounts for any controller applying feedback to an uncertain system, thus enabling the consideration of uncertainty for any robot/controller combination.
+This thesis leverages this \emph{sensitivity} extension to address uncertainties in the parameters of the closed-loop system.
 
-\section{Summary}
+\section{Outlook}
 
 Motion planning under uncertainty is a complex problem that has been approached through various methodologies. 
 Over the past decade, planners have emerged that explicitly consider the feedback controller action in responding to uncertainties. 
 However, the guarantees provided by these planners often depend on having an accurate model of both the robot and the controller. 
 Consequently, uncertainties at this modeling level can compromise the robustness of these approaches. 
-Building on recent advancements in closed-loop sensitivity analysis, this thesis introduces a novel class of robust control-aware motion planners. 
+Building on recent advancements in closed-loop sensitivity analysis, this thesis introduces a novel class of robust control-aware motion planners (see Chapters~\ref{chap:samp} and~\ref{cha:samp_NN}). 
 By leveraging widely used sampling-based motion planning techniques and the concept of closed-loop sensitivity, discussed in detail in Chapter~\ref{chap:models}, the proposed approach enhances robustness against parametric uncertainties and is applicable to a broad range of robots and controllers. 

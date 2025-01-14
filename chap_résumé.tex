@@ -1,0 +1,18 @@
+\chapter*{Résumé}
+
+Cette thèse aborde le problème de la génération de trajectoires robustes et précises en tenant compte des incertitudes dans le modèle dynamique du robot.
+Basée sur la notion de \emph{sensibilité en boucle fermée}, qui quantifie les déviations des trajectoires en boucle fermée de toute paire robot/contrôleur face aux incertitudes des paramètres du modèle du robot, des ``tubes d'incertitude'' peuvent être calculés pour des variations bornées de paramètres. 
+Ces tubes bornent l'évolution du système à la fois dans les espaces d'état et d'entrée de commande. 
+En s'appuyant sur le paradigme de la ``planification de mouvement sensible au contrôle'', ce travail exploite ces ``tubes d'incertitude'' pour imposer des contraintes robustes au sein des planificateurs basés sur l'échantillonnage.
+
+La première contribution de cette thèse porte sur la génération de trajectoires globalement optimales en sensibilité tout en imposant des contraintes robustes grâce aux tubes d'incertitude.
+Cependant, les résultats montrent que le calcul de ces tubes d'incertitude à chaque itération d'un planificateur basé sur l'échantillonnage constitue un frein pour la méthode.
+Ainsi, une vérification de faisabilité robuste paresseuse est proposée afin de limiter la fréquence de calcul des tubes d'incertitude, améliorant ainsi l'efficacité computationnelle des algorithmes.
+
+Une autre contribution consiste à explorer l'utilisation de réseaux de neurones profonds pour accélérer l'intégration de la dynamique de la sensibilité en boucle fermée et le calcul subséquent des tubes.
+En tirant parti de la similarité structurelle entre les équations différentielles ordinaires et les réseaux neuronaux récurrents, une architecture basée sur les GRU est proposée pour corréler directement une trajectoire planifiée aux tubes d'incertitude, atteignant une amélioration d'un ordre de grandeur en termes de temps de calcul.
+
+La thèse montre également comment intégrer les prédictions basées sur les GRU dans un planificateur basé sur l'échantillonnage, aboutissant à des approches de planification plus efficace en temps de calcul.
+De plus, alors que les méthodes robustes de l'état de l'art se concentrent principalement sur la satisfaction des contraintes robustes, ce travail exploite les tubes d'incertitude pour définir une fonction de coût permettant la planification de trajectoires précises et spécifiques à la tâche.
+
+Enfin, la méthode de planification basé sur la sensibilité proposé est validé expérimentalement sur un quadrirotor 3D dans deux scénarios exigeants : une navigation à travers une fenêtre étroite, et une tâche de ``capture d'anneau'' en vol nécessitant une grande précision. 

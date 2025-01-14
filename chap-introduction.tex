@@ -26,30 +26,32 @@ While this sequential approach, which separates planning and control, has proven
   First, the controller must deviate from the planned trajectory to address uncertainties and disturbances, which can quickly compromise feasibility and optimality.
   Then, the planner does not account for the robustness inherently provided by the controller, missing opportunities to generate more robust motion plans.
   \item While many adaptive and robust control schemes (e.g., H-infinity, LPV methods) have been designed to handle uncertainties and disturbances effectively, they are local to the vicinity of a reference trajectory. 
-  These methods often fall short when it comes to addressing broader challenges such as feasibility under constraints, global optimality, and performance, which are better managed by global planning approaches.
+  These methods often fall short when it comes to addressing broader challenges such as feasibility under constraints, global optimality, and computational performance, which are better managed by global planning approaches.
 \end{itemize}
     
-To bridge the gap between the two communities, several approaches have been introduced, including less local controllers such as the well-known \gls{mpc}~\cite{cTMPC}. 
-In addition, the past decade has seen the rise of so-called 'control-aware motion planning'~\cite{cTognon, cContractThMP, cMajundarLibrary}. 
+To bridge the gap between planning and control, several approaches have been introduced, including less local controllers such as the well-known \gls{mpc}~\cite{cTMPC}. 
+In addition, the past decade has seen the rise of so-called ``control-aware motion planning''\footnote{Also known in the literature as ``feedback motion planning''.}~\cite{cTognon, cContractThMP, cMajundarLibrary}. 
 However, these methods still face challenges related to generalizability, computational efficiency, and their reliance on potentially inaccurate models of the robot/controller pair due to model parameters uncertainties.
 
-Therefore, this work, based on the 'control-aware motion planning' paradigm shown in Figure~\ref{fig:ca_strat}, leverages the closed-loop sensitivity concept~\cite{cPi,cTh} (an extension of the sensitivity notion that incorporates the controller behavior with respect to parametric uncertainties), in order to create robust control-aware motion planners applicable to a broad class of systems and controllers, while addressing uncertainties in their model representations.
+Therefore, the work presented in this thesis aims to go further in the coupling between planning and control. 
+Based on the ``control-aware motion planning'' paradigm shown in Figure~\ref{fig:ca_strat}, it leverages the closed-loop sensitivity concept~\cite{cPi,cTh} (an extension of the sensitivity notion that incorporates the controller behavior with respect to parametric uncertainties), in order to create robust control-aware motion planners applicable to a broad class of systems and controllers, while addressing uncertainties in their model parameters.
 
 \begin{figure} [htp]
     \centering
     \includegraphics[width=0.75\linewidth]{figures/intro/control-aware.png} 
     \caption{Illustration of the control-aware motion planning strategy.
-    It relies on the closed-loop system simulation (green) at the offline motion planning level (gray).}%
+    Unlike the standard decoupled approach, which first plans a desired motion (gray block) and then executes it in closed-loop with a controller (green block) without incorporating feedback from the closed-loop system at the planning stage (blue dashed line), the control-aware strategy integrates this feedback. 
+    It simulates the closed-loop system's response (green) during the offline motion planning phase (gray), as indicated by the blue dashed line.}%
     \label{fig:ca_strat}%
   \end{figure}
 
 \section{Thesis Outline}
 
-This manuscript begins with a literature review in Chapter~\ref{chap:related_work}, providing an overview of the current state of the art. 
+This manuscript begins with a literature review in Chapter~\ref{chap:related_work}, providing an overview of the state of the art. 
 It initially focuses on decoupled approaches to robust motion planning, starting with path finding methods and progressing to kinodynamic planning.
 The review then explores approaches that tackle the challenge posed by the presence of uncertainties, focusing on solutions at the motion planning level. 
 It further discusses unified methodologies, referred to as control-aware planning techniques, which integrate motion planning with control strategies.
-The chapter concludes with a focus on unified robust control-aware motion planning approaches, which form the main topic of interest.
+The chapter concludes with a focus on unified robust control-aware motion planning approaches, which are the main topic of interest.
 
 Chapter~\ref{chap:models} introduces the \emph{closed-loop sensitivity} concept and presents how this concept can be leveraged to derive the so-called uncertainty tubes.
 These uncertainty tubes are later employed in this thesis to impose robust constraints on systems while accounting for parametric uncertainties.
@@ -65,10 +67,12 @@ Chapter~\ref{chap:NN} introduces the second major contribution of this thesis, w
 A dataset generation method, based on sampling-based principle, is proposed and applied to the models discussed in Chapter~\ref{chap:models}. 
 The method achieves an optimal balance between inference time and accuracy, making it highly effective for motion planning and showcasing the efficiency of the approach.
 
-Chapter~\ref{chap:sampNN} aims to integrate the sensitivity-aware motion planning variants introduced in Chapter~\ref{chap:samp} with the deep learning approach described in Chapter~\ref{chap:NN}, resulting in a more efficient version of the sensitivity-aware motion planner variants.
+Chapter~\ref{chap:sampNN} details the integration of the sensitivity-aware motion planning variants from Chapter~\ref{chap:samp} with the deep learning approach from Chapter~\ref{chap:NN}, resulting in a more efficient version of the sensitivity-aware motion planner variants.
+% Chapter~\ref{chap:sampNN} presents the integration of the sensitivity-aware motion planning variants introduced in Chapter~\ref{chap:samp} with the deep learning approach described in Chapter~\ref{chap:NN}, resulting in a more efficient version of the sensitivity-aware motion planner variants.
 Furthermore, while the previous chapters solely focus on generating robust and sensitivity-optimized trajectories, this chapter emphasizes the generation of task-specific accurate trajectories.
-The effectiveness of this contribution is finally demonstrated through experimental validation on two challenging scenarios requiring high robustness and accuracy.
-The experimental validation on complex tasks emphasize the practical applicability and effectiveness of the proposed framework in real-world scenarios.
+The contribution is finally validated experimentally in two challenging scenarios, highlighting the framework's practical applicability and effectiveness in real-world tasks requiring high robustness and accuracy.
+% The effectiveness of this contribution is finally demonstrated through experimental validation on two challenging scenarios requiring high robustness and accuracy.
+% The experimental validation on complex tasks emphasize the practical applicability and effectiveness of the proposed framework in real-world scenarios.
 
 Finally, Chapter~\ref{chap:concl} presents an overall conclusion that summarizes the contributions of this thesis along with their limitations.
 Additionally, several perspectives are outlined to improve the generalizability of the proposed approach.
@@ -77,12 +81,12 @@ Additionally, several perspectives are outlined to improve the generalizability 
 
 The work conducted throughout this thesis led to the following publications. 
 
-~\cite{cSAMP} Wasiela, S., Giordano, P. R., Cortés, J., and Simeon, T. "A sensitivity-aware motion planner (samp) to generate intrinsically-robust trajectories." In IEEE International Conference on Robotics and Automation (ICRA), 2023.
+~\cite{cSAMP} Wasiela, S., Giordano, P. R., Cortés, J., and Simeon, T. ``A sensitivity-aware motion planner (samp) to generate intrinsically-robust trajectories.'' In IEEE International Conference on Robotics and Automation (ICRA), 2023.
 
-~\cite{cECAI}: Wasiela, S., Bouhsain, S. A., Cognetti, M., Cortés, J., and Simeon, T. "Learned Uncertainty Tubes via Recurrent Neural Networks for Planning Robust Robot Motions." In 27th European Conference on Artificial Intelligence (ECAI), 2024.
+~\cite{cECAI}: Wasiela, S., Bouhsain, S. A., Cognetti, M., Cortés, J., and Simeon, T. ``Learned Uncertainty Tubes via Recurrent Neural Networks for Planning Robust Robot Motions.'' In 27th European Conference on Artificial Intelligence (ECAI), 2024.
 
-~\cite{cRAL}: Wasiela, S., Cognetti, M., Giordano, P. R., Cortés, J., and Simeon, T. "Robust Motion Planning with Accuracy Optimization based on Learned Sensitivity Metrics." In IEEE Robotics and Automation Letters (RA-L), 2024.
+~\cite{cRAL}: Wasiela, S., Cognetti, M., Giordano, P. R., Cortés, J., and Simeon, T. ``Robust Motion Planning with Accuracy Optimization based on Learned Sensitivity Metrics.'' In IEEE Robotics and Automation Letters (RA-L), 2024.
 
-Belvedere, T., Afifi, A., Wasiela, S., and Pupa, A. "Planning under Uncertainties with Closed-Loop Sensitivity: Recent Results and Perspectives." In European Robotics Forum (ERF), 2025.
+Belvedere, T., Afifi, A., Wasiela, S., and Pupa, A. ``Planning under Uncertainties with Closed-Loop Sensitivity: Recent Results and Perspectives.'' In European Robotics Forum (ERF), 2025.
 
 Furthermore, all implementations presented and used in this thesis are available at: \href{https://gitlab.laas.fr/CAMP}{https://gitlab.laas.fr/CAMP}.

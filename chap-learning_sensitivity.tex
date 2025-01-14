@@ -1,6 +1,7 @@
 \chapter{Learning uncertainty tubes via recurrent neural networks} \label{chap:NN}
 \markboth{Learning uncertainty tubes via recurrent neural networks}{}% To set left/right header
-\localtableofcontents \newpage
+
+% \localtableofcontents \newpage
 
 This chapter introduces the second major contribution of this thesis: a deep learning approach for rapidly and accurately estimating sensitivity-based uncertainty tubes. 
 As highlighted in Chapter~\ref{chap:samp}, the computation of such tubes using \myglsentry{odes} integration considerably reduces the efficiency of sampling-based methods, particularly for complex systems.
@@ -100,7 +101,7 @@ This subsection discusses learning methods suited for modeling sequences of data
     \label{fig:rnns}%
 \end{figure}
 
-\subsection{Summary}
+\subsection{Outlook}
 
 This section has presented various techniques for accelerating the integration of \gls{odes}, focusing on parallelization, learning approaches, and sequence modeling methods. 
 Parallelization strategies, such as the straightforward approach of computing each ODE in parallel and the Parareal algorithm, were discussed. 
@@ -237,7 +238,7 @@ The mean and standard deviation values of the various components of the output v
     \centering
     \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/vnorm_val2.png}
     \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/vnorm_test.png}
-    \caption{Velocity norm distribution in the training (left) and test sets (right) for the quadrotor.}%
+    \caption{Quadrotor application: Velocity norm distribution in the training (left) and test sets (right).}%
     \label{fig: valvstest}%
 \end{figure}
 
@@ -251,7 +252,7 @@ The mean and standard deviation values of the various components of the output v
     $\Ru$ & $7782.6 \pm 3172.3$ & $7828.6 \pm 2845.7$ \\ \hline
 \end{tabular}
 \caption{
-Mean and standard deviation of the output vector components norm after data annotation for the validation and test sets for the quadrotor case.
+Quadrotor application: Mean and standard deviation of the output vector components norm after data annotation for the validation and test sets.
 $\Rq$ is expressed in \emph{m}, and $(\u, \Ru)$, are squared propeller angular velocities [(rad/s)²].}
  \label{tab:datas_stats}
 \end{table}
@@ -412,7 +413,7 @@ Additionally, the \textbf{dopri5} integrator is also considered as a baseline fo
 All the neural networks were implemented using the PyTorch library~\cite{cPytorch} and the lightning module.
 All following results were obtained on an Intel i9 CPU@2.6GHz processor with one RTX A3000 GPU. 
 
-\section{Simulation results}\label{sec:nn_results}
+\section{Simulation results for a quadrotor application}\label{sec:nn_results}
 
 % \subsection{Differential Drive Robot}\label{sec:nn_results_unic}
 
@@ -553,7 +554,8 @@ Another dynamical system might need a different set of inputs to obtain accurate
 \begin{figure}[h!]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/learning_quadrotor/long_pred.png}
-    \caption{Example of \textbf{GRU} predictions on a 600-state trajectory generated in the same way as the test set. $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. Predicted outputs are displayed in blue against true values in black. $||\Rq||$ is expressed in $m$, and control input associated values ($||\u||,||\Ru||)$ are squared propeller angular velocities [(rad/s)²].}
+    \caption{Quadrotor application: Example of \textbf{GRU} predictions on a 600-state trajectory generated in the same way as the test set. $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. 
+    Predicted outputs are displayed in blue against true values in black. $||\Rq||$ is expressed in $m$, and control input associated values ($||\u||,||\Ru||)$ are squared propeller angular velocities [(rad/s)²].}
     \label{fig:long_test}
 \end{figure}
 
@@ -570,14 +572,14 @@ Another dynamical system might need a different set of inputs to obtain accurate
         \includegraphics[width=\linewidth]{figures/learning_quadrotor/pred_ry.jpg}
     \end{minipage}\\
     \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/pred_rz.jpg}
-    \caption{Example of \textbf{GRU} predictions on a 300-state trajectory of the test set. 
+    \caption{Quadrotor application: Example of \textbf{GRU} predictions on a 300-state trajectory of the test set. 
     Predicted outputs are displayed in blue against true values in black. $r_{x}, r_{y}, r_{z}$ are expressed in $m$, and control input associated values ($u_{i},r_{ui}$) are squared propeller angular velocities [(rad/s)²].}
     \label{fig:pred_test}
 \end{figure}
 
 The robust generalization of the \textbf{GRU} model to the test set is highlighted in Figure~\ref{fig:pred_test}, depicting predictions for all the components of the output vector for a trajectory composed of 300 states (i.e. $T_F=15s$).
 One can observe larger prediction errors during transient phases involving the higher velocities present in the test set than in the training one.
-Note that the neural network predictions in these phases have a moving average `behavior'. 
+Note that the neural network predictions in these phases have a moving average ``behavior''. 
 However, an overall good fitting of the predictions can be highlighted.
 
 In addition to the results discussed in Section~\ref{sec:nn_comparaison_quad}, Figure~\ref{fig:MLP_pred_val} shows an example of \textbf{MLP}'s inability to provide accurate predictions on a 300-state test set trajectory, with a tendency to simply average expected values over the latter.
@@ -597,7 +599,7 @@ Hence, in order to generalize to trajectories where initial velocities and accel
 \begin{figure}[h!]
     \centering
     \includesvg[width=0.9\linewidth]{figures/learning_quadrotor/all_models.svg} 
-    \caption{Comparison of predictions obtained using the different recurrent neural network architectures as well as the \textbf{MLP} on a 300-state trajectory of the test set. $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. 
+    \caption{Quadrotor application: Comparison of predictions obtained using the different recurrent neural network architectures as well as the \textbf{MLP} on a 300-state trajectory of the test set. $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. 
     True values are displayed in black, \textbf{GRU} predictions in blue, \textbf{MLP} predictions in purple, \textbf{LSTM} outputs in yellow, and basic \textbf{RNN} predictions are in red.}
     \label{fig:MLP_pred_val}
 \end{figure}
@@ -605,7 +607,7 @@ Hence, in order to generalize to trajectories where initial velocities and accel
 \begin{figure}[h!]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/learning_quadrotor/non_zero_hidden.jpg} 
-    \caption{Example of \textbf{GRU} predictions on a 150-state trajectory of the test set starting from a non-zero hidden state.
+    \caption{Quadrotor application: Example of \textbf{GRU} predictions on a 150-state trajectory of the test set starting from a non-zero hidden state.
     $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. 
     True values are displayed in black and \textbf{GRU} predictions in blue.}
     \label{fig:non_zero_hidden}
@@ -654,7 +656,7 @@ These values indicate a slight increase in the norms of all components due to th
     $\Ru$ & $2.0e^{-1} \pm 7.8e^{-2}$ & $2.0e^{-1} \pm 8.1e^{-2}$ \\ \hline
 \end{tabular}
 \caption{
-Mean and standard deviation of the output vector components norm after data annotation for the validation and test sets for the differential drive robot case.
+    Differential drive robot application: Mean and standard deviation of the output vector components norm after data annotation for the validation and test sets.
 $\Rq$ is expressed in \emph{m}, and $(\u, \Ru)$, are wheel angular velocities [(rad/s)].}
  \label{tab:datas_stats_unic}
 \end{table}
@@ -706,7 +708,7 @@ Meanwhile, the \textbf{LSTM} achieves accuracy comparable to the \textbf{GRU} bu
 \begin{figure}[h!]
     \centering
     \includegraphics[width=0.99\linewidth]{figures/learning_unic/all_models_labeled.jpg} 
-    \caption{Comparison of predictions obtained using the different recurrent neural network architectures as well as the \textbf{MLP} on a 300-state trajectory of the test set for the differential drive robot case. 
+    \caption{Differential drive robot application: Comparison of predictions obtained using the different recurrent neural network architectures as well as the \textbf{MLP} on a 300-state trajectory of the test set. 
     $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. 
     True values are displayed in black, \textbf{GRU} predictions in blue, \textbf{MLP} predictions in purple, \textbf{LSTM} outputs in yellow, and basic \textbf{RNN} predictions are in red.}
     \label{fig:all_models_pred_val_unic}
@@ -722,7 +724,7 @@ Meanwhile, the \textbf{LSTM} achieves accuracy comparable to the \textbf{GRU} bu
         \centering
         \includegraphics[width=\linewidth]{figures/learning_unic/pred_val_2_labeled.jpg}
     \end{minipage}\\
-    \caption{Example of \textbf{GRU} predictions on a 300-state trajectory of the validation set. 
+    \caption{Differential drive robot application: Example of \textbf{GRU} predictions on a 300-state trajectory of the validation set. 
     Predicted outputs are displayed in blue against true values in black. $r_{x}, r_{y}$ are expressed in $m$, and control input associated values ($u_{i},r_{ui}$) are wheel angular velocities [(rad/s)].}
     \label{fig:pred_val_unic}
 \end{figure}
@@ -750,14 +752,14 @@ This design simplifies the process and reduces the computational burden, making 
 
 Additionally, great care was taken to develop a learning process that ensures the learned models are independent of the environment, enabling their application to motion planning problems. 
 However, although the proposed \textbf{GRU} is independent of the robot's environment, it is still dependent on the system's nominal parameters and controller gains.
-To further address these dependencies, future investigations could explore strategies such as:
-\begin{itemize}
-    \item GPU acceleration leverages the massive parallelization capabilities of modern GPUs to enhance computational performance. 
-    Utilizing GPU acceleration techniques can enable rapid tube computation while overcoming limitations of the learned model, such as dependency on specific parameters.
-    \item Transfer learning is a method that enables a model to apply knowledge gained from one task or dataset to a new, related task, thereby reducing the need for extensive retraining. 
-    This approach can be leveraged when model parameters or controller gains change, allowing for the rapid retraining of learned models.
-    \item Ensemble learning is a technique that involves combining multiple models to improve prediction accuracy and generalized performance. 
-    It can be employed to enhance the stability of predictions when dealing with changes in model parameters or controller gains.
-\end{itemize}
+% To further address these dependencies, future investigations could explore strategies such as:
+% \begin{itemize}
+%     \item GPU acceleration leverages the massive parallelization capabilities of modern GPUs to enhance computational performance. 
+%     Utilizing GPU acceleration techniques can enable rapid tube computation while overcoming limitations of the learned model, such as dependency on specific parameters.
+%     \item Transfer learning is a method that enables a model to apply knowledge gained from one task or dataset to a new, related task, thereby reducing the need for extensive retraining. 
+%     This approach can be leveraged when model parameters or controller gains change, allowing for the rapid retraining of learned models.
+%     \item Ensemble learning is a technique that involves combining multiple models to improve prediction accuracy and generalized performance. 
+%     It can be employed to enhance the stability of predictions when dealing with changes in model parameters or controller gains.
+% \end{itemize}
 
-Despite these potential areas for improvement, the remainder of this thesis will focus on incorporating the GRU-based architecture into sampling-based motion planners to plan robust robot motions against parametric uncertainties in a more efficient way than what was proposed in Chapter~\ref{chap:samp}.
+The remainder of this thesis will focus on incorporating the GRU-based architecture into sampling-based motion planners to plan robust robot motions against parametric uncertainties in a more efficient way than what was proposed in Chapter~\ref{chap:samp}.

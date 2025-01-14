@@ -1,17 +1,17 @@
 \chapter{Robust motion planning with accuracy optimization via learned sensitivity metrics}\label{chap:sampNN}
 \markboth{Robust MP with accuracy optimization via learned sensitivity metrics}{}% To set left/right header
-\localtableofcontents \newpage
+
+% \localtableofcontents \newpage
 
 This last contribution introduces an enhanced version of the sensitivity-aware variants from Chapter~\ref{chap:samp}, incorporating the GRU-based architecture from Chapter~\ref{chap:NN} to mitigate the computational cost of solving thousands of \myglsentry{odes} in sampling-based contexts. 
 Moreover, methods from Chapter~\ref{chap:samp} and the ones in the literature focus on computing robust trajectories but do not consider the problem of \emph{also} minimizing uncertainty tubes at a desired location for increasing the accuracy of specific tasks (e.g., insertion, grasping).
 Therefore, in this chapter, a novel sensitivity-based cost function is introduced, differing from the one in Chapter~\ref{chap:samp}. 
-Instead of minimizing sensitivity along the entire trajectory, it focuses on minimizing the radius of uncertainty tubes in relevant directions at desired states for the task at hand. 
+Instead of minimizing sensitivity along the entire trajectory, it focuses on minimizing the radius of uncertainty tubes at desired states for the task at hand. 
 Additionally, unlike Chapter~\ref{chap:samp}, where trajectory states were the sole optimization variables, this chapter also considers controller gains as optimization variables during the planning process.
-
 With respect to these considerations, the contribution of this chapter is twofold:
 \begin{enumerate}
     \item A computationally efficient version of the \myglsentry{samp} variants (see Chapter~\ref{chap:samp}) is proposed, relying on a Gated Recurrent Unit neural network (GRU)\cite{cGRU} (see Chapter~\ref{chap:NN}), which quickly and accurately estimates time-varying uncertainty tubes and control input profiles along trajectories.
-    A general method for incorporating this network into a sampling-based tree planners is presented to predict uncertainty tubes and control inputs along trajectories.
+    A general method for incorporating this network into sampling-based tree planners is presented to predict uncertainty tubes and control inputs along trajectories.
     \item Based on this new planner variants, a comprehensive framework is proposed that plans robust trajectories and locally optimizes them, along with the controller gains, to maximize accuracy at desired states of the planned trajectory for any system/controller.
 \end{enumerate}
 
@@ -25,7 +25,7 @@ This chapter is related to the following RA-L 2024 publication~\cite{cRAL}\footn
 
 \section{Robust and accurate planning framework}\label{sec:RASAMP}
 
-This section presents the workflow of the meta-algorithm used to plan robust trajectories, which are then locally optimized for accuracy at specified desired states. 
+This section presents the main algorithm used to plan robust trajectories, which are then locally optimized for accuracy at specified desired states. 
 The method consists of two stages: 
 \begin{enumerate}
     \item First, it generates a robust trajectory based on a Deep learning-based Sensitivity-Aware Motion Planner (DeepSAMP) -- explained in Section~\ref{sec:RSAMP} -- that utilizes the GRU-based computation of the uncertainty tubes.
@@ -34,7 +34,8 @@ The method consists of two stages:
 
 The motivation behind the second stage is to improve the accuracy of the planned robust trajectory for tasks -- e.g., pick-and-place or insertion tasks -- where minimizing the deviation from the nominal trajectory is important only at specific designed locations, as for picking the ring in Figure~\ref{fig: Missed and succes}.
 
-The workflow of the method is presented in Algorithm~\ref{alg:RA-SAMP}. 
+The workflow of the method is presented in Algorithm~\ref{alg:RA-SAMP}\footnote{For clarity in the pseudo-code, the temporal notation is omitted in this chapter. 
+Thus, bold symbols refer to trajectory vectors (e.g., $\q_d$ represents a desired trajectory, $\Rq$ stands for the uncertainty tube radii along a trajectory, etc.), while non-bold symbols represent values at a single state (e.g., $q^{rand}$ denotes a random state, and $S_0$ represents the initial conditions of the \myglsentry{odes} at a given trajectory state, etc.).}. 
 It takes as input (line 1) a list of desired states $list_{d} = (q_{d}^0, \dots, q_{d}^n)$ for which the accuracy should be optimized, and the initial controller gains vector $k_{c}^{init}$ considered constant all along the trajectory.
 The role of the controller gains are further discussed in Section~\ref{sec:AccOptSimu}.
 
@@ -52,8 +53,9 @@ The role of the controller gains are further discussed in Section~\ref{sec:AccOp
 
 The first step of the algorithm consists of generating robust trajectories between successive desired states in the list (line 3 of Algorithm~\ref{alg:RA-SAMP}) by means of a deep learning-based sensitivity-aware motion planner variant called DeepSAMP (explained in Section~\ref{sec:RSAMP}) that uses the learning approach presented in Chapter~\ref{chap:NN}.
 These trajectories are concatenated into a global one $\q_d^{tot}$, connecting all the desired states of $list_{d}$ (lines 2-5 in Algorithm~\ref{alg:RA-SAMP}). 
+It is important to note that, unlike the variants discussed in Chapter~\ref{chap:samp}, this step may not incorporate any aspect of optimality, as sensitivity is primarily leveraged to enforce robust constraints.
 
-The trajectory from DeepSAMP is locally modified by A-Optim (line 6 in Algorithm~\ref{alg:RA-SAMP}), aiming at optimizing the accuracy at specific desired states along the trajectory. 
+The trajectory from DeepSAMP is then locally modified by A-Optim (line 6 in Algorithm~\ref{alg:RA-SAMP}), aiming at optimizing the accuracy at specific desired states along the trajectory. 
 This algorithm iteratively samples both the trajectory from DeepSAMP and the controller gains, adjusting the former to minimize uncertainty at these states. 
 Indeed, as demonstrated in~\cite{AliIROS}, optimizing both factors concurrently results in minimizing the uncertainty.
 The algorithm produces two offline outputs: $(i)$ a robust desired trajectory $\q_d^{tot}$ optimized for accuracy at the desired states, and $(ii)$ the optimized controller gains vector $k_{c}^{opt}$, considered constant throughout the trajectory.
@@ -69,24 +71,25 @@ Additionally, when extending the tree and computing these sensitivity matrices, 
 This problem is addressed thanks to the GRU network, which naturally encodes this information in its ``memory'' terms, i.e., the so-called hidden state (see~\cite{cGRU}).
 An interesting feature of the \myglsentry{deepsamp} variants is to leverage this latent state to embed the initial conditions into each node analogous to the \myglsentry{odes} initial conditions mentioned in Chapter~\ref{chap:samp}. 
 This enables the reuse of the updated initial conditions for predictions in future extensions.
-Note that a hidden state $h$ is unique according to its parent as the \myglsentry{odes} initial conditions.
+Note that a hidden state $h$ is unique according to its parent, analogous to the initial conditions of \myglsentry{odes} discussed in Chapter~\ref{chap:samp}.
 Therefore, its use is only applicable to tree-based planners, where each node has a single parent.
+In the remainder of this chapter, it is demonstrated how to integrate this mechanism into the \myglsentry{rrt} algorithm and its optimal variant, \myglsentry{rrtstar}.
 
-\subsubsection{Standard \gls{rrt}}
+% \subsubsection{Standard \gls{rrt}}
 
-This paragraph provides a reminder of the widely used \gls{rrt}~\cite{cRRT} algorithm.
-It generates a tree starting from an initial state.
-At each iteration, a new state is sampled $q^{rand}$.
-It's nearest neighbor among the existing tree nodes is found $q^{near}$, and then an extension is attempt starting from $q^{near}$ toward $q^{rand}$ leading to a new state $q^{new}$.
-If the extension is collision free, the new state is added to the tree as a new node with an edge connecting the two nodes.
-The extension process of the algorithm is illustrated in Figure~\ref{fig:rrt}.
+% This paragraph provides a reminder of the widely used \gls{rrt}~\cite{cRRT} algorithm.
+% It generates a tree starting from an initial state.
+% At each iteration, a new state is sampled $q^{rand}$.
+% It's nearest neighbor among the existing tree nodes is found $q^{near}$, and then an extension is attempt starting from $q^{near}$ toward $q^{rand}$ leading to a new state $q^{new}$.
+% If the extension is collision free, the new state is added to the tree as a new node with an edge connecting the two nodes.
+% The extension process of the algorithm is illustrated in Figure~\ref{fig:rrt}.
 
-\begin{figure} [htp]
-    \centering
-    \includegraphics[width=0.6\linewidth]{figures/models/rrt.png} 
-    \caption{Illustration of the \myglsentry{rrt} tree extension procedure.}%
-    \label{fig:rrt}%
-\end{figure}
+% \begin{figure} [htp]
+%     \centering
+%     \includegraphics[width=0.6\linewidth]{figures/models/rrt.png} 
+%     \caption{Illustration of the \myglsentry{rrt} tree extension procedure.}%
+%     \label{fig:rrt}%
+% \end{figure}
 
 \subsubsection{Deep Sensitivity-Aware RRT (DeepSARRT)}
 
@@ -94,10 +97,11 @@ This subsection proposes a deep learning-based sensitivity-aware variant of the 
 It demonstrates how to integrate the GRU hidden state and tube predictions within a standard RRT planner~\cite{cRRT}.
 It is important to note that this approach, using GRU hidden state and tube predictions, can be similarly applied to other tree-based planners. 
 For instance, in the results presented in Section~\ref{sec:RobustPlanSimu}, a deep learning-based sensitivity-aware variant of the \myglsentry{rrtstar}~\cite{cRRTstar} implementation, denoted \myglsentry{deepsarrt*}, leverage the same principle presented here.
+Additionally, note that the standard non-optimal \myglsentry{rrt} is used here, as sensitivity is only employed to enforce robust constraints rather than to find a sensitivity-optimal trajectory, in contrast to the objective of Chapter~\ref{chap:samp}.
 
 First, \myglsentry{deepsarrt} performs the standard RRT procedure (lines 1-5) that produces a local desired trajectory $\q_d$ between a sampled state (${q}^{rand}$) and its nearest state (${q}^{near}$) in the tree. 
 Then, the starting hidden state (as for $h_{0}$ of the GRU) is recovered from the tree node (line 6).
-Such initial condition is used together with the above-mentioned desired trajectory by the GRU that returns all the radii and the control inputs profiles ($\Rq,\Ru,\u$), together with the final hidden state $h_{F}$ to be reused as initial condition in subsequent iterations (line 7).
+Such initial condition is used together with this desired trajectory by the GRU that returns all the radii and the control inputs profiles ($\Rq,\Ru,\u$), together with the final hidden state $h_{F}$ to be reused as initial condition in subsequent iterations (line 7).
 Next, an initial filter is applied using the predicted control inputs and uncertainty tubes, with a robust control input check for saturation (line 8).
 The nominal trajectory is then computed (line 9). 
 At this stage, the control inputs are recomputed in a closed-loop manner w.r.t. the desired trajectory $\q_d$, even though these control inputs were initially predicted by the GRU.
@@ -108,6 +112,7 @@ Finally, the algorithm returns a global trajectory connecting ${q}^{init}$ and $
 
 Note that, unlike the \myglsentry{samp} variants discussed in Chapter~\ref{chap:samp}, which perform the robust feasibility check in a single step, the operation is decoupled here. 
 This approach first leverages the predicted control inputs and associated tubes to apply an initial filtering stage, as this step is less computationally expensive than the subsequent nominal trajectory simulation and robust collision checking.
+This decoupling is made possible by the GRU, whereas in \myglsentry{samp} variants, both the control inputs and associated tubes are derived from the full resolution of the \myglsentry{odes}.
 
 \begin{algorithm}[htp]
 \caption{\myglsentry{deepsarrt} [$q^{init}, q^{goal}$]}\label{alg:ExtensionExample}
@@ -152,7 +157,7 @@ In the following section several robust variant derivative-free algorithms are p
 
 \subsubsection{Algorithms}
 
-This thesis considers four robust sensitivity-aware local variants for optimizing the aforementioned cost function, aiming to identify the most suitable approach for optimizing a punctual cost function while appropriately scaling its complexity to the robust feasibility check described in Chapter~\ref{chap:samp}. 
+This thesis considers four robust sensitivity-aware local variants for optimizing the aforementioned cost function, aiming to identify the most suitable approach for optimizing the accuracy cost function while appropriately scaling its complexity to the robust feasibility check described in Chapter~\ref{chap:samp}. 
 It is important to note that none of the proposed robust variants utilize the deep learning method introduced in Chapter~\ref{chap:NN}, as the trajectories encountered during this local optimization process differ significantly from those in the training set.
 Also note that in this subsection, only the trajectory states are optimization variables. 
 The addition of controller gains in the optimization variables, as mentioned in the general framework (see Section~\ref{sec:RASAMP}), is detailed in Section~\ref{sec:AccOptSimu}.
@@ -193,9 +198,9 @@ The pseudo code is presented in Algorithm~\ref{alg:sastomp} and operates as foll
     \item It takes as input an initial discretized 1-D guess $\q_{d,i}^{init}$ and the number of rollouts to perform $K$ (line 1) (i.e. the discretized trajectory along the $i$-th position axis only). 
     Therefore, the algorithm must be performed independently for each dimension. 
     \item Then, the algorithm precomputes some smoothing matrices ($R$ and $M$) based on the sum-of-squared acceleration along the initial trajectory (line 2-4).
-    \item Next, until a stopping criterion is met (i.e. cost convergence, planning time, etc.), the algorithm generates K noisy trajectories around the current best trajectory (line 6).
+    \item Next, until a stopping criterion is met (i.e. cost convergence, planning time, etc.), the algorithm generates K noisy trajectories around the current best trajectory using the CreateNoisyTraj procedure (line 6).
     The noise for each time step is drawn from a normal distribution, with the smoothing matrices used as the covariance to ensure smooth, noisy trajectories.
-    \item For each of the K noisy trajectories, the cost is computed at each time step (line 8), along with the probabilities for each time step that the current noisy parameters contribute to an improved cost (line 9).
+    \item For each of the K noisy trajectories, the ComputeSACost procedure computes the trajectory cost at each time step (line 8), along with the probabilities for each time step that the current noisy parameters contribute to an improved cost (ComputeProbabilities) (line 9).
     Note that this cost function is also responsible for penalizing the collisions.
     In the current sensitivity-aware variant, the cost at each time step is therefore a sum of the following:
     \begin{itemize}
@@ -217,7 +222,7 @@ It is initialized with an initial trajectory $q_d^{init}$ and its associated cos
 Note that the algorithm, unlike to the \myglsentry{SAshortcut}, takes two additional arguments: $K$ which refers to a number of samples, and $\delta$, that refers to a ball radius.
 Then, until a stopping criterion is met, the algorithm samples $K$ states within a ball of radius $\delta$ centered at a first random state of the current best trajectory, and $K$ others around a second random state of the trajectory, thus generating two sets of samples $Q_d^{1}$ and $Q_d^{2}$ (line 4).
 The choice of the sampling strategy (e.g. gaussian sampling) is further discussed in Section~\ref{sec:AccOptSimu}.
-Then, all the possible shortcuts between the two sets are computed and tested for collisions in a vanilla way (line 5-8).
+Then, all the possible shortcuts between the two sets are computed and tested for collisions without considering robust constraints (line 5-8).
 If a current shortcut is collision free, the full trajectory from the initial state to the goal state using this shortcut is recomputed and stored in a set denoted $Q_{d,new}$ (line 9-11).
 Then, for each trajectory in $Q_{d,new}$, the \myglsentry{odes} are solved before performing the cost comparison (line 13-15).
 Finally, if the new solution has a lower sensitivity cost (line 16), then a robust feasibility check is performed before updating the trajectory portion in case of success (line 17-18).
@@ -245,7 +250,7 @@ Note that the idea behind the proposed algorithm is to explore the vicinity of t
                 \State $S_0 \gets $GetNodeConditions$(q_d^{init});$
                 \State $\{\q_n, \u_n, \Rq, \Ru, S_F\}  \gets $SolveODEs$(\q_{d,new}, S_0);$
                 \State $cost_{new} \gets $Cost$(\q_{d,new});$
-                \If{CostBetterThan$(cost_{new}, cost_{best})$}:   
+                \If{$(cost_{new} < cost_{best})$}:   
                     \If {IsRobust$(\Rq,\Ru, \q_n, \u_n)$}
                         \State $\{\q_{d,best}, cost_{best}\} \gets \{\q_{d,new}, cost_{new}\};$
                     \EndIf
@@ -282,31 +287,17 @@ To further evaluate the effectiveness of the decoupled approach, the quadrotor m
 These parameters are chosen according to the experimental scenarios described in Section~\ref{sec:Experimental}.
 In these scenarios, the quadrotor either carries or catches objects with unknown mass, introducing uncertainty in the total system mass as well as its principal moment of inertia $(J_{x}, \, J_{y}, \,J_{z})$.
 Transporting or catching this unknown mass also displaced the \myglsentry{com} of the robot.
-However, due to the experimental setup, the displacement along the z-axis is assumed to be zero.
+% However, due to the experimental setup, the displacement along the z-axis is assumed to be zero.
 
 The values of the nominal parameters are $\p_{c}$ = $[1.113, 0.0, 0.0, 0.015, 0.015, 0.007]^T$ and their associated uncertainty range $\delta\p = [7\%, 3cm, 3cm, 10\%, 10\%, 10\%]^T$, which represents the percentage variation of the parameters w.r.t. their associated nominal value, except for $x_{cx}$ and $x_{cy}$ whose nominal values are zeros.
-Therefore, in this differential drive robot application, $\bPi \in \mathbb{R}^{13\times6}$, and $\bTheta \in \mathbb{R}^{4\times6}$.
+Therefore, in this quadrotor application, $\bPi \in \mathbb{R}^{13\times6}$, and $\bTheta \in \mathbb{R}^{4\times6}$.
 As a result, the computations necessary to find the uncertainty tubes involve solving 115 \myglsentry{odes}.
 The uncertainty tubes considered for this application are defined as $\Rq = [r_x, \, r_y, \, r_z]^T \in \mathbb{R}^3$, representing the uncertainty tubes along the \{x,y,z\}-axes of the state respectively, and $\Ru = [r_{u1}, \, r_{u2}, \, r_{u3}, \, r_{u4}]^T \in \mathbb{R}^4$, representing the uncertainty tubes along the four control input space axes.
 The controller gains are set to $\boldsymbol{k}_{x} = [20.0, \, 20.0, \, 25.0]^T$, $\boldsymbol{k}_{v}= [9.0, \, 9.0, \, 12.0]^T$, $\boldsymbol{k}_{R}=[4.6, \, 4.6, \, 0.8]^T$, and $\boldsymbol{k}_{\omega}=[0.5, \, 0.5, \, 0.08]^T$.
-Finally, considering that the robot hovering state is achieved with propeller speed around 70 $rad.s^{-1}$ (i.e. 5.000 $(rad.s^{-1})^2$), the input limits are set to propeller speed of 100 $rad.s^{-1}$, which results in $\u_{max} = [10.000, \, 10.000, \, 10.000, \, 10.000]^T$.
+Finally, considering that the robot hovering state is achieved with propeller speed around 70 $rad.s^{-1}$ (i.e. 5.000 $(rad.s^{-1})^2$) (measured on the real robot presented in Section~\ref{sec:Experimental}), the input limits are set to propeller speed of 100 $rad.s^{-1}$, which results in $\u_{max} = [10.000, \, 10.000, \, 10.000, \, 10.000]^T$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{DeepSAMP vs SAMP} \label{sec:NNresult}
-
-This subsection presents comparison between the \myglsentry{deepsamp} variants, that leverage the GRU-based neural network, and the \myglsentry{samp} variants that solve the set of \myglsentry{odes}.
-
-First, the time gains presented in Chapter~\ref{chap:NN} must be mitigated due to certain limitations:
-\begin{itemize}
-    \item The current implementation employs the Libtorch C library, which supports only CPU computation and not GPU acceleration.
-    Consequently, the GRU inference time is a bit slower, showing an average time of 2.8 ms on CPU against 2.1 ms on GPU for 1.000 predictions.
-    However, this does not hurt the overall gain of the GRU-based neural networks.
-    \item The GRU-based approach allows to directly correlate the desired trajectory to the sensitivity-based uncertainty tubes.
-    However, the proposed \myglsentry{deepsamp} algorithms still require solving the system dynamic through the \myglsentry{odes} of Equation~(\ref{eq:dyna}).
-    Nevertheless, the use of the GRU enables decoupling the robust feasibility test, unlike the \myglsentry{samp} method (see Chapter~\ref{chap:samp}), where control inputs depend on the current robot state, and therefore must be recovered by solving the \myglsentry{odes}.
-    This decoupling allows to perform a first robust control inputs checking that allow to filter 18\% of trajectories during a 200-second planning in a free space environment.
-    This process eliminates the need to solve the system dynamic \myglsentry{odes} (Equation~(\ref{eq:dyna})), and perform robust collision checks for these trajectories, improving the \myglsentry{deepsamp} variants efficiency.
-\end{itemize}
 
 \begin{figure} [h!]
     \centering
@@ -318,12 +309,14 @@ First, the time gains presented in Chapter~\ref{chap:NN} must be mitigated due t
 
 \begin{figure} [h!]
     \centering
-    \includegraphics[width=0.9\linewidth]{figures/robust_accurate/profiling_rrt.png}%
+    \includegraphics[width=0.8\linewidth]{figures/robust_accurate/profiling_rrt.png}%
     \\
-    \includegraphics[width=0.9\linewidth]{figures/robust_accurate/profiling_rrtstar.png}%
+    \includegraphics[width=0.8\linewidth]{figures/robust_accurate/profiling_rrtstar.png}%
     \caption{Profiling comparison between vanilla planners, \myglsentry{deepsamp} variants and \myglsentry{samp} variants, illustrating the contributions of various procedures to the total planning time over 1.000 iterations in a free space environment.}%
     \label{fig:NNProfiling}%
 \end{figure}
+
+This section presents comparison between the \myglsentry{deepsamp} variants (DeepSARRT and DeepSARRT*), that leverage the GRU-based neural network, and the \myglsentry{samp} variants that solve the set of \myglsentry{odes}.
 
 Figure~\ref{fig: NNTime} shows the significant performance improvement of using this learning-based prediction within a sampling-based tree planner for checking the robustness of the local tree expansions (see Algorithm~\ref{alg:ExtensionExample}), against the \myglsentry{samp} variants that solve the entire set of \myglsentry{odes} (see Chapter~\ref{chap:samp}).  
 Results provided for RRT and its RRT* near time-optimal variant compare the number of iterations of the main loop of the algorithm as a function of computing time in an obstacle-free environment, showing in both cases a significant time gain thanks to the proposed learning method compared with integrating the entire set of \myglsentry{odes}.
@@ -332,22 +325,34 @@ In the case of RRT*, the denser the tree, the more robust collision tests are re
 Therefore, much more time is saved when using the learning method. 
 The gain on the planning time can reach more than one order of magnitude for problems requiring a significant amount of iterations.
 
-This time saving is also illustrated by Figure~\ref{fig:NNProfiling}, that shows for both asymptotically optimal and non-optimal sensitivity-aware variants, the contribution of solving the \myglsentry{odes} or performing GRU predictions to the total planning time on 1.000 algorithms iterations.
-Note that the \myglsentry{rrtstar} and its sensitivity-aware variants optimize the trajectory length.
+This time saving is also illustrated by Figure~\ref{fig:NNProfiling}, that shows for both asymptotically optimal and non-optimal sensitivity-aware variants, the contribution of solving the \myglsentry{odes} or performing GRU predictions to the total planning time after 1.000 algorithms iterations.
+Note that the \myglsentry{rrtstar} and its sensitivity-aware variant optimize the trajectory time.
 The sensitivity is then only used to enforce robust constraints.
 The results show that the combination of solving solely the system dynamic and performing GRU predictions is less costly than solving the entire \myglsentry{odes} set.
 Furthermore, one can note that in all sensitivity-aware variants, the contribution of the collision checking is overall higher than in their standard counterparts.
 
-Finally, note that the predictions are only valid for the parameter maximum range $\delta\p$ chosen during the generation of the training set, and that the model is trained for given values of the controller gains.
+However, note that the observed time gains differ from those reported in Chapter~\ref{chap:NN} due to certain limitations:
+\begin{itemize}
+    \item The current implementation employs the Libtorch C library, which supports only CPU computation and not GPU acceleration.
+    Consequently, the GRU inference time is a bit slower, showing an average time of 2.8 ms on CPU against 2.1 ms on GPU for 1.000 predictions.
+    However, this does not hurt the overall gain of the GRU-based neural networks.
+    \item The GRU-based approach allows to directly correlate the desired trajectory to the sensitivity-based uncertainty tubes.
+    However, the proposed \myglsentry{deepsamp} algorithms still require solving the nominal system dynamic through the \myglsentry{odes} of Equation~(\ref{eq:dyna}).
+    Nevertheless, the use of the GRU enables decoupling the robust feasibility test, unlike the \myglsentry{samp} method (see Chapter~\ref{chap:samp}), where control inputs depend on the current robot state, and therefore must be recovered by solving the \myglsentry{odes}.
+    This decoupling allows to perform a first robust control inputs checking that allow to filter 18\% of trajectories during a 200-second planning in a free space environment.
+    This process eliminates the need to solve the system dynamic \myglsentry{odes} (Equation~(\ref{eq:dyna})), and perform robust collision checks for these trajectories, improving the \myglsentry{deepsamp} variants efficiency.
+\end{itemize}
+
+Finally, note that the GRU predictions are only valid for the parameter maximum range $\delta\p$ chosen during the generation of the training set, and that the model is trained for given values of the controller gains.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Robust motion planning via deep learning} \label{sec:RobustPlanSimu}
 
-The efficiency and robustness of the DeepSARRT planner (see Section~\ref{sec:RSAMP}) are demonstrated through comparative simulation results against a standard (non-robust) RRT, RandUp-RRT~\cite{cRandUpRRT}, the SARRT variant solving the full set of \myglsentry{odes} as detailed in Chapter~\ref{chap:samp}, and LazySARRT, an RRT implementation of \myglsentry{lazysamp} (see Chapter~\ref{chap:samp}).
+The efficiency and robustness of the DeepSARRT planner (see Section~\ref{sec:RSAMP}) are also demonstrated through comparative simulation results against a standard (non-robust) RRT, RandUp-RRT~\cite{cRandUpRRT}, the SARRT variant solving the full set of \myglsentry{odes} as detailed in Chapter~\ref{chap:samp}, and LazySARRT, an RRT implementation of \myglsentry{lazysamp} (see Chapter~\ref{chap:samp}).
 The RandUp-RRT has been implemented with 20 ``RandUP particles'' to approximate the reachable set, and no $\epsilon$-padding is used.
-The padding value is a user parameter that is difficult to find. 
-Choosing the wrong padding value can result in set estimations that are too conservative. 
-Therefore, it is set to zero in this thesis as in some experiments of~\cite{cRandUpRRT}.
+The padding value is a user parameter that is difficult to tune. 
+Choosing a bad padding value can result in set estimations that are too conservative. 
+Therefore, it is set to zero in the following experiments as in experiments of~\cite{cRandUpRRT}.
 The LazySARRT performs robust feasibility tests only when a solution is found, disconnecting and reconnecting the tree if necessary via a RobustReconnect procedure, as shown in Algorithm~\ref{alg:LazySARRT*}. 
 This procedure  maintains and updates a set of non-robust connections for each node in the tree. In the case of \myglsentry{lazysarrt*}, the RobustReconnect procedure also ensures tree optimality. 
 Consequently, all nodes, starting from the first non-robust node, are disconnected and reconnected optimally.
@@ -356,31 +361,31 @@ Therefore, children nodes are disconnected from their parent and reconnected to 
 This strategy significantly reduces the number of reconnection attempts.
 
 A \myglsentry{deepsamp} variant of the \myglsentry{rrtstar}, denoted DeepSARRT*, is compared to the classic non-robust RRT* and the two variants proposed in Chapter~\ref{chap:samp}, SARRT* and LazySARRT*. 
-These optimal planners compute near time-optimal trajectories and ran until the solution cost converged below a threshold of 15 seconds. 
+These optimal planners compute near time-optimal trajectories and run until the solution cost converged below a threshold of 15 seconds. 
 The RandUp-RRT was excluded from this comparison, as no optimal version of the algorithm exists.
 
-The comparison is based on the several planenrs planning time and success rate on the scenario depicted in Figure~\ref{fig: fig1robust}, using an Intel i9 CPU@2.6GHz.
-Table~\ref{tab:Robust window} and Table~\ref{tab:Robust window star} show comparative results for optimal and non-optimal planners, averaged for each planner over 20 trajectories and 30 simulations with uncertain parameters uniformly sampled in the range $\delta\p$ presented in Section~\ref{sec:quad_setup}. 
-Note that since the sensitivity-based uncertainty tubes are valid for uncertain parameters contained within the uncertain parameter ellipsoid (see Section~\ref{sec:tubes}), the sampled vector of uncertain parameters is projected onto the ellipsoid hull when necessary.
+The comparison is based on the several planning times and success rate of the planners for the scenario depicted in Figure~\ref{fig: fig1robust}, using an Intel i9 CPU@2.6GHz.
+Table~\ref{tab:Robust window} and Table~\ref{tab:Robust window star} show comparative results for optimal and non-optimal planners, averaged for each planner over 20 trajectories and 30 simulations with uncertain parameters uniformly sampled in the range $\delta\p$ (see Section~\ref{sec:quad_setup}). 
+% Note that since the sensitivity-based uncertainty tubes are valid for uncertain parameters contained within the uncertain parameter ellipsoid (see Section~\ref{sec:tubes}), the sampled vector of uncertain parameters is projected onto the ellipsoid hull when necessary.
 
 First note that RandUp-RRT, SARRT, LazySARRT and DeepSARRT have a much stronger robustness than standard non-robust RRT. 
 All SARRT, LazySARRT and DeepSARRT have a success rate of 100\% compared to 99.2\% for RandUp-RRT. 
 Indeed, as mentioned in~\cite{cRandUpRRT, cRandUP}, the computation of a conservative reachable set requires some additional padding step, which is here set to zero as mentioned earlier.
 
 Also note the higher efficiency of DeepSARRT which only uses one prediction per iteration whereas RandUp-RRT needs to perform a propagation per particle, yielding to a longer planning time. 
-Additionally, DeepSARRT demonstrates greater efficiency compared to its SARRT counterparts, with three times the time savings, as highlighted in Section~\ref{sec:NNresult}.
+Additionally, DeepSARRT demonstrates greater efficiency compared to its SARRT counterparts, achieving a threefold reduction in planning time.
 As for LazySARRT, it does not build a robust tree like DeepSARRT. 
 Instead, it only robustly checks the final solution, causing frequent disconnections and re-connections of non-robust nodes, which results in a higher planning time.
 RRT, which does not account for robustness, remains faster but with a significantly lower success rate. 
 Similar results are observed on the optimal versions. 
-One can note the efficiency of the DeepSARRT* that reach approximately one order of magnitude time gain (mentioned in Section~\ref{sec:NNresult}) compared to its \myglsentry{sarrt*} counterparts. 
-An example of trajectories planned by RRT* and a robust version DeepSARRT* optimizing the trajectory duration, and their associated simulations, is illustrated in Figure~\ref{fig: simu window}.
+One can note the efficiency of the DeepSARRT* that reach approximately one order of magnitude time gain compared to its \myglsentry{sarrt*} counterparts. 
+An example of trajectories planned by RRT* and a robust version DeepSARRT* optimizing the trajectory duration, and their simulations of their execution by the controller under different parameters values within range $\delta\p$, is illustrated in Figure~\ref{fig: simu window}.
 It shows the effective robustness of the proposed algorithm as illustrated by the higher success rate indicated in Table~\ref{tab:Robust window} and Table~\ref{tab:Robust window star}.
 
 \input{figures/tables/DeepSAMP_results.tex}
 \input{figures/tables/DeepSAMP_results_star.tex}
 
-\begin{figure} [htp]
+\begin{figure} [h!]
     \centering
     \subfloat[\centering RRT*]{{\includegraphics[width=0.4\linewidth]{figures/robust_accurate/simu_RRTstar_notube.png} }}%
     \subfloat[\centering R-SARRT*]{{\includegraphics[width=0.4\linewidth]{figures/robust_accurate/simu_SARRTstar.png} }}%
@@ -392,29 +397,29 @@ It shows the effective robustness of the proposed algorithm as illustrated by th
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Robust local accuracy optimization} \label{sec:AccOptSimu}
 
-This subsection provides a comparison of the robust sensitivity-aware local optimizers introduced in Section~\ref{sec:AOptim}. 
-The evaluation focuses on their computation time and resulting costs, using an initial trajectory as the optimization variable.
+This section provides a comparison of the robust sensitivity-aware local optimizers introduced in Section~\ref{sec:AOptim}. 
+Since none of the robust local optimizers guarantee convergence to a robust solution, but do guarantee the preservation of initial robustness, the initial trajectories are planned using the DeepSARRT variant.
+The evaluation focuses on their computation time and resulting costs, with the trajectory generated by the DeepSARRT variant serving as the optimization variable.
 The objective is to identify the most suitable optimizer for the accuracy optimization stage required for the experimental scenario outlined in Section~\ref{sec:AccOptExp}.
 
-All algorithms are tested on three different environments and stop when a cost convergence at 1\% is reached.
-The cost function~\eqref{eq: cost} is to be optimized, where the radii of interest are the ones along the $\boldsymbol{x}$, $\boldsymbol{\rho}$ and $\boldsymbol{\omega}$ components of $\boldsymbol{q}$.
+All algorithms are tested on three different environments and stop when a cost convergence at 1\% is reached (i.e., the algorithm will stop optimizing the trajectory when the improvement in cost between consecutive best solutions is less than 1\%).
+The cost function used to compute trajectory cost is the one of Equation~\eqref{eq: cost}, where the radii of interest are the ones along the $\boldsymbol{x}$ (positions), $\boldsymbol{\rho}$ (orientations) and $\boldsymbol{\omega}$ (angular velocities) components of $\boldsymbol{q}$.
 
-Since none of the robust local optimizers guarantee convergence to a robust solution, but do guarantee the preservation of initial robustness, the initial trajectories are planned using the DeepSARRT variant.
-
-\begin{figure} [htp]
+\begin{figure} [h!]
     \centering
-    \subfloat[\centering Window environment]{{\includegraphics[width=0.4\linewidth]{figures/accuracy/iloveimg-resized/window_pilar.png} }\label{fig:window_pilar}}%
-    \subfloat[\centering Corridor environment]{{\includegraphics[width=0.4\linewidth]{figures/accuracy/iloveimg-resized/corridor.png} } \label{fig:corridor}}%
+    \subfloat[\centering Window environment]{{\includegraphics[width=0.3\linewidth]{figures/accuracy/iloveimg-resized/window_pilar.png} }\label{fig:window_pilar}}%
+    \subfloat[\centering Corridor environment]{{\includegraphics[width=0.3\linewidth]{figures/accuracy/iloveimg-resized/corridor.png} } \label{fig:corridor}}%
     \caption{The two environments considered for the comparison of robust local optimizers, displayed with an initial trajectory guess for the optimization planned by DeepSARRT (black):
-    (a) the window environment similar to the one of Section~\ref{sec:RobustPlanSimu} with an additional obstacle, and (b) a narrow corridor environment.}%
+    (a) the window environment with an additional obstacle, and (b) a narrow corridor environment.}%
 \end{figure}
 
 \paragraph{Free space environment}
 
 First, the algorithms are tested in an environment without obstacles to evaluate their ability to escape the local minimum defined by the initial trajectory.
 \myglsentry{sastomp} performs 10 rollouts and uses a standard deviation of 0.2 m to generate noisy trajectories.
-\myglsentry{saextendedshct} is evaluated with different hyperparameters as follows: $\delta \in \{0.1, \, 0.01\}$ and $K \in \{1, \, 2, \, 3, \, 5, \, 10\}$.
-Two different sampling strategies are also tested: a uniform sampling that uses the same radius $\delta$ across all components of the state, and a Gaussian sampling where $\delta$ is used as the standard deviation.
+\myglsentry{saextendedshct} is evaluated with different hyperparameters chosen as follows: $\delta \in \{0.1, \, 0.01\}$ and $K \in \{1, \, 2, \, 3, \, 5, \, 10\}$.
+% Two different sampling strategies are also tested: a uniform sampling that uses the same radius $\delta$ to sample state values in a ball of radius $\delta$ around the current trajectory state, and a Gaussian sampling where $\delta$ is used as the standard deviation.
+Two different sampling strategies are also tested: a uniform sampling, where the same radius $\delta$ is used to sample state values within a ball of radius $\delta$ around the current trajectory state, and a Gaussian sampling, where $\delta$ is used as the standard deviation for the sampling distribution.
 
 Figure~\ref{fig:acc_empty} provides the optimization results of the four local optimizers in a free space environment.
 The \myglsentry{saextendedshct} algorithm is executed using a Gaussian sampling, with $\delta = 0.1$ and $K = 1$, as they are the best hyperparameters find for this scenario according to a grid search that can be found in Appendix~\ref{chap:appendixC}.
@@ -425,15 +430,25 @@ Furthermore, note that no standard deviation is observed for \myglsentry{cobyla}
 Then, one can note that the \myglsentry{sastomp} achieves the best optimization, but with significantly slower convergence compared to both \myglsentry{SAshortcut} and \myglsentry{saextendedshct}.
 Finally, the latter two methods achieve convergence within the same planning time, with a better optimization achieved by \myglsentry{saextendedshct} due to its better ability to explore the surrounding of the initial guess.
 
-\begin{figure} [htp]
+\begin{figure} [h!]
     \centering
-    \includegraphics[width=0.9\linewidth]{figures/accuracy/all_methods_empty.png} \\
-    \includegraphics[width=0.9\linewidth]{figures/accuracy/bplot_all_methods_empty.png}
-    \caption{Cost optimization results for the four methods outlined in Section~\ref{sec:AOptim}, averaged over 10 plans in a free space environment. 
+    \includegraphics[width=0.8\linewidth]{figures/accuracy/all_methods_empty.png} \\
+    \includegraphics[width=0.8\linewidth]{figures/accuracy/bplot_all_methods_empty.png}
+    \caption{Free-space environment: cost optimization results for the four methods outlined in Section~\ref{sec:AOptim}, averaged over 10 plans in a free space environment. 
     The standard deviation is represented as an envelope around the mean curves.
     The \myglsentry{sastomp} is shown in red, \myglsentry{SAshortcut} in black, \myglsentry{saextendedshct} in purple, and \myglsentry{cobyla} in blue.}%
     \label{fig:acc_empty}%
 \end{figure}
+
+% \begin{figure} [h!]
+%     \centering
+%     \subfloat[\centering ]{{\includegraphics[width=0.48\linewidth]{figures/accuracy/all_methods_empty.png} }}%
+%     \subfloat[\centering ]{{\includegraphics[width=0.48\linewidth]{figures/accuracy/bplot_all_methods_empty.png} } }%
+%     \caption{Cost optimization results for the four methods, averaged over 10 plans in a free space environment. 
+%     The standard deviation is represented as an envelope around the mean curves.
+%     The \myglsentry{sastomp} is shown in red, \myglsentry{SAshortcut} in black, \myglsentry{saextendedshct} in purple, and \myglsentry{cobyla} in blue.}%
+%     \label{fig:acc_empty}%
+% \end{figure}
 
 \paragraph{Window environment}
 
@@ -447,11 +462,11 @@ Both the \myglsentry{SAshortcut} and \myglsentry{saextendedshct} achieve fast co
 However, while \myglsentry{saextendedshct} outperforms \myglsentry{SAshortcut} in the obstacle-free environment presented above, this is not the case in the presence of obstacles. 
 This suggests that \myglsentry{saextendedshct} is sensitive to the choice of appropriate hyperparameters when robust collision checks are involved.
 
-\begin{figure} [htp]
+\begin{figure} [h!]
     \centering
-    \includegraphics[width=0.9\linewidth]{figures/accuracy/all_methods_window.png} \\
-    \includegraphics[width=0.9\linewidth]{figures/accuracy/bplot_all_methods_window.png}
-    \caption{Cost optimization results for the four methods outlined in Section~\ref{sec:AOptim}, averaged over 10 plans in the window environment. 
+    \includegraphics[width=0.8\linewidth]{figures/accuracy/all_methods_window.png} \\
+    \includegraphics[width=0.8\linewidth]{figures/accuracy/bplot_all_methods_window.png}
+    \caption{Window environment: cost optimization results for the four methods outlined in Section~\ref{sec:AOptim}, averaged over 10 plans in the window environment. 
     The standard deviation is represented as an envelope around the mean curves.
     The \myglsentry{sastomp} is shown in red, \myglsentry{SAshortcut} in black, \myglsentry{saextendedshct} in purple, and \myglsentry{cobyla} in blue.}%
     \label{fig:acc_window}%
@@ -463,15 +478,15 @@ A second environment is also considered, as depicted in Figure~\ref{fig:corridor
 The results are illustrated by Figure~\ref{fig:acc_corridor}, where \myglsentry{cobyla} and \myglsentry{sastomp} present the same behavior as previously observed.
 
 The \myglsentry{SAshortcut} achieves the best optimization together with the best convergence rate.
-The \myglsentry{saextendedshct} is tested with a Gaussian sampling using two different standard deviation $\delta \in \{0.1, \, 0.01\}$.
+The \myglsentry{saextendedshct} is tested with a Gaussian sampling using two different standard deviation $\delta \in \{0.1, \, 0.01\}$ and $K = 1$.
 The results show that although $\delta = 0.1$ is the best setup to achieve convergence in the obstacle-free environment, it is not the best choice in this case.
 This confirms the sensitivity of the algorithm to its hyperparameters.
 
-\begin{figure} [htp]
+\begin{figure} [h!]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/accuracy/all_methods_corridor.png} \\
     \includegraphics[width=0.9\linewidth]{figures/accuracy/bplot_all_methods_corridor.png}
-    \caption{Cost optimization results for the four methods outlined in Section~\ref{sec:AOptim}, averaged over 10 plans in the corridor environment. 
+    \caption{Corridor environment: cost optimization results for the four methods outlined in Section~\ref{sec:AOptim}, averaged over 10 plans in the corridor environment. 
     The standard deviation is represented as an envelope around the mean curves.
     The \myglsentry{sastomp} is shown in red, \myglsentry{SAshortcut} in black, and \myglsentry{cobyla} in blue.
     Two \myglsentry{saextendedshct} setup are considered: both use a Gaussian sampling with $K = 1$, but the purple curve uses a standard deviation of $\delta = 0.1$, while the brown one uses $\delta = 0.01$}%
@@ -482,48 +497,39 @@ This confirms the sensitivity of the algorithm to its hyperparameters.
 
 While the robust local optimizers compared above consider only the trajectory states as optimization variables, the work in~\cite{AliIROS} demonstrates that optimizing both the states and controller gains achieves the best accuracy performance.
 Therefore, \myglsentry{SAshortcut} has been implemented such that, at each iteration, a shortcut is attempted between two states of the input trajectory, randomly sampled along with controller gain values, which are chosen within 50\% to 150\% of their nominal values (see Section~\ref{sec:quad_setup}).
-Figure~\ref{fig: Acc opti} motivates why we optimized both the trajectory and the controller gains at the same time in the A-Optim function in order to minimize uncertainty for a given point, as mentioned in Section~\ref{sec:RASAMP}. 
+Figure~\ref{fig: Acc opti} illustrates how the uncertainty radius can be reduced by locally optimizing either the trajectory alone (yellow), the controller gains alone (blue), or both simultaneously (green), compared to the robust initial trajectory (red).
+This motivates the interest of optimizing both the trajectory and the controller gains at the same time in the A-Optim function in order to minimize uncertainty for a given point. 
 In fact, these results corroborate the findings of~\cite{AliIROS}, but this time by employing a sampling-based motion planner that considers obstacles in the environment.
-
-\begin{figure} [htp]
-    \centering
-    {\includegraphics[width=0.5\linewidth]{figures/robust_accurate/accuracy_opti.png} }%
-    \caption{Example of uncertainty ellipsoid without optimization (red), with local trajectory optimization (yellow), with gains optimization (blue), and with local trajectory and gains optimization at the same time (green).}%
-    \label{fig: Acc opti}%
-\end{figure}
 
 \paragraph{Conclusion}
 
 The \myglsentry{cobyla} algorithm remains highly localized to the vicinity of the reference trajectory, while \myglsentry{sastomp} exhibits a very slow convergence rate.
 Although \myglsentry{saextendedshct} was designed to enable better exploration of the cost space compared to \myglsentry{SAshortcut}, while maintaining an efficient convergence rate, it proves challenging to tune effectively.
-Therefore, in the following experimental section, the A-Optim method of the meta algorithm of Section~\ref{sec:RASAMP} is performed using \myglsentry{SAshortcut} considering both the trajectory states and controller gains as optimization variables.
+Therefore, in the following experimental section, the robust local accuracy optimization is performed using \myglsentry{SAshortcut} considering both the trajectory states and controller gains as optimization variables.
 
-Recall that, because the GRU is trained for specific controller gains, and the trajectories encountered during the \myglsentry{SAshortcut} process deviate significantly from those used during training, \myglsentry{SAshortcut} does not benefit from the neural network.
+Recall that, because the GRU is trained for specific controller gains, and the trajectories encountered during the \myglsentry{SAshortcut} process deviate significantly from those used during training (due to the violation of the maximum local distance during the shortcut process), \myglsentry{SAshortcut} does not benefit from the neural network.
+
+\begin{figure} [h!]
+    \centering
+    {\includegraphics[width=0.4\linewidth]{figures/robust_accurate/accuracy_opti.png} }%
+    \caption{Example of uncertainty ellipsoid without optimization (red), with local trajectory optimization (yellow), with gains optimization (blue), and with local trajectory and gains optimization at the same time (green).}%
+    \label{fig: Acc opti}%
+\end{figure}
 
 \section{Experimental validation} \label{sec:Experimental}
 
-This section provides an experimental validation of both the deep learning-based robust motion planning variants, and the accuracy optimization stage in two challenging scenarios depicted in Figure~\ref{fig: Missed and succes}.
-
-\begin{figure} [htp]
+\begin{figure} [h!]
     \centering
     \subfloat[\centering Robust motion planning]{{\includegraphics[width=0.4\linewidth]{figures/robust_accurate/topFig_tube.png} }\label{fig: fig1robust}}%
     \subfloat[\centering Accuracy optimization]{{\includegraphics[width=0.4\linewidth]{figures/robust_accurate/ring_success.png} } \label{fig: fig1acc}}%
     \caption{
     Two scenarios considered for the experimental validation of the proposed method:
-    (a) Robust navigation of a drone through a narrow window. (b) Precision in-flight `ring catching' task, where the uncertainty on the position of the perch end-effector is minimized to successfully accomplish the task.
+    (a) Robust navigation of a drone through a narrow window. (b) Precision in-flight ``ring catching'' task, where the uncertainty on the position of the perch end-effector is minimized to successfully accomplish the task.
     A video of the experiments is available at: \href{https://laas.hal.science/hal-04642257}{https://laas.hal.science/hal-04642257}}%
     \label{fig: Missed and succes}%
 \end{figure}
 
-\begin{figure} [htp]
-    \centering
-    
-    \subfloat[\centering ]{{\includegraphics[width=0.42\linewidth]{figures/robust_accurate/drone_window.png} }\label{fig: drone_mass}}%
-    \subfloat[\centering ]{{\includegraphics[width=0.3\linewidth]{figures/robust_accurate/drone_perch.png}} \label{fig: drone_perch}} \\%
-    \subfloat[\centering ]{{\includegraphics[width=0.3\linewidth]{figures/robust_accurate/ring.png}} \label{fig: ring}}
-    \caption{Quadrotor setups for the two scenarios considered for the experimental validation. (a) a drone equipped with a random mass to perform a robust navigation through a window (b) a drone equipped with a perch to catch (c) the rings.}%
-    \label{fig: exp setup}%
-\end{figure}
+This section provides an experimental validation of both the deep learning-based robust motion planning variants, and the accuracy optimization stage in two challenging scenarios depicted in Figure~\ref{fig: Missed and succes}.
 
 \subsection{Robust motion planning via deep learning} \label{sec:RobustPlanExp}
 
@@ -538,7 +544,7 @@ Figure~\ref{fig: exp window} illustrates the experimental execution of a non-rob
 The figure shows the recorded executions within a virtual environment to detect virtual collisions, thus mitigating the risk of real crashes and damages to the robot.
 The experimental results confirm the simulation observations, providing an overall success rate of 100\% in the case of the robust trajectory computed with DeepSARRT*, against 40\% for the classic RRT*.
 
-\begin{figure} [htp]
+\begin{figure} [h!]
     \centering
     \subfloat[\centering RRT*]{{\includegraphics[width=0.4\linewidth]{figures/robust_accurate/exp_RRTstar.png} }}%
     \subfloat[\centering DeepSARRT*]{{\includegraphics[width=0.378\linewidth]{figures/robust_accurate/exp_SARRTstar.png} }}%
@@ -547,20 +553,17 @@ The experimental results confirm the simulation observations, providing an overa
     \label{fig: exp window}%
 \end{figure}
 
-\subsection{Robust motion planning with accuracy optimization} \label{sec:AccOptExp}
-
-\begin{figure} [htp]
-    \begin{subfigure}{0.63\linewidth}
-      \includegraphics[width=\linewidth]{figures/robust_accurate/ring_opti_v1.png}
-    \end{subfigure}\hfill
-    \begin{subfigure}{0.37\linewidth}
-        \includegraphics[width=\linewidth]{figures/robust_accurate/Exp_ring_no_opti_full_zoom.png}
-        \includegraphics[width=\linewidth]{figures/robust_accurate/Exp_ring_opti_full_zoom.png}
-    \end{subfigure}\hfill
+\begin{figure} [h!]
+    \centering
     
-\caption{Experimental validation of the ``ring catching'' scenario with a perch-equipped drone (left) with the position of the perch end-effector at the second ring location over 10 trajectories non accuracy optimized (top right) and accuracy optimized (bottom right).}
-\label{fig: exp ring}
+    \subfloat[\centering ]{{\includegraphics[width=0.42\linewidth]{figures/robust_accurate/drone_window.png} }\label{fig: drone_mass}}%
+    \subfloat[\centering ]{{\includegraphics[width=0.3\linewidth]{figures/robust_accurate/drone_perch.png}} \label{fig: drone_perch}} \\%
+    \subfloat[\centering ]{{\includegraphics[width=0.3\linewidth]{figures/robust_accurate/ring.png}} \label{fig: ring}}
+    \caption{Quadrotor setups for the two scenarios considered for the experimental validation. (a) a drone equipped with a random mass to perform a robust navigation through a window (b) a drone equipped with a perch to catch (c) the rings.}%
+    \label{fig: exp setup}%
 \end{figure}
+
+\subsection{Robust motion planning with accuracy optimization} \label{sec:AccOptExp}
 
 A second experimental scenario is presented in order to evaluate the complete framework presented in Section~\ref{sec:RASAMP}.
 This scenario involves a challenging in-flight retrieval of two 2 cm radius rings in a cluttered environment using a drone equipped with a perch (see Figure~\ref{fig: drone_perch}) in a robust (near) time optimal way.
@@ -589,6 +592,19 @@ This translates into a higher success rate of nine out of ten attempts to catch 
 However, given the chosen system and controller parameters, there is no guarantee that the computed tube will be enclosed in within the ring.
 This explains the occurrence of one failure in the optimized case.
 Overall, the experimental results show a success rate of 90\% for DeepSARRT* against only 30\% for RRT*.
+
+\begin{figure} [h!]
+    \begin{subfigure}{0.63\linewidth}
+      \includegraphics[width=\linewidth]{figures/robust_accurate/ring_opti_v1.png}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.37\linewidth}
+        \includegraphics[width=\linewidth]{figures/robust_accurate/Exp_ring_no_opti_full_zoom.png}
+        \includegraphics[width=\linewidth]{figures/robust_accurate/Exp_ring_opti_full_zoom.png}
+    \end{subfigure}\hfill
+    
+\caption{Experimental validation of the ``ring catching'' scenario with a perch-equipped drone (left) with the position of the perch end-effector at the second ring location over 10 trajectories non accuracy optimized (top right) and accuracy optimized (bottom right).}
+\label{fig: exp ring}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion} \label{sec:Conclusion}

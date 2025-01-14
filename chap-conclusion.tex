@@ -39,7 +39,7 @@ However, future work could focus on bounding the first-order sensitivity-based t
 
 As discussed in Section~\ref{sec:sensi}, the computation of closed-loop sensitivity and the subsequent uncertainty tubes relies on the assumption of perfect knowledge of the robot state. 
 Therefore, the current system does not account for uncertainty in state measurements, which is unavoidable due to sensor bias and noise.
-Consequently, one could consider computing uncertainty tubes by also accounting for a priori known measurable sensor biases and noise, using the observability Gramian, which is a metric that quantifies how the robot state can be inferred from its outputs.
+Consequently, one could consider computing uncertainty tubes by also accounting for a priori known measurable sensor biases and noise, using the Gramian~\cite{cGramian}, which is a metric that quantifies how the robot state can be inferred from its outputs.
 
 While this thesis focuses primarily on parametric uncertainties and presents indoor experiments, a step toward a more general framework applicable outdoors would involve accounting for external system disturbances, such as wind.
 Since the closed-loop sensitivity of any function of the state can be computed, external disturbances might be incorporated by evaluating the closed-loop sensitivity of barrier functions, for instance.
@@ -57,5 +57,16 @@ Therefore, lazy robust feasibility checks may be employed to minimize tube compu
 
 Addressing additional constraints, as mentioned earlier, in the presence of external disturbances and state estimation uncertainties can be challenging to learn using the proposed learning architecture, as these factors can lead to more complex closed-loop sensitivity computations.
 Therefore, the learning process can be improved to handle more complex dynamics, whether from the robot or the sensitivity formulation, by leveraging a \gls{pinns} learning procedure that integrates \myglsentry{odes} dynamics within the loss function.
+
+Furthermore, the current learning method is limited to the model parameters and controller gains used for the dataset generation.
+Therefore, to further address these dependencies, future investigations could explore strategies such as:
+\begin{itemize}
+    \item GPU acceleration leverages the massive parallelization capabilities of modern GPUs to enhance computational performance. 
+    Utilizing GPU acceleration techniques can enable rapid tube computation while overcoming limitations of the learned model, such as dependency on specific parameters.
+    \item Transfer learning is a method that enables a model to apply knowledge gained from one task or dataset to a new, related task, thereby reducing the need for extensive retraining. 
+    This approach can be leveraged when model parameters or controller gains change, allowing for the rapid retraining of learned models.
+    \item Ensemble learning is a technique that involves combining multiple models to improve prediction accuracy and generalized performance. 
+    It can be employed to enhance the stability of predictions when dealing with changes in model parameters or controller gains.
+\end{itemize}
 
 Finally, the software can also be extended to support multi-robot systems or human-robot (physical) interactions, where ensuring the accuracy and robustness of robot motion is critical for guaranteeing user safety.
