@@ -28,7 +28,7 @@ This chapter is related to the following RA-L 2024 publication~\cite{cRAL}\footn
 This section presents the workflow of the meta-algorithm used to plan robust trajectories, which are then locally optimized for accuracy at specified desired states. 
 The method consists of two stages: 
 \begin{enumerate}
-    \item First, it generates a robust trajectory based on a Deep learning-based Sensitivity-Aware Motion Planner (DeepSAMP) -- explained in Sect.~\ref{sec:RSAMP} -- that utilizes the GRU-based computation of the uncertainty tubes.
+    \item First, it generates a robust trajectory based on a Deep learning-based Sensitivity-Aware Motion Planner (DeepSAMP) -- explained in Section~\ref{sec:RSAMP} -- that utilizes the GRU-based computation of the uncertainty tubes.
     \item Second, it optimizes the accuracy at some given states along this trajectory by minimizing the size of the uncertainty tubes at these locations.
 \end{enumerate}
 
@@ -165,6 +165,27 @@ While this algorithm is computationally efficient, it is constrained by sampling
 
 \paragraph{STOMP}
 
+\begin{algorithm}[h!]
+    \caption{\myglsentry{sastomp} [$\q_{d,init}^{i}, K$]}\label{alg:sastomp}
+    \begin{algorithmic}[1]
+    \State $\q_{d,best}^{i} \gets \q_{d,init}^{i};$
+    \State $A \gets$ FiniteDifferenceMatrix$();$
+    \State $R^{-1} = (A^TA)^{-1};$
+    \State $M \gets$ Scale$(R^{-1});$
+    \While{\textbf{not} StopCondition$()$}  
+        \State $Q^{noisy} \gets $CreateNoisyTraj$(\q_{d,best}^{i}, K);$
+        \For {$k = 1 \ldots K$ \textbf{do}}
+            \State $c_k^{noisy} \gets$ ComputeSACost$(Q_k^{noisy});$
+            \State $P^{noisy} \gets $ ComputeProbabilities$(c_k^{noisy});$
+        \EndFor
+        \State $\delta \q^{noisy} \gets$ ComputeUpdateVector$(P^{noisy});$
+        \State $\delta \q = M \delta \q^{noisy};$
+        \State $\q_{d,best}^{i} \gets \q_{d,best}^{i} + \delta \q;$
+    \EndWhile
+    \State \textbf{return} $\q_{d,best}^{i};$
+    \end{algorithmic}
+\end{algorithm}
+
 A robust sensitivity-aware variant of the \gls{stomp} algorithm~\cite{cSTOMP}, denoted \gls{sastomp}, is also studied given the widespread use of \myglsentry{stomp} for non-differentiable or non-smooth cost functions.
 The pseudo code is presented in Algorithm~\ref{alg:sastomp} and operates as follows:
 
@@ -187,27 +208,6 @@ The pseudo code is presented in Algorithm~\ref{alg:sastomp} and operates as foll
 
 While this algorithm allows for broader exploration relative to the initial guess, it suffers from the need to perform multiple rollouts at each iteration.
 
-\begin{algorithm}[htp]
-    \caption{\myglsentry{sastomp} [$\q_{d,init}^{i}, K$]}\label{alg:sastomp}
-    \begin{algorithmic}[1]
-    \State $\q_{d,best}^{i} \gets \q_{d,init}^{i};$
-    \State $A \gets$ FiniteDifferenceMatrix$();$
-    \State $R^{-1} = (A^TA)^{-1};$
-    \State $M \gets$ Scale$(R^{-1});$
-    \While{\textbf{not} StopCondition$()$}  
-        \State $Q^{noisy} \gets $CreateNoisyTraj$(\q_{d,best}^{i}, K);$
-        \For {$k = 1 \ldots K$ \textbf{do}}
-            \State $c_k^{noisy} \gets$ ComputeSACost$(Q_k^{noisy});$
-            \State $P^{noisy} \gets $ ComputeProbabilities$(c_k^{noisy});$
-        \EndFor
-        \State $\delta \q^{noisy} \gets$ ComputeUpdateVector$(P^{noisy});$
-        \State $\delta \q = M \delta \q^{noisy};$
-        \State $\q_{d,best}^{i} \gets \q_{d,best}^{i} + \delta \q;$
-    \EndWhile
-    \State \textbf{return} $\q_{d,best}^{i};$
-    \end{algorithmic}
-\end{algorithm}
-
 \paragraph{ExtendedShortcut}
 
 This thesis proposes an algorithm called \gls{saextendedshct} presented in Algorithm~\ref{alg:extendedshct}, which attempts to combine the advantages of the above-mentioned algorithms while limiting their drawbacks.
@@ -224,7 +224,7 @@ Finally, if the new solution has a lower sensitivity cost (line 16), then a robu
 
 Note that the idea behind the proposed algorithm is to explore the vicinity of the initial trajectory while keeping the computational cost low, based on well-chosen hyperparameters $K$ and $\delta$.
 
-\begin{algorithm}[htp]
+\begin{algorithm}[h!]
     \caption{SAExtendedShortcut [$\q_{d,init}, K, \delta$]}\label{alg:extendedshct}
     \begin{algorithmic}[1]
         \State $\{\q_{d,best}, cost_{best}\} \gets \{\q_{d,init}, $Cost$(\q_{d,init})\};$
@@ -308,7 +308,7 @@ First, the time gains presented in Chapter~\ref{chap:NN} must be mitigated due t
     This process eliminates the need to solve the system dynamic \myglsentry{odes} (Equation~(\ref{eq:dyna})), and perform robust collision checks for these trajectories, improving the \myglsentry{deepsamp} variants efficiency.
 \end{itemize}
 
-\begin{figure} [htp]
+\begin{figure} [h!]
     \centering
     \subfloat[\centering RRT]{{\includegraphics[width=0.4\linewidth]{figures/robust_accurate/iterations_RRT_new.png} }}%
     \subfloat[\centering RRT$^*$]{{\includegraphics[width=0.4\linewidth]{figures/robust_accurate/iterations_RRTstar_new.png} }}%
@@ -316,7 +316,7 @@ First, the time gains presented in Chapter~\ref{chap:NN} must be mitigated due t
     \label{fig: NNTime}%
 \end{figure}
 
-\begin{figure} [htp]
+\begin{figure} [h!]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/robust_accurate/profiling_rrt.png}%
     \\
