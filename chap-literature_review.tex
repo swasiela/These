@@ -4,17 +4,15 @@
 
 This chapter provides an overview of the related work on the key concepts that this thesis builds upon and compares with.
 
-\section{Motion planning}
-
-\subsection{Path planning}
+\section{Path planning}
 
 This subsection provides an overview of various path planning approaches. 
 For a more detailed survey, please refer to~\cite{cLavalle, cFrazzoli, cKavraki}.
 The path planning problem focuses on finding a collision-free possibly optimal path between a starting configuration and a goal configuration. 
-The work of~\cite{cConfigSpace} introduced the configuration space concept as a general framework for planning motions of a general class of kinematic systems.
-This idea provided a solid foundation for the field and, as noted in~\cite{cSpatialPlan}, formally established the motion planning problem as the task of finding a feasible path within the configuration space.
+The work of~\cite{cConfigSpace} introduced the configuration space concept as a general framework for planning paths of a general class of kinematic systems.
+This idea provided a solid foundation for the field and, as noted in~\cite{cSpatialPlan}, formally established the path planning problem as the task of finding a feasible path within the configuration space.
 
-However, planning motion in the configuration space poses significant challenges due to the problem computational complexity. 
+However, planning path in the configuration space poses significant challenges due to the problem computational complexity~\cite{cComplexity}. 
 An alternative local approach is the introduction of artificial potential fields~\cite{cAPF}, which create a repulsive force field around obstacles and an attractive force field toward the target.
 However, although this strategy has proven to be efficient, it sacrifices guarantees such as algorithm completeness and global optimality.
 
@@ -22,7 +20,7 @@ Another common approach to the path planning problem involves search-based techn
 These methods operate on a discrete representation of the configuration space, where vertices correspond to a finite set of robot configurations, and edges represent possible transitions between these configurations.
 The desired path is found by performing a search for a minimum-cost path in such a graph using Dijkstra algorithm~\cite{cDijk}. 
 
-Advances in computational techniques have enabled the development of a new class of algorithms, commonly referred to as sampling-based planners that allow to generate global motion plans.
+Advances in computational techniques have enabled the development of a new class of algorithms, commonly referred to as sampling-based planners that allow to generate global paths.
 A key contribution of the domain is the work of~\cite{cLatombe}, which improves the aforementioned potential fields approach by integrating a random walk mechanism, thus guaranteeing the probabilistic completeness of the algorithm.
 Sampling-based planners are divided in two main categories: graph-based planners and tree-based planners.
 
@@ -41,18 +39,10 @@ At each iteration, a new configuration is sampled $q^{rand}$.
 Its nearest neighbor $q^{near}$ among the existing tree nodes is found, and then an extension is attempted starting from $q^{near}$ toward $q^{rand}$ leading to a new configuration $q^{new}$.
 If the extension is collision free, the new configuration is added to the tree as a new node with an edge connecting the two nodes.
 
-Therefore, sampling-based motion planners have become the most widely used strategy for generating global motion paths in the presence of obstacles, due to their practical efficiency in handling complex and high-dimensional configuration spaces, as well as their completeness guarantee.
+Therefore, sampling-based motion planners have become the most widely used strategy for generating global paths in the presence of obstacles, due to their practical efficiency in handling complex and high-dimensional configuration spaces, as well as their completeness guarantee.
 Advances in sampling-based planners have then focused on generating feasible and cost-effective paths through various strategies, such as the transition-based approach~\cite{cTRRT}. 
 These strategies often achieve asymptotic optimality by employing optimal connection procedures during the tree or graph construction process~\cite{cRRTstar, cTRRTstar, cFMT}.
 Research on sampling-based planners has expanded into various areas, such as developing suitable sampling strategies~\cite{cSampling}, exploring lazy collision checking approaches~\cite{cLazy1}, extending to the molecular domain~\cite{cMolecular}, and more.
-
-% The aforementioned sampling-based methods are generally referred to as global planning methods, as they rely on local planning techniques to generate the edges that connect the sampled configurations.
-% Such local planning methods do not consider obstacle avoidance.
-% A local planner is typically fast; however, the generated path may not fully satisfy the problem constraints (e.g., it could result in collisions).
-% Traditional local strategies typically involve path segments, but local planners often need to account for additional constraints.
-% For example, significant work has been done to enforce kinematic constraints on these local plans, ensuring the kinematic feasibility of the resulting global paths.
-% Such work includes, for example, Dubins path generation~\cite{cDubins}, which enables connecting two configurations under forward motion constraints and curvature constraints for car-like robots. 
-% The Reeds-Shepp method~\cite{cReeds} extends this local path generation procedure to car-like robots capable of moving both forward and backward.
 
 The aforementioned sampling-based methods are commonly known as global planning methods, as they depend on local planning techniques, referred to as steering methods, to generate the edges connecting sampled configurations. 
 A steering method is a local planner that connects an initial configuration to a goal without accounting for obstacle avoidance. 
@@ -62,39 +52,24 @@ For instance, significant work has been done to enforce kinematic constraints on
 Such work includes, for example, Dubins path generation~\cite{cDubins}, which enables connecting two configurations under forward motion constraints and curvature constraints for car-like robots. 
 The Reeds-Shepp method~\cite{cReeds} extends this local path generation procedure to car-like robots capable of moving both forward and backward.
 
-\subsection{Kinodynamic planning}
+\section{Motion planning}\label{sec:forwardplanning}
 
 While the aforementioned path finding methods focus on generating a route between two robot configurations, they do not address the problem on how the robot should move along this route over time.
-Additionally, path planning does not account for the robot dynamic constraints, such as maximum velocity and acceleration. 
-The problem of generating motion plans that consider both kinematic constraints (e.g., turning radius) and dynamic constraints, ensuring the plans are physically executable, is known as kinodynamic motion planning.
-Therefore, the kinodynamic problem extends beyond searching in the robot configuration space by considering its entire state space.
+This problem is known as motion planning and involve considering robot velocities, accelerations, and jerks~\cite{cKroger}.
+Consequently, motion planning extends beyond searching the robot's configuration space, incorporating its entire state space.
 
-\subsubsection{Local planners}
+Moreover, while path planning can handle kinematic constraints based on configuration representation, incorporating the state space allows for the consideration of dynamic constraints, such as maximum velocity and acceleration. 
+The task of generating motion plans that account for both kinematic constraints (e.g., turning radius) and dynamic constraints, ensuring that the plans are physically feasible, is known as kinodynamic motion planning.
 
-% Local planners, or steering methods, focus on generating feasible motion between two states while respecting kinematic and dynamic constraints. 
-% They are often used as building blocks in global kinodynamic planners. 
+% \subsection{Local trajectory generation}\label{sec:forwardplanning}
+The distinction between path planning and motion planning naturally emphasizes the importance of local trajectory generation, a key element in refining motion plans. 
+Local trajectory planners play an essential role in motion planning by generating feasible movements between two robot states while respecting various constraints, such as kinematic and dynamic limits, as well as obstacle avoidance. 
+Operating on a localized scale, these planners are key to refining or connecting segments of a global motion plan, ensuring that the overall trajectory remains both feasible and optimized.
 
-% A common approach to generating smooth trajectories between robot states is to solve a two-point \gls{bvp} using polynomial-based methods, such as splines, which are widely employed for trajectory interpolation. 
-% For instance, the kinosplines local planner proposed in~\cite{cKino} leverages system differential flatness, ensuring the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
-% The resulting trajectories respect kinodynamic constraints up to the jerk level, enabling time-optimal connections between two given states. 
-% Another example is the minimum snap trajectory generation method~\cite{cMinimumSnap}, which contrasts with the bang-bang snap strategy of kino-splines. 
-% Also based on system differential flatness, this approach formulates an optimization problem that minimizes the integral of a weighted combination of squared position snap and squared yaw acceleration.
-% It ensures continuity between trajectory segments, satisfies kinematic conditions at the start and end of the motion, and respects actuation limits.
-
-% While the local planners mentioned earlier primarily focus on enforcing kinodynamic constraints, Bézier curve-based planners~\cite{cBezier,cBezier2} offer additional benefits due to their inherent smoothness, and their convex hull property.
-% Their convex hull property ensures that the trajectory remains within the convex hull of its control points. 
-% This simplifies collision detection, as it guarantees that if the convex hull is free of obstacles, the entire trajectory will be too. 
-% Additionally, adjusting control points affects only a localized portion of the trajectory, allowing precise modifications without affecting the entire trajectory. 
-% This approach is particularly useful in environments where efficient collision detection is crucial.
-% Furthermore, its smoothness also naturally accommodates velocity, acceleration, and higher-order dynamic constraints, making it suitable for kinodynamic motion planning in various robotic systems. 
-
-Local planners are essential components in motion planning, focusing on generating feasible motion between two robot states while adhering to various constraints such as kinematic constraints, dynamic constraints, and obstacle avoidance. 
-These planners operate on a localized scale and are crucial for refining or connecting segments of a global motion plan, ensuring that the overall trajectory remains feasible and optimized.
-
-Among the widely used local planners, Bézier curve-based planners~\cite{cBezier,cBezier2} stand out due to their inherent smoothness and the advantageous convex hull property.
-Their convex hull property ensures that the trajectory remains within the convex hull of its control points. 
-This simplifies collision detection, as it guarantees that if the convex hull is free of obstacles, the entire trajectory will be too. 
-Additionally, adjusting control points affects only a localized portion of the trajectory, allowing precise modifications without affecting the entire trajectory. 
+Among the widely used local trajectory planners, Bézier curve-based planners~\cite{cBezier,cBezier2} stand out due to their inherent smoothness and the advantageous convex hull property.
+The convex hull property ensures that the trajectory remains within the convex hull of its control points, simplifying collision detection. 
+If the convex hull is free of obstacles, the entire trajectory is guaranteed to be obstacle-free. 
+Additionally, adjusting control points affects only a localized portion of the trajectory, allowing precise modifications without impacting the entire path.
 This approach is particularly useful in environments where efficient collision detection is crucial.
 Furthermore, its smoothness also naturally accommodates velocity, acceleration, and higher-order dynamic constraints, making it suitable for kinodynamic motion planning in various robotic systems. 
 
@@ -110,19 +85,14 @@ While \myglsentry{chomp} can handle differentiable cost function due its gradien
 This process also accounts for kinodynamic constraints and obstacle avoidance by adding state cost penalty in the cost function formulation.
 While \myglsentry{stomp} is computationally more expensive than \myglsentry{chomp} as it relies on several sampling-based rollouts, its ability to handle more complex cost functions and find better solutions in challenging environments makes it highly versatile for kinodynamic motion planning.
 
-\subsubsection{Global planners}\label{sec:forwardplanning}
+Nevertheless, the aforementioned methods focus on generating trajectories within a limited, localized scope according to a partial environment knowledge. 
+These methods are typically designed to handle immediate obstacles and environmental changes, allowing for quick responses and adaptability.
 
-% Global sampling-based motion planners can generate globally kinodynamically feasible trajectories by leveraging the aforementioned local planners to connect their sampled state.
-% However, such local planners may not be available for every system.
-% Therefore, algorithms were developed to bypass this need by performing dynamic system forward propagation instead of solving a complex \myglsentry{bvp}.
-
-% Kinodynamic motion planners, such as Kinodynamic RRT~\cite{cKinoRRT} and \gls{sst}~\cite{cSST}, are designed to address the challenges of planning for robots with complex dynamics without relying on a local planner. 
-% These methods utilize system forward dynamic propagation by sampling control inputs and propagation time. 
-% Starting from an initial robot state, the system dynamics are integrated in an open-loop manner to propagate the state, allowing the planner to account for both the robot kinematic limitations and its dynamic behavior. 
-% This approach ensures that the generated paths are collision-free and physically executable while eliminating the need for local planners.
-
-As mentioned above, global sampling-based planners leverage local planning techniques, referred to as steering methods, which do not account for obstacles. 
-Therefore, to adhere to kinodynamic constraints, sampling-based planners can utilize kinodynamic steering methods.
+In contrast, global planning problems are more effectively addressed by sampling-based global planners that cover the entire environment.
+% \subsection{Global motion planning}\label{sec:forwardplanning}
+Global sampling-based planners usually rely on local planning techniques, also known as steering methods, which do not consider obstacles. 
+To fully address the motion planning problem, these planners can incorporate time-parametrized steering methods. 
+Additionally, to solve the kinodynamic motion planning problem, sampling-based planners can leverage kinodynamic steering methods, which take both kinematic and dynamic constraints into account during trajectory generation.
 
 A common approach to generating kinodynamic steering methods involves solving a two-point \gls{bvp} using polynomial-based methods, such as splines, which are widely employed for trajectory interpolation. 
 For instance, the kinosplines local planner proposed in~\cite{cKino} leverages system differential flatness, ensuring the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
@@ -140,7 +110,143 @@ These methods utilize system forward dynamic propagation by sampling control inp
 Starting from an initial robot state, the system dynamics are integrated in an open-loop manner to propagate the state, allowing the planner to account for both the robot kinematic limitations and its dynamic behavior. 
 This approach ensures that the generated paths are collision-free and physically executable while eliminating the need for local steering methods.
 
-\section{Planning under uncertainty}\label{sec:planuncertainty}
+% \section{Motion Planning}
+
+% \subsection{Path planning}
+
+% This subsection provides an overview of various path planning approaches. 
+% For a more detailed survey, please refer to~\cite{cLavalle, cFrazzoli, cKavraki}.
+% The path planning problem focuses on finding a collision-free possibly optimal path between a starting configuration and a goal configuration. 
+% The work of~\cite{cConfigSpace} introduced the configuration space concept as a general framework for planning motions of a general class of kinematic systems.
+% This idea provided a solid foundation for the field and, as noted in~\cite{cSpatialPlan}, formally established the motion planning problem as the task of finding a feasible path within the configuration space.
+
+% However, planning motion in the configuration space poses significant challenges due to the problem computational complexity. 
+% An alternative local approach is the introduction of artificial potential fields~\cite{cAPF}, which create a repulsive force field around obstacles and an attractive force field toward the target.
+% However, although this strategy has proven to be efficient, it sacrifices guarantees such as algorithm completeness and global optimality.
+
+% Another common approach to the path planning problem involves search-based techniques. 
+% These methods operate on a discrete representation of the configuration space, where vertices correspond to a finite set of robot configurations, and edges represent possible transitions between these configurations.
+% The desired path is found by performing a search for a minimum-cost path in such a graph using Dijkstra algorithm~\cite{cDijk}. 
+
+% Advances in computational techniques have enabled the development of a new class of algorithms, commonly referred to as sampling-based planners that allow to generate global motion plans.
+% A key contribution of the domain is the work of~\cite{cLatombe}, which improves the aforementioned potential fields approach by integrating a random walk mechanism, thus guaranteeing the probabilistic completeness of the algorithm.
+% Sampling-based planners are divided in two main categories: graph-based planners and tree-based planners.
+
+% Graph-based sampling-based planners, such as \gls{prm}~\cite{cPRM}, generate a roadmap by sampling configurations in the free space and connecting them with feasible paths. 
+% The technique involves a graph building phase and a query phase.
+% The graph is first built by randomly sampling configurations (denoted nodes) in the robot configuration space.
+% Each sampled configuration is checked for collisions with obstacles.
+% For each collision-free node, the planner attempts to connect it to nearby free configurations by creating edges between them.  
+% The edges are valid if the path connecting the two configurations is collision-free.
+% This procedure typically involves a notion of neighborhood that is space-dependent and generally increases as the dimensionality of the space grows.
+% Once the graph is built, a graph search query is performed to compute the desired path, using graph search techniques such as Dijkstra algorithm~\cite{cDijk} or A*~\cite{cA*}.
+
+% The other planner family among sampling-based planners are tree-based planners such as the well-known \gls{rrt}~\cite{cRRT}.
+% This algorithm generates a tree starting from an initial configuration.
+% At each iteration, a new configuration is sampled $q^{rand}$.
+% Its nearest neighbor $q^{near}$ among the existing tree nodes is found, and then an extension is attempted starting from $q^{near}$ toward $q^{rand}$ leading to a new configuration $q^{new}$.
+% If the extension is collision free, the new configuration is added to the tree as a new node with an edge connecting the two nodes.
+
+% Therefore, sampling-based motion planners have become the most widely used strategy for generating global motion paths in the presence of obstacles, due to their practical efficiency in handling complex and high-dimensional configuration spaces, as well as their completeness guarantee.
+% Advances in sampling-based planners have then focused on generating feasible and cost-effective paths through various strategies, such as the transition-based approach~\cite{cTRRT}. 
+% These strategies often achieve asymptotic optimality by employing optimal connection procedures during the tree or graph construction process~\cite{cRRTstar, cTRRTstar, cFMT}.
+% Research on sampling-based planners has expanded into various areas, such as developing suitable sampling strategies~\cite{cSampling}, exploring lazy collision checking approaches~\cite{cLazy1}, extending to the molecular domain~\cite{cMolecular}, and more.
+
+% % The aforementioned sampling-based methods are generally referred to as global planning methods, as they rely on local planning techniques to generate the edges that connect the sampled configurations.
+% % Such local planning methods do not consider obstacle avoidance.
+% % A local planner is typically fast; however, the generated path may not fully satisfy the problem constraints (e.g., it could result in collisions).
+% % Traditional local strategies typically involve path segments, but local planners often need to account for additional constraints.
+% % For example, significant work has been done to enforce kinematic constraints on these local plans, ensuring the kinematic feasibility of the resulting global paths.
+% % Such work includes, for example, Dubins path generation~\cite{cDubins}, which enables connecting two configurations under forward motion constraints and curvature constraints for car-like robots. 
+% % The Reeds-Shepp method~\cite{cReeds} extends this local path generation procedure to car-like robots capable of moving both forward and backward.
+
+% The aforementioned sampling-based methods are commonly known as global planning methods, as they depend on local planning techniques, referred to as steering methods, to generate the edges connecting sampled configurations. 
+% A steering method is a local planner that connects an initial configuration to a goal without accounting for obstacle avoidance. 
+% While typically fast, steering methods may produce paths that do not fully adhere to problem constraints, potentially leading to collisions.
+% Traditional steering methods often involve simple path segments, but they frequently need to accommodate additional constraints.
+% For instance, significant work has been done to enforce kinematic constraints on these local paths, ensuring the kinematic feasibility of the resulting global paths.
+% Such work includes, for example, Dubins path generation~\cite{cDubins}, which enables connecting two configurations under forward motion constraints and curvature constraints for car-like robots. 
+% The Reeds-Shepp method~\cite{cReeds} extends this local path generation procedure to car-like robots capable of moving both forward and backward.
+
+% \subsection{Kinodynamic planning}
+
+% While the aforementioned path finding methods focus on generating a route between two robot configurations, they do not address the problem on how the robot should move along this route over time.
+% Additionally, path planning does not account for the robot dynamic constraints, such as maximum velocity and acceleration. 
+% The problem of generating motion plans that consider both kinematic constraints (e.g., turning radius) and dynamic constraints, ensuring the plans are physically executable, is known as kinodynamic motion planning.
+% Therefore, the kinodynamic problem extends beyond searching in the robot configuration space by considering its entire state space.
+
+% \subsubsection{Local planners}
+
+% % Local planners, or steering methods, focus on generating feasible motion between two states while respecting kinematic and dynamic constraints. 
+% % They are often used as building blocks in global kinodynamic planners. 
+
+% % A common approach to generating smooth trajectories between robot states is to solve a two-point \gls{bvp} using polynomial-based methods, such as splines, which are widely employed for trajectory interpolation. 
+% % For instance, the kinosplines local planner proposed in~\cite{cKino} leverages system differential flatness, ensuring the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
+% % The resulting trajectories respect kinodynamic constraints up to the jerk level, enabling time-optimal connections between two given states. 
+% % Another example is the minimum snap trajectory generation method~\cite{cMinimumSnap}, which contrasts with the bang-bang snap strategy of kino-splines. 
+% % Also based on system differential flatness, this approach formulates an optimization problem that minimizes the integral of a weighted combination of squared position snap and squared yaw acceleration.
+% % It ensures continuity between trajectory segments, satisfies kinematic conditions at the start and end of the motion, and respects actuation limits.
+
+% % While the local planners mentioned earlier primarily focus on enforcing kinodynamic constraints, Bézier curve-based planners~\cite{cBezier,cBezier2} offer additional benefits due to their inherent smoothness, and their convex hull property.
+% % Their convex hull property ensures that the trajectory remains within the convex hull of its control points. 
+% % This simplifies collision detection, as it guarantees that if the convex hull is free of obstacles, the entire trajectory will be too. 
+% % Additionally, adjusting control points affects only a localized portion of the trajectory, allowing precise modifications without affecting the entire trajectory. 
+% % This approach is particularly useful in environments where efficient collision detection is crucial.
+% % Furthermore, its smoothness also naturally accommodates velocity, acceleration, and higher-order dynamic constraints, making it suitable for kinodynamic motion planning in various robotic systems. 
+
+% Local planners are essential components in motion planning, focusing on generating feasible motion between two robot states while adhering to various constraints such as kinematic constraints, dynamic constraints, and obstacle avoidance. 
+% These planners operate on a localized scale and are crucial for refining or connecting segments of a global motion plan, ensuring that the overall trajectory remains feasible and optimized.
+
+% Among the widely used local planners, Bézier curve-based planners~\cite{cBezier,cBezier2} stand out due to their inherent smoothness and the advantageous convex hull property.
+% Their convex hull property ensures that the trajectory remains within the convex hull of its control points. 
+% This simplifies collision detection, as it guarantees that if the convex hull is free of obstacles, the entire trajectory will be too. 
+% Additionally, adjusting control points affects only a localized portion of the trajectory, allowing precise modifications without affecting the entire trajectory. 
+% This approach is particularly useful in environments where efficient collision detection is crucial.
+% Furthermore, its smoothness also naturally accommodates velocity, acceleration, and higher-order dynamic constraints, making it suitable for kinodynamic motion planning in various robotic systems. 
+
+% Another powerful method is \gls{chomp}~\cite{cCHOMP}, which formulates trajectory generation as an optimization problem starting from an initial trajectory as guess. 
+% The cost function in \myglsentry{chomp} typically balances smoothness and obstacle avoidance.
+% Smoothness is ensured by penalizing higher derivatives of the trajectory, while obstacle avoidance is achieved through the use of a signed distance field. 
+% \myglsentry{chomp} can incorporate dynamic and kinematic constraints, such as joint limits and velocity bounds, which are important for kinodynamic planning. 
+% Using gradient-based optimization, \myglsentry{chomp} iteratively refines the initial trajectory, ensuring that it satisfies all constraints while minimizing the cost function. 
+% While effective in high-dimensional or cluttered environments, \myglsentry{chomp} does require a good initial trajectory and can struggle in environments with non-convex obstacles.
+
+% While \myglsentry{chomp} can handle differentiable cost function due its gradient-based optimization, the \gls{stomp} algorithm~\cite{cSTOMP} is designed to optimize non-differentiable cost functions. 
+% \myglsentry{stomp} iteratively improves trajectories by introducing small perturbations to the initial guess, evaluating the resulting costs, and updating the trajectory based on the best-performing samples. 
+% This process also accounts for kinodynamic constraints and obstacle avoidance by adding state cost penalty in the cost function formulation.
+% While \myglsentry{stomp} is computationally more expensive than \myglsentry{chomp} as it relies on several sampling-based rollouts, its ability to handle more complex cost functions and find better solutions in challenging environments makes it highly versatile for kinodynamic motion planning.
+
+% \subsubsection{Global planners}\label{sec:forwardplanning}
+
+% % Global sampling-based motion planners can generate globally kinodynamically feasible trajectories by leveraging the aforementioned local planners to connect their sampled state.
+% % However, such local planners may not be available for every system.
+% % Therefore, algorithms were developed to bypass this need by performing dynamic system forward propagation instead of solving a complex \myglsentry{bvp}.
+
+% % Kinodynamic motion planners, such as Kinodynamic RRT~\cite{cKinoRRT} and \gls{sst}~\cite{cSST}, are designed to address the challenges of planning for robots with complex dynamics without relying on a local planner. 
+% % These methods utilize system forward dynamic propagation by sampling control inputs and propagation time. 
+% % Starting from an initial robot state, the system dynamics are integrated in an open-loop manner to propagate the state, allowing the planner to account for both the robot kinematic limitations and its dynamic behavior. 
+% % This approach ensures that the generated paths are collision-free and physically executable while eliminating the need for local planners.
+
+% As mentioned above, global sampling-based planners leverage local planning techniques, referred to as steering methods, which do not account for obstacles. 
+% Therefore, to adhere to kinodynamic constraints, sampling-based planners can utilize kinodynamic steering methods.
+
+% A common approach to generating kinodynamic steering methods involves solving a two-point \gls{bvp} using polynomial-based methods, such as splines, which are widely employed for trajectory interpolation. 
+% For instance, the kinosplines local planner proposed in~\cite{cKino} leverages system differential flatness, ensuring the creation of continuous and differentiable trajectories up to the 4th order by employing a bang-bang snap control strategy. 
+% The resulting trajectories respect kinodynamic constraints up to the jerk level, enabling time-optimal connections between two given states.
+% Another example is the minimum snap trajectory generation method~\cite{cMinimumSnap}, which contrasts with the bang-bang snap strategy of kinosplines. 
+% Also based on system differential flatness, this approach formulates an optimization problem that minimizes the integral of a weighted combination of squared position snap and squared yaw acceleration.
+% It ensures continuity between trajectory segments, satisfies kinematic conditions at the start and end of the motion, and respects actuation limits.
+
+% Global sampling-based motion planners can generate globally kinodynamically feasible trajectories by leveraging the aforementioned kinodynamic steering methods to connect their sampled states.
+% However, such local steering techniques may not be available for every systems, as solving the associated \myglsentry{bvp} can be particularly challenging. 
+% To overcome this, algorithms were developed to bypass this need by performing dynamic system forward propagation instead of solving a complex \myglsentry{bvp}.
+
+% Kinodynamic motion planners, such as Kinodynamic RRT~\cite{cKinoRRT} and \gls{sst}~\cite{cSST}, are designed to address the challenges of planning for robots with complex dynamics without relying on a steering method. 
+% These methods utilize system forward dynamic propagation by sampling control inputs and propagation time. 
+% Starting from an initial robot state, the system dynamics are integrated in an open-loop manner to propagate the state, allowing the planner to account for both the robot kinematic limitations and its dynamic behavior. 
+% This approach ensures that the generated paths are collision-free and physically executable while eliminating the need for local steering methods.
+
+\section{Motion planning under uncertainty}\label{sec:planuncertainty}
 
 While the previous section focused on motion planning algorithms that can deal with kinodynamic constraints of various types of robots, they do not consider the unavoidable presence of uncertainties (e.g. external disturbances, sensor noise, model parameter mismatches, etc.).
 

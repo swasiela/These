@@ -3,7 +3,7 @@
 
 \glsresetall
 
-This thesis proposed motion planners for producing collision-free reference motions that are robust against parametric uncertainties for a large class of complex dynamical systems. 
+This thesis proposed motion planners for producing collision-free motions that are robust against parametric uncertainties for a large class of complex dynamical systems. 
 The work proposed in this thesis is hinged on the concept of closed-loop sensitivity, a quantity that relates parameter variations to deviations of the closed-loop trajectory of any given system/controller pair.
 This metric is employed in sampling-based tree planners to generate trajectories that are inherently robust to parameter uncertainties in various ways, as outlined by the following contributions.
 
@@ -12,24 +12,24 @@ This metric is employed in sampling-based tree planners to generate trajectories
 Chapter~\ref{chap:samp} presented how to incorporate the closed-loop sensitivity concept and the resulting uncertainty tubes within a global sampling-based framework, whereas previous works primarily focused on local trajectory generation.
 This approach enabled the generation of globally sensitivity-optimal trajectories. 
 Furthermore, for the first time, sensitivity-based uncertainty tubes were used as robust constraints during the planning process, both on the state and control input spaces.
-However, while this approach results in the generation of robust trajectories to parametric uncertainties and the sensitivity-based uncertainty tubes are obtained at a low computational cost, the overall cost remains too high when considering the thousands of computations required in a sampling-based application.
+However, while this approach results in the generation of robust trajectories to parametric uncertainties, the overall cost remains too high when considering the thousands of computations required by a global sampling-based planner.
 Thus, a decoupled approach has also been studied, based on a robust lazy strategy, which offers significant computational gains, especially as the system complexity increases.
 
-Whereas Chapter~\ref{chap:samp} leverages a lazy robust collision check approach to address the computational challenges posed by the thousands of sensitivity-based uncertainty tube computations required to ensure robustness in standard tree-based applications, Chapter~\ref{chap:NN} exploits the structural similarity between the set of \gls{odes} required for tube computation and \myglsentry{rnns}, directly correlating the desired trajectory to the uncertainty tubes and thereby eliminating the need to solve them.
+Whereas Chapter~\ref{chap:samp} leverages a lazy robust collision checking approach to address the computational challenges posed by high cost of sensitivity-based uncertainty tube computations required to ensure robustness in standard tree-based applications, Chapter~\ref{chap:NN} exploits the structural similarity between the set of \gls{odes} required for tube computation and \myglsentry{rnns}, directly correlating the desired trajectory to the uncertainty tubes and thereby eliminating the need to solve them.
 According to the task at hand, the approach proposed a method for generating the dataset using a sampling-based approach.
 Relying on a simple \myglsentry{gru} cell, the proposed architecture demonstrates an effective balance between prediction accuracy and inference time, achieving a time reduction of one order of magnitude compared to solving the set of ODEs.
 
-This GRU-based architecture has been leveraged in Chapter~\ref{chap:sampNN} to propose an efficient alternative to the lazy approach presented in Chapter~\ref{chap:samp}.
-Deep learning-based sensitivity-aware variants were proposed, demonstrating their efficiency in generating robust motions within a manageable planning time.
-Furthermore, while in Chapter~\ref{chap:samp} the sensitivity was used to generate globally sensitivity-minimal trajectories throughout the entire motion, in this work it has been leveraged to achieve accuracy optimization, considering the uncertainty tubes only at specific locations along the motion, based on the task at hand.
-An extensive simulation campaign was conducted to identify the most effective local optimizer for optimizing such punctual cost functions, by considering both the trajectory and the controller gains as optimization variables.
+This GRU-based architecture has been used in Chapter~\ref{chap:sampNN} to propose an efficient alternative to the lazy approach presented in Chapter~\ref{chap:samp}.
+Deep learning-based sensitivity-aware variants were proposed, demonstrating their efficiency in generating robust motions within a manageable offline planning time.
+Furthermore, while in Chapter~\ref{chap:samp} the sensitivity was used to generate globally sensitivity-minimal trajectories throughout the entire motion, it is used in the proposed Deep-learning based variants to achieve accuracy optimization, considering the uncertainty tubes only at specific locations along the motion, based on the task at hand.
+An extensive simulation campaign was conducted to identify the most effective local optimizer for optimizing such task-based cost functions, by considering both the trajectory and the controller gains as optimization variables.
 Finally, both the robust planners and the accuracy optimization stage were evaluated in two challenging scenarios: a quadrotor navigating through a narrow window and an in-flight ring-catching task requiring high precision. 
 These tests validated the efficiency of the proposed methods in an indoor environment.
-However, the proposed framework should be further validated on more complex system such as aerial manipulator.
+% However, the proposed framework should be further validated on more complex system such as aerial manipulator.
 
 \section{Future Works}
 
-Although this work represents a step toward an efficient global robust control-aware motion planner framework for any robot/controller pair, it can be further improved both from a theoretical perspective and an algorithmic point of view.
+Although this work represents a step toward an efficient globally robust and general control-aware motion planner framework, it could be further improved both from a theoretical perspective and an algorithmic point of view.
 
 \paragraph{Theoretical}
 
@@ -37,7 +37,7 @@ First, as mentioned in Chapter~\ref{chap:samp}, none of the proposed \gls{samp} 
 While the \gls{deepsamp} variants offer more practical implementations, they lack formal guarantees due to the unpredictable nature of learning models.
 However, future work could focus on bounding the first-order sensitivity-based tube approximations to establish the robust feasibility of the \myglsentry{samp} solutions and, consequently, their completeness.
 
-As discussed in Section~\ref{sec:sensi}, the computation of closed-loop sensitivity and the subsequent uncertainty tubes relies on the assumption of perfect knowledge of the robot state. 
+As discussed in Section~\ref{sec:sensi}, the computation of closed-loop sensitivity and the subsequent uncertainty tubes rely on the assumption of perfect knowledge of the robot state. 
 Therefore, the current system does not account for uncertainty in state measurements, which is unavoidable due to sensor bias and noise.
 Consequently, one could consider computing uncertainty tubes by also accounting for a priori known measurable sensor biases and noise, using the Gramian~\cite{cGramian}, which is a metric that quantifies how the robot state can be inferred from its outputs.
 
@@ -69,4 +69,4 @@ Therefore, to further address these dependencies, future investigations could ex
     It can be employed to enhance the stability of predictions when dealing with changes in model parameters or controller gains.
 \end{itemize}
 
-Finally, the software can also be extended to support multi-robot systems or human-robot (physical) interactions, where ensuring the accuracy and robustness of robot motion is critical for guaranteeing user safety.
+Finally, the proposed techniques can also be extended to more complex systems like aerial manipulators, multi-robots systems, or human-robot (physical) interactions, where ensuring the accuracy and robustness of robot motion is critical for guaranteeing user safety.

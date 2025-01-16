@@ -15,7 +15,7 @@ Finally, the method's application to the differential drive robot is also presen
 
 For clarity, in the following sections of this chapter, methods are referred to in non-bold, and models are referred to in bold (e.g., \textbf{GRU} refers to the proposed GRU-based architecture, and GRU refers to the Gated Recurrent Unit method).
 
-This chapter is related to the following ECAI 2024 publication~\cite{cECAI}\footnote{The results presented in this chapter slightly differ from those in the article due to improvements in implementation.}.
+This chapter is related to the ECAI 2024 publication~\cite{cECAI}\footnote{The results presented in this chapter slightly differ from those in the article due to improvements in implementation.}.
 
 \section{Techniques for accelerating ODEs integration}\label{sec:learning_overview}
 
@@ -674,7 +674,9 @@ The models were trained using the Mean Squared Error (MSE) loss function and con
 The model weights that achieved the best performance on the validation set were saved and used for the experiments. 
 The resulting learning curves are provided in Appendix~\ref{chap:appendixB}.
 
-\subsection{Model comparison}\label{sec:nn_comparaison_unic}
+\subsection{Simulation results}
+
+\subsubsection{Model comparison}\label{sec:nn_comparaison_unic}
 
 \input{figures/tables/NN_unic_model_comp.tex}
 
@@ -703,7 +705,7 @@ In conclusion, the \textbf{GRU} once again proves to be the most suitable model 
 Although the \textbf{RNN} is the fastest, it has the lowest accuracy among the three recurrent architectures. 
 Meanwhile, the \textbf{LSTM} achieves accuracy comparable to the \textbf{GRU} but lags behind in inference speed.
 
-\subsection{Qualitative results}
+\subsubsection{Qualitative results}
 
 \begin{figure}[h!]
     \centering
