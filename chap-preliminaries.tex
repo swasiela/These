@@ -245,6 +245,13 @@ where $\boldsymbol{T}_n$ represent the same allocation matrix as in Equation~\re
 
 \subsubsection{State interpolation}\label{sec:dubins}
 
+\begin{figure} [t!]
+  \centering
+  \includegraphics[width=0.4\linewidth]{figures/models/dubins.png} 
+  \caption{Illustration of two possible Dubins paths: (top) a right turn, followed by a straight segment, then a left turn; (bottom) a right turn, followed by a left turn, then another right turn. (extracted from~\cite{cFigDubins})}%
+  \label{fig:dubins}%
+\end{figure}
+
 Now that the dynamics of the differential drive robot and its controller are defined, this subsection presents the steering method used to generate the desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$ that is tracked by the \myglsentry{dfl} controller.
 The trajectory generation problem is addressed using Dubins curves~\cite{cDubins}. 
 
@@ -260,13 +267,6 @@ The corresponding velocities along the x- and y-axes are then computed using the
 However, while the resulting velocities are continuous, they are generally not differentiable.
 Therefore, in this thesis, the desired accelerations required by Equation~(\ref{eq:unic_control_law}) are set to be zero.
 Note that, although the heading is not directly controlled, a desired heading is specified to satisfy the tangent constraints.
-
-\begin{figure} [t]
-  \centering
-  \includegraphics[width=0.4\linewidth]{figures/models/dubins.png} 
-  \caption{Illustration of two possible Dubins paths: (top) a right turn, followed by a straight segment, then a left turn; (bottom) a right turn, followed by a left turn, then another right turn. (extracted from~\cite{cFigDubins})}%
-  \label{fig:dubins}%
-\end{figure}
 
 \subsection{Quadrotor robot} \label{sec:quad_model}
 

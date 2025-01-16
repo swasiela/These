@@ -95,8 +95,9 @@ This subsection discusses learning methods suited for modeling sequences of data
 \begin{figure} [htp]
     \centering
     \includegraphics[width=0.8\linewidth]{figures/learning_quadrotor/cells.png}%
-    \caption{Representation of a \myglsentry{rnn} cell (left), a \myglsentry{gru} cell (center), and a \myglsentry{lstm} cell (right).
-    The three models (RNN, LSTM, and GRU) feature different update mechanisms (blue box). They each take as input a hidden state $h$ (with LSTM also taking a cell state $c$) and a current state from the sequence $x$, and output the updated hidden state.
+    \caption{Representation of a \myglsentry{rnn} cell (top left), a \myglsentry{gru} cell (top right), and a \myglsentry{lstm} cell (bottom).
+    The three models (RNN, LSTM, and GRU) feature different update mechanisms (blue box). 
+    They each take as input a hidden state $h$ (with LSTM also taking a cell state $c$) and a current state from the sequence $x$, and output the updated hidden state as well as the predicted value ${\hat{y}}$.
     }%
     \label{fig:rnns}%
 \end{figure}
@@ -123,7 +124,7 @@ However, the method's application to the differential drive robot is also discus
 
 \section{Proposed RNNs-based approach} \label{sec:method}
 
-This section presents a multi-task learning neural network based on a GRU architecture, which takes as input the desired states of the dynamic system and outputs the nominal control inputs $\u_n$, as well as the uncertainty tubes around the states $\Rq$ and the control inputs $\Ru$. 
+This section presents a multi-task learning neural network based on a GRU architecture, which takes as input the desired robot states and outputs the nominal control inputs $\u_n$, as well as the uncertainty tubes around the states $\Rq$ and the control inputs $\Ru$. 
 
 The resulting predictor, denoted as $\boldsymbol{g}$, aims at bypassing the intrinsic structure of the original set of \myglsentry{odes} considered in this thesis. 
 These dependencies arise from the structure of the equations of Chapter~\ref{chap:models}: Equation~(\ref{eq:ctrl}) computes the control inputs, Equation~(\ref{eq:dyna}) updates the robot state, and Equation~(\ref{eq:dyna_sensi}) computes the sensitivity matrices before projecting them to derive the uncertainty tubes (see Equation~(\ref{eq:radius})). 
@@ -153,7 +154,7 @@ A representation of the neural network architecture is presented in Figure~\ref{
 Blue blocks refer to the inputs of the model which are composed of an initial hidden state $\boldsymbol{h}_{0}$ and of a sequence of desired robot states evaluated along a desired trajectory denoted $\boldsymbol{\q_{in}^k}$, where $k$ refers to the $k$-th state of the desired trajectory. 
 As the proposed model aims to bypass solving the \myglsentry{odes}, which starts by computing the appropriate control inputs, a reasonable initial guess is to start the prediction using the same inputs as those used by the controller.
 In the quadrotor case, the controller inputs consist of the desired robot position, linear velocities, accelerations, yaw angle orientation, and yaw angular velocities, as shown in Equation~\ref{eq:desftau}. 
-However, in order to make the learned model independent of workspace boundaries used during planning (i.e. robot position and orientation bounds) and initial robot orientations, only the desired linear velocities, accelerations, and yaw angular velocities ($\Dot{\Psi}_d$), are kept as the network input components.
+However, in order to make the learned model independent of workspace boundaries used during planning (i.e. robot position) and initial robot orientations, only the desired linear velocities, accelerations, and yaw angular velocities ($\Dot{\Psi}_d$), are kept as the network input components.
 Hence, the input to the neural network is a vector $\boldsymbol{\q_{in}^k} = [\boldsymbol{v_d} ,\, \boldsymbol{a_d} ,\, \Dot{\Psi}_d]^T \in \mathbb{R}^7$, where $k$ refers to the $k$-th state of the desired trajectory.
 
 The outputs of the neural network correspond to the green blocks.
@@ -163,9 +164,10 @@ Since the proposed approach aims at eliminating the need for solving \myglsentry
 Finally, $\boldsymbol{h}_{N}$ corresponds to the hidden state at the last point of our sequence (i.e., the last desired trajectory state).
 
 At $k=0$, the first state in the input sequence $\boldsymbol{\q_{in}^0}$ and the initial hidden state $\boldsymbol{h}_0$ are given to a single-layer GRU block, which outputs an updated hidden state $\boldsymbol{h}_1$. 
-The latter is then fed to a multi-layer perceptron (MLP), each layer followed by a ReLU activation function except the final one, to obtain the predicted control inputs $\u^0$, the state uncertainty tubes $\Rq^0$ as well as the control uncertainty tubes $\Ru^0$. 
+The latter is then fed to a 3-layer multi-layer perceptron (MLP), each layer followed by a ReLU activation function except the final one, to obtain the predicted control inputs $\u^0$, the state uncertainty tubes $\Rq^0$ as well as the control uncertainty tubes $\Ru^0$. 
 The updated hidden state $\boldsymbol{h}_1$ is then given back to the GRU block along with the second element of the input sequence. 
 This process is repeated for each element $\boldsymbol{\q_{in}^k}$ until all predictions are obtained.
+Details of the architecture's implementation are further presented in Section~\ref{sec:training}.
 
 The network is intended to be used in a sampling-based tree planner (see Chapter~\ref{chap:sampNN}), where local trajectories are concatenated to form a global one. 
 Thus, since the hidden state encodes and accumulates temporal information about the input sequence, the final hidden state $\boldsymbol{h}_{N}$ of a local trajectory obtained after an iteration of a sampling-based tree planner can be saved and then given back as the initial hidden state $\boldsymbol{h}_{0}$ for future local trajectories considered during the next iterations. 
@@ -219,6 +221,29 @@ The data annotation was performed by computing and integrating the set of \mygls
 Once $\bPi$ and $\bTheta$ had been computed, a simple projection was performed to recover the tubes thanks to Equation~(\ref{eq:radius}).
 Note that the control inputs $\u$ are computed during the \myglsentry{odes} resolution.
 
+\begin{figure} [h!]
+    \centering
+    \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/vnorm_val2.png}
+    \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/vnorm_test.png}
+    \caption{Velocity norm distribution in the training (left) and test sets (right).}%
+    \label{fig: valvstest}%
+\end{figure}
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{ | c | c || c |}
+    \hline
+      \textbf{Output}  & \textbf{Validation set}  & \textbf{Test set} \\ \hline
+    $\Rq$ & $1.0e^{-1} \pm 2.0e^{-2}$ & $1.1e^{-1} \pm 2.1e^{-2}$ \\ \hline
+    $\u$ & $12469.3 \pm 861.6$ & $12476.8 \pm 1016.5$ \\ \hline
+    $\Ru$ & $7782.6 \pm 3172.3$ & $7828.6 \pm 2845.7$ \\ \hline
+\end{tabular}
+\caption{
+Quadrotor application: Mean and standard deviation of the output vector components norm after data annotation for the validation and test sets.
+$\Rq$ is expressed in \emph{m}, and $(\u, \Ru)$, are squared propeller angular velocities [(rad/s)²].}
+ \label{tab:datas_stats}
+\end{table}
+
 Using this mechanism, a training set composed of 8.000 trajectories and a validation set composed of 2.000 trajectories were generated, making sure that every trajectory in the dataset is different.
 The trajectories of the dataset were generated considering a total distance $D_{max}$ of 15s, a maximum local distance of $d_l = 1s$ and an integration time step $\Delta T = 0.05s$. 
 
@@ -233,29 +258,6 @@ As a result, trajectories with higher velocities are encountered in the test set
 Note that the velocity norms exceed the velocity limit $v_{max}$, this is expected since this limit applies to the components of the velocity vector rather than the norm.
 
 The mean and standard deviation values of the various components of the output vector for the validation and test sets generated by this setup are provided in Table~\ref{tab:datas_stats}.
-
-\begin{figure} [htp]
-    \centering
-    \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/vnorm_val2.png}
-    \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/vnorm_test.png}
-    \caption{Quadrotor application: Velocity norm distribution in the training (left) and test sets (right).}%
-    \label{fig: valvstest}%
-\end{figure}
-
-\begin{table}[htp]
-    \centering
-    \begin{tabular}{ | c | c || c |}
-    \hline
-      \textbf{Output}  & \textbf{Validation set}  & \textbf{Test set} \\ \hline
-    $\Rq$ & $1.0e^{-1} \pm 2.0e^{-2}$ & $1.1e^{-1} \pm 2.1e^{-2}$ \\ \hline
-    $\u$ & $12469.3 \pm 861.6$ & $12476.8 \pm 1016.5$ \\ \hline
-    $\Ru$ & $7782.6 \pm 3172.3$ & $7828.6 \pm 2845.7$ \\ \hline
-\end{tabular}
-\caption{
-Quadrotor application: Mean and standard deviation of the output vector components norm after data annotation for the validation and test sets.
-$\Rq$ is expressed in \emph{m}, and $(\u, \Ru)$, are squared propeller angular velocities [(rad/s)²].}
- \label{tab:datas_stats}
-\end{table}
 
 % \subsubsection{Differential Drive Robot}\label{sec:dataset_unic}
 
@@ -360,7 +362,7 @@ These metrics are averaged over all elements of a sequence, then averaged over a
 In addition, the inference time is also used as metric in order to evaluate the computational cost of the method compared to the defined baselines, as well as traditional uncertainty tubes computation methods involving an ODE solver. 
 Time is denoted $T_{solver/NN}$ according to the model or solver used.
 
-\subsection{Training}
+\subsection{Training}\label{sec:training}
 
 Before training the neural network, the input features of the dataset (train, val, and test) were min-max scaled according to the maximum velocity and acceleration values used to generate the kinosplines (see Section~\ref{sec:dataset_general}) as it is guaranteed that the velocities and accelerations generated cannot exceed these values. 
 This ensures that all velocity values are in the interval $[-v_{max}, v_{max}]$, while all the acceleration values are in $[-a_{max}, a_{max}]$. 
@@ -508,7 +510,7 @@ Moreover, the latter shows a better generalization to unseen trajectories that a
 In order to choose the most advantageous model or method for computing uncertainty tubes in terms of prediction time, the methods/models are applied to trajectories of different lengths (i.e. made up of a certain number of desired states). 
 Table~\ref{tab:timepred} shows the results obtained on trajectories of several hundred states. 
 Note that with the current system, the number of ordinary equations solved for each element in the sequence (i.e. trajectory state) is equal to 91.
-The results indicate that the average prediction time for neural networks is an order of magnitude faster compared to the \textbf{Euler} method and over ten times faster than the \textbf{dopri5} integrator. 
+The results indicate that the average prediction time for neural networks is an order of magnitude faster compared to the \textbf{Euler} method and two orders of magnitude than the \textbf{dopri5} integrator. 
 Additionally, the computing times for all methods exhibit an approximately linear relationship with the number of states in the trajectory.
 Also note that among these models, \textbf{RNN} is the fastest to perform the predictions, which is explained by the fact that the network size is smaller than \textbf{LSTM}, and the \textbf{RNN} cell performs fewer internal operations than the \textbf{GRU} cell.
 In the context of robust sampling-based motion planning, where the neural network needs to be queried tens of thousands of times for multi-state trajectories, the observed gains in computation time can become much more significant as the number of trajectories to be evaluated increases.
@@ -524,12 +526,12 @@ Indeed, the latter is much faster than methods based on \myglsentry{odes} solver
 \input{figures/tables/NN_quad_ablation.tex}
 
 In theory, all the inputs to the proposed neural network are needed by the controller and the uncertainty tubes computation methods to obtain the desired outputs. 
-In order to confirm this for the neural network as well, an ablation study is conducted on the \textbf{GRU} model to show that the choice of input vector components described in Section~\ref{sec:quad_nn_architecture} is the most relevant for the quadrotor case. 
+In order to confirm this for the neural network as well, an ablation study is conducted on the \textbf{GRU} model to show that the choice of input vector components described in Section~\ref{sec:architecture} is the most relevant for the quadrotor case. 
 
 The components considered for the study are the desired linear and angular velocities, and the desired accelerations, denoted $V$ and $A$ respectively. 
 The proposed model takes both inputs and is denoted \textbf{GRU$\boldsymbol{_{VA}}$}. 
 Two ablations are defined, one for each input, resulting in two models: \textbf{GRU$\boldsymbol{_V}$} which takes as input the linear and angular velocities only, and \textbf{GRU$\boldsymbol{_A}$} which only takes the accelerations as input. 
-Each model is trained in the same way detailed in Section~\ref{sec:train_quad} and is evaluated according to the MAE metrics described in Section~\ref{sec:metric}.
+Each model is trained in the same way detailed in Section~\ref{sec:training} and is evaluated according to the MAE metrics described in Section~\ref{sec:metric}.
 
 Note that since the network is intended to be used in a sampling-based approach, no ablation study is performed on the output vector since our objective is to use a single model within the planner, keeping the memory and computational costs low.
 
@@ -646,7 +648,7 @@ Consequently, the test set includes trajectories with higher velocities than tho
 Table~\ref{tab:datas_stats_unic} presents the mean and standard deviation values of the various components of the output vector for both the validation and test sets generated by this setup. 
 These values indicate a slight increase in the norms of all components due to the higher velocities.
 
-\begin{table}[h!]
+\begin{table}[t!]
     \centering
     \begin{tabular}{ | c | c || c |}
     \hline
@@ -663,10 +665,10 @@ $\Rq$ is expressed in \emph{m}, and $(\u, \Ru)$, are wheel angular velocities [(
 
 \paragraph{Training}
 
-Before training the neural network, the input features of the dataset (train, val, and test) were min-max scaled according to the velocity magnitude value used when generating the dataset (see Section~\ref{sec:dataset_unic}) as it is guaranteed that the velocities components generated cannot exceed this value, ensuring that all velocity values are in the interval $[-v_{magn}, v_{magn}]$.  
+Before training the neural network, the input features of the dataset (train, val, and test) were min-max scaled according to the velocity magnitude value used when generating the dataset (see Section~\ref{sec:dataset_general}) as it is guaranteed that the velocities components generated cannot exceed this value, ensuring that all velocity values are in the interval $[-v_{magn}, v_{magn}]$.  
 The annotations were also normalized using a standard scaling based on the mean and standard deviation values of the training set annotations.
 
-Following data normalization, the neural networks were trained for 100 epochs using the Adam optimizer~\cite{kingma2014adam}
+Following data normalization, the neural networks were trained for 100 epochs using the Adam optimizer~\cite{kingma2014adam}.
 The \textbf{RNN}, \textbf{LSTM}, and \textbf{GRU} models were configured with a hidden state size of 128 and 3 linear layers. 
 All hyperparameters were validated through a grid search.
 

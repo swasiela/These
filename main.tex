@@ -93,6 +93,10 @@
 % formatAndDefs.tex file. You too can create sections of your thesis that is
 % language dependend this way, although you probably won't need it.
 
+% \printacronyms
+% % \printglossaries
+% \cleardoublepage
+
 % \cleardoublepage
 % \addcontentsline{toc}{chapter}{\listfigurename}
 % \listoffigures
@@ -103,24 +107,77 @@
 % \addcontentsline{toc}{chapter}{\listalgorithmname}
 % \listofalgorithms
 
-\cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
+
 \addcontentsline{toc}{chapter}{Acronyms}
 \printnoidxglossary[type=\acronymtype]
 \cleardoublepage
 
+% \newpage 
+% \ % The empty page
+% \newpage
+% \cleardoublepage
+
 \mainmatter
+\glsresetall
 \include{chap-introduction}
+% \cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
 \include{chap-literature_review}
+% \cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
 \include{chap-preliminaries}
+% \cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
 \include{chap-sensitivity_aware_mp}
+% \cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
 \include{chap-learning_sensitivity}
+% \cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
 \include{chap-robust_mp_via_learning}
+% \cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
 \include{chap-conclusion}
+% \cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
 \appendix
 \include{chap-appendixA}
+% \cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
 \include{chap-appendixB}
+% \cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
 \include{chap-appendixC}
+% \cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
 \include{fr-summary}
+% \cleardoublepage
+% \newpage 
+% \ % The empty page
+% \newpage
 
 \backmatter
 

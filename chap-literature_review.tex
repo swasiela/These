@@ -6,7 +6,7 @@ This chapter provides an overview of the related work on the key concepts that t
 
 \section{Path planning}
 
-This subsection provides an overview of various path planning approaches. 
+This section provides an overview of various path planning approaches. 
 For a more detailed survey, please refer to~\cite{cLavalle, cFrazzoli, cKavraki}.
 The path planning problem focuses on finding a collision-free possibly optimal path between a starting configuration and a goal configuration. 
 The work of~\cite{cConfigSpace} introduced the configuration space concept as a general framework for planning paths of a general class of kinematic systems.
@@ -39,7 +39,7 @@ At each iteration, a new configuration is sampled $q^{rand}$.
 Its nearest neighbor $q^{near}$ among the existing tree nodes is found, and then an extension is attempted starting from $q^{near}$ toward $q^{rand}$ leading to a new configuration $q^{new}$.
 If the extension is collision free, the new configuration is added to the tree as a new node with an edge connecting the two nodes.
 
-Therefore, sampling-based motion planners have become the most widely used strategy for generating global paths in the presence of obstacles, due to their practical efficiency in handling complex and high-dimensional configuration spaces, as well as their completeness guarantee.
+Therefore, sampling-based planners have become the most widely used strategy for generating global paths in the presence of obstacles, due to their practical efficiency in handling complex and high-dimensional configuration spaces, as well as their completeness guarantee.
 Advances in sampling-based planners have then focused on generating feasible and cost-effective paths through various strategies, such as the transition-based approach~\cite{cTRRT}. 
 These strategies often achieve asymptotic optimality by employing optimal connection procedures during the tree or graph construction process~\cite{cRRTstar, cTRRTstar, cFMT}.
 Research on sampling-based planners has expanded into various areas, such as developing suitable sampling strategies~\cite{cSampling}, exploring lazy collision checking approaches~\cite{cLazy1}, extending to the molecular domain~\cite{cMolecular}, and more.
@@ -59,7 +59,7 @@ This problem is known as motion planning and involve considering robot velocitie
 Consequently, motion planning extends beyond searching the robot's configuration space, incorporating its entire state space.
 
 Moreover, while path planning can handle kinematic constraints based on configuration representation, incorporating the state space allows for the consideration of dynamic constraints, such as maximum velocity and acceleration. 
-The task of generating motion plans that account for both kinematic constraints (e.g., turning radius) and dynamic constraints, ensuring that the plans are physically feasible, is known as kinodynamic motion planning.
+The task of generating motion plans that account for both kinematic constraints (e.g., turning radius) and dynamic constraints (e.g., maximum velocity), ensuring that the plans are physically feasible, is known as kinodynamic motion planning.
 
 % \subsection{Local trajectory generation}\label{sec:forwardplanning}
 The distinction between path planning and motion planning naturally emphasizes the importance of local trajectory generation, a key element in refining motion plans. 
@@ -91,7 +91,7 @@ These methods are typically designed to handle immediate obstacles and environme
 In contrast, global planning problems are more effectively addressed by sampling-based global planners that cover the entire environment.
 % \subsection{Global motion planning}\label{sec:forwardplanning}
 Global sampling-based planners usually rely on local planning techniques, also known as steering methods, which do not consider obstacles. 
-To fully address the motion planning problem, these planners can incorporate time-parametrized steering methods. 
+To fully address the motion planning problem, these planners can use time-parametrized steering methods. 
 Additionally, to solve the kinodynamic motion planning problem, sampling-based planners can leverage kinodynamic steering methods, which take both kinematic and dynamic constraints into account during trajectory generation.
 
 A common approach to generating kinodynamic steering methods involves solving a two-point \gls{bvp} using polynomial-based methods, such as splines, which are widely employed for trajectory interpolation. 
