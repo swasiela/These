@@ -686,14 +686,16 @@
 \newcommand{\makesomeone}[5]{%
   \edef\makesomeonearg{{#1}}%
   \expandafter\ifstrequal\makesomeonearg{judge}{}{%FALSE
-    \expandafter\ifstrequal\makesomeonearg{referee}{}{%FALSE
-      \expandafter\ifstrequal\makesomeonearg{boss}{}{%FALSE
-        \PackageError{tlsflyleaf-makesomeone}{%
-          '#1' is not a possible argument
-        }
-        {%
-          First argument could be in {judge, referee, boss}
-        }
+    \expandafter\ifstrequal\makesomeonearg{guest}{}{%FALSE
+      \expandafter\ifstrequal\makesomeonearg{referee}{}{%FALSE
+        \expandafter\ifstrequal\makesomeonearg{boss}{}{%FALSE
+          \PackageError{tlsflyleaf-makesomeone}{%
+            '#1' is not a possible argument
+          }
+          {%
+            First argument could be in {judge, guest, referee, boss}
+          }
+        }%
       }%
     }%
   }%
@@ -745,6 +747,8 @@
 \def\nreferee#1{\gdef\@nreferee{#1}}
 % Judge
 \def\njudge#1{\gdef\@njudge{#1}}
+% Guest
+\def\nguest#1{\gdef\@nguest{#1}}
 
 % ============================================================
 % Set default value for author and title
@@ -790,7 +794,7 @@
     \fi
     % Flyleaf
     \pagestyle{empty}
-    \newgeometry{centering, vmargin=2cm, hmargin=3cm}
+    \newgeometry{centering, vmargin=2cm, hmargin=2cm}
     \AddToShipoutPictureBG*{\MakeBackground} %% Add Colored frame box and picture background
     \begin{center}
       \setstretch{1.05}
@@ -853,6 +857,21 @@
               }
           \fi
           %%%% JURY %%%%
+
+          \vfill
+          %%%% GUEST %%%%
+          {\bfseries INVITÉS}
+          \ifnum \@nguest=0
+            \\Membres invités
+          \else
+            \foreach \n in {1,...,\@nguest}{%
+                \edef\mytemp{{\csname @guestS\n\endcsname}{\showline}}%
+                \expandafter\ifstrequal\mytemp{%TRUE
+                  \textline[t]{\csname @guestN\n\endcsname}{\csname @guestP\n\endcsname}{\csname @guestL\n\endcsname}%
+                }{}%
+              }
+          \fi
+          %%%% GUEST %%%%
 
           \vfill
           \rule{\textwidth}{1.2pt}

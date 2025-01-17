@@ -65,7 +65,7 @@ The algorithm produces two offline outputs: $(i)$ a robust desired trajectory $\
 
 This paragraph explains how the deep learning method presented in Chapter~\ref{chap:NN} can be incorporated into any sampling-based tree planner in order to create \gls{deepsamp} variants, which use the learned model to predict uncertainty tubes.
 As highlighted before, a key challenge in computing such tubes for a given trajectory lies in the high computational cost of numerically integrating the dynamics of $\bPi(t)$ and $\bTheta(t)$.
-Additionally, when extending the tree and computing these sensitivity matrices, various initial conditions (such as the initial control input, $\bPi_0$, etc.) need to be incorporated into the tree nodes (as outlined in Chapter~\ref{chap:samp}).
+Additionally, when extending the tree and computing these sensitivity matrices, various initial conditions (such as the initial robot state, $\bPi_0$, etc.) need to be incorporated into the tree nodes (as outlined in Chapter~\ref{chap:samp}).
 
 This problem is addressed thanks to the GRU network, which naturally encodes this information in its ``memory'' terms, i.e., the so-called hidden state (see~\cite{cGRU}).
 An interesting feature of the \myglsentry{deepsamp} variants is to leverage this latent state to embed the initial conditions into each node analogous to the \myglsentry{odes} initial conditions mentioned in Chapter~\ref{chap:samp}. 
@@ -570,7 +570,7 @@ Note that, unlike the first experimental scenario described earlier, the uncerta
 
 The experimental setup is shown in Figure~\ref{fig: exp ring}, where the quadrotor is equipped with a perch of 50 cm length, aligned at a 45° angle relative to the body frame x and y axes.
 The perch is made of carbon fiber and 3D-printed parts, with a total mass of 20g. 
-As a result, its addition to the drone is considered negligible in terms of uncertainty.
+As a result, its addition to the drone is considered negligible in terms of inertia uncertainty.
 
 The positions and orientations of the rings are recovered before the planning process using a motion capture system, as depicted in Figure~\ref{fig: ring}.
 Based on the positions and orientations of the rings, desired quadrotor states (as for the states in $list_{d}$ in Section~\ref{sec:RASAMP}) is computed to ensure that the incidence angle of the perch is perpendicular to the rings during capture, with zero acceleration.

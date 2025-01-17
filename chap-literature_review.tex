@@ -12,7 +12,7 @@ The path planning problem focuses on finding a collision-free possibly optimal p
 The work of~\cite{cConfigSpace} introduced the configuration space concept as a general framework for planning paths of a general class of kinematic systems.
 This idea provided a solid foundation for the field and, as noted in~\cite{cSpatialPlan}, formally established the path planning problem as the task of finding a feasible path within the configuration space.
 
-However, planning path in the configuration space poses significant challenges due to the problem computational complexity~\cite{cComplexity}. 
+However, finding feasible paths in the configuration space poses significant challenges due to the problem computational complexity~\cite{cComplexity}. 
 An alternative local approach is the introduction of artificial potential fields~\cite{cAPF}, which create a repulsive force field around obstacles and an attractive force field toward the target.
 However, although this strategy has proven to be efficient, it sacrifices guarantees such as algorithm completeness and global optimality.
 
@@ -33,7 +33,7 @@ The edges are valid if the path connecting the two configurations is collision-f
 This procedure typically involves a notion of neighborhood that is space-dependent and generally increases as the dimensionality of the space grows.
 Once the graph is built, a graph search query is performed to compute the desired path, using graph search techniques such as Dijkstra algorithm~\cite{cDijk} or A*~\cite{cA*}.
 
-The other planner family among sampling-based planners are tree-based planners such as the well-known \gls{rrt}~\cite{cRRT}.
+The other family among sampling-based planners are tree-based planners such as the well-known \gls{rrt}~\cite{cRRT}.
 This algorithm generates a tree starting from an initial configuration.
 At each iteration, a new configuration is sampled $q^{rand}$.
 Its nearest neighbor $q^{near}$ among the existing tree nodes is found, and then an extension is attempted starting from $q^{near}$ toward $q^{rand}$ leading to a new configuration $q^{new}$.
@@ -55,8 +55,8 @@ The Reeds-Shepp method~\cite{cReeds} extends this local path generation procedur
 \section{Motion planning}\label{sec:forwardplanning}
 
 While the aforementioned path finding methods focus on generating a route between two robot configurations, they do not address the problem on how the robot should move along this route over time.
-This problem is known as motion planning and involve considering robot velocities, accelerations, and jerks~\cite{cKroger}.
-Consequently, motion planning extends beyond searching the robot's configuration space, incorporating its entire state space.
+This problem is known as motion planning and involves considering derivatives of the robot configuration~\cite{cKroger}.
+Consequently, motion planning extends beyond searching the robot's configuration space, also relying on a dynamic model of the system.
 
 Moreover, while path planning can handle kinematic constraints based on configuration representation, incorporating the state space allows for the consideration of dynamic constraints, such as maximum velocity and acceleration. 
 The task of generating motion plans that account for both kinematic constraints (e.g., turning radius) and dynamic constraints (e.g., maximum velocity), ensuring that the plans are physically feasible, is known as kinodynamic motion planning.
@@ -378,5 +378,5 @@ Motion planning under uncertainty is a complex problem that has been approached 
 Over the past decade, planners have emerged that explicitly consider the feedback controller action in responding to uncertainties. 
 However, the guarantees provided by these planners often depend on having an accurate model of both the robot and the controller. 
 Consequently, uncertainties at this modeling level can compromise the robustness of these approaches. 
-Building on recent advancements in closed-loop sensitivity analysis, this thesis introduces a novel class of robust control-aware motion planners (see Chapters~\ref{chap:samp} and~\ref{cha:samp_NN}). 
+Building on recent advancements in closed-loop sensitivity analysis, this thesis introduces a novel class of robust control-aware motion planners (see Chapters~\ref{chap:samp} and~\ref{chap:sampNN}). 
 By leveraging widely used sampling-based motion planning techniques and the concept of closed-loop sensitivity, discussed in detail in Chapter~\ref{chap:models}, the proposed approach enhances robustness against parametric uncertainties and is applicable to a broad range of robots and controllers. 

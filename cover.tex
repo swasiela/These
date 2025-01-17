@@ -47,7 +47,7 @@
 %   but only the first "\npeople" will be print.
 % - Then use the command \makesomeone{<category>}{<number>}{<name>}{<status>}{<other>}
 %   where:
-%     <category> should be select in ['boss', 'referee', 'judge']
+%     <category> should be select in ['boss', 'referee', 'judge', 'guest']
 %     <number>   is the rank for printing the person. 
 %                Only number <= "\npeople" will be printed
 %     <name>     First name and las name of the people
@@ -62,8 +62,16 @@
 \makesomeone{referee}{1}{Marilena VENDITTELLI}{}{}
 \makesomeone{referee}{2}{Pedro CASTILLO}{}{}
 %% Jury
-\njudge{1}
-\makesomeone{judge}{1}{XXXX}{XXXX}{XXX}
+\njudge{6}
+\makesomeone{judge}{1}{Marilena VENDITTELLI}{Professeure}{Rapporteur}
+\makesomeone{judge}{2}{Pedro CASTILLO}{Directeur de Recherche}{Rapporteur}
+\makesomeone{judge}{3}{Daniel DELAHAYE}{Enseignant-Chercheur}{Membdre du Jury}
+\makesomeone{judge}{4}{Marco TOGNON}{Chargé de Recherche}{Membdre du Jury}
+\makesomeone{judge}{5}{Thierry SIMÉON}{Directeur de Recherche}{Directeur de Thèse}
+\makesomeone{judge}{6}{Juan CORTÉS}{Directeur de Recherche}{Co-directeur de Thèse}
+%% Guest
+\nguest{1}
+\makesomeone{guest}{1}{Marco COGNETTI}{Professeur Junior}{Co-encadrant}
 
 % ============================================================
 % DOCUMENT
