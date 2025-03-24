@@ -59,7 +59,7 @@ However, in this thesis, the collision check is extended to include a more gener
 This extension ensures that the generated trajectories are not only free from obstacles but also prevent control inputs from reaching saturation. 
 Additionally, it accounts for uncertainty in both the state and control input spaces, further enhancing the robustness of the trajectories.
 The following appendix describes how these extended feasibility check is performed to ensure the robustness of each local trajectory in this context.
-It is important to note that these test is not continuous; rather, it is performed along a discrete representation of the local trajectories.
+It is important to note that these test is not continuous; rather, it is performed along a discrete representation of the local trajectories, sampled at the controller's operating frequency.
 
 \paragraph{Robust collision checking}
 
@@ -73,7 +73,7 @@ In this thesis, collision detection is performed using the widely used C impleme
 Extending this procedure to account for robot state uncertainty aims to verify that the resulting extended bounding volume, which the robot may occupy due to the uncertainty, is clear of obstacles.
 In this work, such bounding volume is computed by considering only the uncertainty in the position subspace for simplicity (i.e., the $\{x,y,z\}$-subspace for the quadrotor or the $\{x,y\}$-subspace for the differential drive robot).
 
-This work employ a robust collision check generic to all free flying robots that operates as followed:
+This work employ a robust collision check generic to all free flying robots that operates as follows:
 \begin{enumerate}
     \item As mentioned above, the first phase performs a broad collision detection considering the current robot AABB. 
     Therefore, in the robust collision detection of this work, this phase involves creating an extended AABB by scaling the current robot AABB in all directions according to their respective uncertainty radii as shown in Figure~\ref{fig:CCmethods}. 

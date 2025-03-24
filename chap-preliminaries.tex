@@ -40,7 +40,8 @@ In line with the previous definitions, the following sections of this thesis wil
   % \item $\q_n$: The \emph{nominal} system state vector which represents the real state values of the system during the execution under nominal parameters (i.e. when the uncertain system parameters $\p$ perfectly match the parameter values used in the control loop $\p_n$). 
   % A distinction is made between the nominal states and the desired states, as they are generally not equal due to factors such as controller settings (e.g. overshooting behavior).
   \item $\q_n$: The \emph{nominal} system state vector which represents the real state values of the system during the execution under nominal parameters (i.e. it is the behavior of the system obtained by integrating the \myglsentry{odes} with $\p$ perfectly matching the parameter values used in the control loop $\p_n$). 
-  A distinction is made between the nominal states and the desired states, as they are generally not equal due to factors such as controller settings (e.g. overshooting behavior).
+  A distinction is made between the nominal states and the desired states, as they may differ, for instance, due to the lack of feedforward terms.
+  % as they are generally not equal due to factors such as controller settings (e.g. overshooting behavior).
   \item $\q$: The \emph{uncertain} (real) system state vector which refers to the behavior of the system when the values of real parameters are taken into account.
 \end{enumerate}
 Note that the same notations apply to the control input vector as well (e.g., $\u_n$ represents the "nominal" control input values, i.e., when $\p=\p_n$).
@@ -70,7 +71,7 @@ This optimization produces a trajectory s.t. the closed-loop evolution of $\q(t)
 
 \begin{figure} [t]
   \centering
-  \includegraphics[width=0.8\linewidth]{figures/models/tubes.png} 
+  \includegraphics[width=0.8\linewidth]{figures/models/tubes smaller dev.png} 
   \caption{Illustration of the uncertainty tube (red) and a perturbed trajectory $\q(t)$ (blue), centered around the nominal trajectory $\q_n(t)$ (green), which results from following the reference trajectory $\q_d(t)$ (dashed black).}%
   \label{fig:tubes}%
 \end{figure}
@@ -132,7 +133,7 @@ For example, let $q_{n,i}(t)$ be the behavior of the $i$-th state component in t
 for a perturbed state $q_i(t)$, and an analogous derivation is also possible for the control inputs $\u(t)$.
 
 Finally, it is important to underline that, since the uncertainty tube radii depend on the state sensitivity $\boldsymbol{\Pi}(t)$, it is necessary to solve the set of \myglsentry{odes} represented by Equation~(\ref{eq:dyna}), Equation~(\ref{eq:ctrl}), and Equation~(\ref{eq:dyna_sensi}) beforehand.
-Additionally, it is important to note that the tube radius does not necessarily increase monotonically, as shown in Figure~\ref{fig:tubes}, due to the influence of feedback actions. 
+Additionally, it is important to note that the tube radius does not necessarily increase monotonically, as shown in Figure~\ref{fig:tubes}, possibly due to the influence of feedback actions. 
 Despite the cumulative effect of uncertainties over time, the feedback helps to contain and reduce the tube radius. 
 In contrast, under open-loop propagation, these uncertainty tubes would expand due to the lack of knowledge about the control feedback actions that mitigate their growth.
 
@@ -190,7 +191,7 @@ In line with Section~\ref{sec:sensi}, the vector of parameters used in the robot
 The control task is to let the robot positions $\boldsymbol{x}$ track desired positions $\boldsymbol{x}_d = [x_d, \, y_d] \in \mathbb{R}^2$.
 The differential drive robot is an under-actuated system, which is why the heading is excluded from the tracking process; it is induced by the robot dynamic instead.
 
-To perform the tracking task, a \myglsentry{dfl} controller is used (e.g. see~\cite{cDFL}).
+To perform the tracking task, a \gls{dfl} controller is used (e.g. see~\cite{cDFL}).
 This control strategy considers an extended desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$, where $\Dot{\boldsymbol{x}}_d(t) \in \mathbb{R}^2$ denote the desired linear velocities, and $\ddot{\boldsymbol{x}}_d(t) \in \mathbb{R}^2$ are the desired linear accelerations.
 This trajectory is tracked by mean of the following controller internal states $\boldsymbol{\xi} = [\xi_v \, \xi_x \, \xi_y]^T \in \mathbb{R}^3$, where $\xi_v$ is the dynamic extension of the differential drive robot linear velocity $v$ (see Figure~\ref{fig:unicycle}), and $(\xi_x, \, \xi_y)$ are integral actions. 
 
@@ -254,16 +255,18 @@ where $\boldsymbol{T}_n$ represent the same allocation matrix as in Equation~\re
 
 Now that the dynamics of the differential drive robot and its controller are defined, this subsection presents the steering method used to generate the desired trajectory $\q_d(t) = [\boldsymbol{x}_d(t) \, \dot{\boldsymbol{x}}_d(t) \, \ddot{\boldsymbol{x}}_d(t)]^T \in \mathbb{R}^6$ that is tracked by the \myglsentry{dfl} controller.
 The trajectory generation problem is addressed using Dubins curves~\cite{cDubins}. 
+This method is preferred over more aggressive approaches, such as Reeds and Shepp~\cite{cReedShepp} or the shortest path synthesis in~\cite{cSoueres}, as it allows only forward motion. 
+This restriction helps prevent the singularity in the \myglsentry{dfl} controller that occurs when the robot's velocity approaches zero (see~\cite{cDFL}), which happens during transitions from forward to backward motion.
 
-This approach ensures smooth and continuous trajectories between two positions $(x^0, y^0)$ and $(x^F, y^F)$ in the x-y plane for systems with constraints on turning radius and forward motion such as the differential drive robot.
+The Dubins curves approach ensures smooth and continuous trajectories between two positions $(x^0, y^0)$ and $(x^F, y^F)$ in the x-y plane with constraints on turning radius and forward motion.
 The method takes advantage of specified initial and final tangents to the curve (e.g. the differential drive robot heading angle $\theta$, in this case) to create smooth curves that respect the turning constraints.
 A Dubins curve is composed of three possible segment types: left turn, right turn, and straight line as depicted in Figure~\ref{fig:dubins}. 
-Each segment is designed with an optimal distance, arranged to create the shortest path between the two points $(x^0, y^0)$ and $(x^F, y^F)$. 
+Each segment is designed with an optimal distance, arranged to create the shortest path between the two points $(x^0, y^0)$ and $(x^F, y^F)$, while adhering to the constraints of minimum turning radius and forward motion. 
 This configuration results in one of six possible combinations of segments (e.g., left-straight-right), producing a smooth, continuous path that meets the system turning and heading requirements.
 
 In this thesis, the robot state used to compute such path is defined as $\boldsymbol{\gamma} = [x \, y \, \theta] \in \mathbb{R}^3$.
-Once the path is computed, the x and y components are discretized using a specified time step and a constant velocity magnitude denoted $v_{magn}$.
-The corresponding velocities along the x- and y-axes are then computed using the finite difference method. 
+Once the path is computed, the $x$ and $y$ components are discretized using a specified time step and a constant velocity magnitude denoted $v_{magn}$.
+The corresponding velocities along the $x$- and $y$-axes are then computed using the finite difference method. 
 However, while the resulting velocities are continuous, they are generally not differentiable.
 Therefore, in this thesis, the desired accelerations required by Equation~(\ref{eq:unic_control_law}) are set to be zero.
 Note that, although the heading is not directly controlled, a desired heading is specified to satisfy the tangent constraints.
@@ -386,7 +389,7 @@ According to the aforementioned errors, this control strategy computes the desir
     \end{array}
   \right .
 \end{equation}
-Note that the choice of setting the desired yaw rate to zero cancels terms in the expression of $\boldsymbol{\tau}_d(t)$ compared to the original expression in~\cite{cLee}.
+Note that the choice of setting the desired angular velocities to zero cancels terms in the expression of $\boldsymbol{\tau}_d(t)$ compared to the original expression in~\cite{cLee}.
 
 Finally, the control input vector $\u$ can be computed using the same standard allocation matrix $\boldsymbol{T}$ from Equation~(\ref{eq:alloc_mat}) using nominal parameters denoted $\boldsymbol{T}_n$ s.t.:
 \begin{equation}\label{eq:control_lee}
@@ -418,13 +421,15 @@ Note also that no internal controller states are considered in this controller; 
 
 With the quadrotor model and controller now defined, this subsection presents the interpolation method (hereafter referred to as the \emph{steering method}) for computing a desired trajectory that the geometric controller will track.
 
-Given an initial desired state $\q_d^0 = [\boldsymbol{\gamma}^0 \, \boldsymbol{\Dot{\gamma}}^0 \, \boldsymbol{\Ddot{\gamma}}^0] \in \mathbb{R}^{12}$ and a goal state $\q_d^g = [\boldsymbol{\gamma}^g \, \boldsymbol{\Dot{\gamma}}^g \, \boldsymbol{\Ddot{\gamma}}^g] \in \mathbb{R}^{12}$ for the quadrotor, where $\boldsymbol{\gamma} = [x_{d} \, y_{d} \, z_{d} \, \Psi_{d}]^T \in \mathbb{R}^{4}$ represents the desired position along the x, y, and z axes and the desired yaw angle, the \emph{kino-spline} method from~\cite{cKino} is employed to plan a time optimal and continuous desired trajectory $\q_d(t)$ connecting $\q_d^0$ and $\q_d^F$. 
+Let $\boldsymbol{\gamma} = [x_{d} \, y_{d} \, z_{d} \, \Psi_{d}]^T \in \mathbb{R}^{4}$ represents the desired position along the x, y, and z axes and the desired yaw angle for the quadrotor.
+Then, given an initial desired state $\q_d^0 = [\boldsymbol{\gamma}^0 \, \boldsymbol{\Dot{\gamma}}^0 \, \boldsymbol{\Ddot{\gamma}}^0] \in \mathbb{R}^{12}$ and a goal state $\q_d^g = [\boldsymbol{\gamma}^g \, \boldsymbol{\Dot{\gamma}}^g \, \boldsymbol{\Ddot{\gamma}}^g] \in \mathbb{R}^{12}$ for the quadrotor, the \emph{kino-spline} method from~\cite{cKino} is employed to plan a time optimal and continuous desired trajectory $\q_d(t)$ connecting $\q_d^0$ and $\q_d^F$. 
+% Given an initial desired state $\q_d^0 = [\boldsymbol{\gamma}^0 \, \boldsymbol{\Dot{\gamma}}^0 \, \boldsymbol{\Ddot{\gamma}}^0] \in \mathbb{R}^{12}$ and a goal state $\q_d^g = [\boldsymbol{\gamma}^g \, \boldsymbol{\Dot{\gamma}}^g \, \boldsymbol{\Ddot{\gamma}}^g] \in \mathbb{R}^{12}$ for the quadrotor, where $\boldsymbol{\gamma} = [x_{d} \, y_{d} \, z_{d} \, \Psi_{d}]^T \in \mathbb{R}^{4}$ represents the desired position along the x, y, and z axes and the desired yaw angle, the \emph{kino-spline} method from~\cite{cKino} is employed to plan a time optimal and continuous desired trajectory $\q_d(t)$ connecting $\q_d^0$ and $\q_d^F$. 
 
 The trajectory generation problem is solved independently for each component of $\boldsymbol{\gamma}$.
 Furthermore, in order to generate smooth trajectories in a global context, the steering method ensures the continuity of their derivatives up to the jerk (acceleration derivative). 
 Note that even if the yaw angular acceleration is not required by the control law of Section~\ref{sec:quad_model}, the initial and goal yaw angular accelerations are used to ensure the smoothness of the generated trajectory. 
 As for both initial and goal jerk, they are set to zero to facilitate a smooth transition between trajectories, and are therefore not considered in $\boldsymbol{\gamma}$.
-Finally, the kino-spline method also consider bounds on the several derivatives up to the snap (i.e. $v_{max}, a_{max}$, etc.) and plan the trajectory accordingly.
+Finally, the kino-spline method also considers bounds on the several derivatives up to the snap (i.e. $v_{max}, a_{max}$, etc.) and plan the trajectory accordingly.
 
 As previously mentioned, this steering method focuses on generating local trajectories that are time optimal, i.e. that minimize the total time needed to reach $\q_d^g$.
 This is achieved by reaching the full speed as soon as possible and by maintaining it as long as possible for each component of $\boldsymbol{\gamma}$.

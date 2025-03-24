@@ -44,16 +44,16 @@
 \input{glossary}
 \bibliography{references}
 
-\input{cover}
+% \input{cover}
 \sloppy
 
 \begin{document}
 
-% \includepdf{couverture_these.pdf}
+\includepdf{couverture_these.pdf}
 
-\begin{otherlanguage}{french}
-  \makeflyleaf
-\end{otherlanguage}
+% \begin{otherlanguage}{french}
+%   \makeflyleaf
+% \end{otherlanguage}
 
 \cleardoublepage
 
@@ -61,10 +61,10 @@
 \frontmatter
 \pagestyle{plain}
 
+\include{chap_acknowledgements}
+
 \include{chap_abstract}
 \include{chap_résumé}
-
-\include{chap_acknowledgements}
 
 \cleardoublepage
 

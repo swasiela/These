@@ -77,6 +77,16 @@ This subsection explores learning techniques that directly incorporate the \mygl
 
 This subsection discusses learning methods suited for modeling sequences of data, such as time series or trajectories, which are common while dealing with dynamic systems.
 
+\begin{figure} [t!]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/learning_quadrotor/cells.png}%
+    \caption{Representation of a \myglsentry{rnn} cell (top left), a \myglsentry{gru} cell (top right), and a \myglsentry{lstm} cell (bottom).
+    The three models (RNN, LSTM, and GRU) feature different update mechanisms (blue box). 
+    They each take as input a hidden state $h$ (with LSTM also taking a cell state $c$) and a current state from the sequence $x$, and output the updated hidden state as well as the predicted value ${\hat{y}}$.
+    }%
+    \label{fig:rnns}%
+\end{figure}
+
 \begin{itemize}
     \item Recurrent Neural Networks (\myglsentry{rnns}): \myglsentry{rnns} are well known for their excellent application to temporal data sequences, and more specifically in this case, to trajectories.
     Their application in motion planning frameworks has rapidly grown in recent years, e.g., to predict trajectories in sampling-based algorithms \cite{cRNNTraj1,cRNNTraj2}.
@@ -92,16 +102,6 @@ This subsection discusses learning methods suited for modeling sequences of data
     Finally, Transformers poorly generalize to longer sequences than those in the training set because the self-attention mechanism processes fixed-sized segments of data and positional encodings may not adequately capture relationships in much longer contexts.
 \end{itemize}
 
-\begin{figure} [htp]
-    \centering
-    \includegraphics[width=0.8\linewidth]{figures/learning_quadrotor/cells.png}%
-    \caption{Representation of a \myglsentry{rnn} cell (top left), a \myglsentry{gru} cell (top right), and a \myglsentry{lstm} cell (bottom).
-    The three models (RNN, LSTM, and GRU) feature different update mechanisms (blue box). 
-    They each take as input a hidden state $h$ (with LSTM also taking a cell state $c$) and a current state from the sequence $x$, and output the updated hidden state as well as the predicted value ${\hat{y}}$.
-    }%
-    \label{fig:rnns}%
-\end{figure}
-
 \subsection{Outlook}
 
 This section has presented various techniques for accelerating the integration of \gls{odes}, focusing on parallelization, learning approaches, and sequence modeling methods. 
@@ -111,7 +111,8 @@ However, due to the inherent coupling between different parts of the \myglsentry
 The section also explored learning techniques that embed \myglsentry{odes} dynamics directly into the model, such as Neural ODEs and Physics-Informed Neural Networks (PINNs), which are particularly useful when system dynamics are not explicitly known. 
 While Neural ODEs offer flexibility, they are conceptually opposed to the current application, where the system dynamics are known and must be bypassed. 
 On the other hand, Physics-Informed Neural Networks (PINNs) represent more of a learning process than a distinct architecture. 
-They rely on accessing the gradient between the desired predicted outputs and the neural network inputs, which can be challenging to compute.
+They rely on accessing the gradient between the desired predicted outputs and the neural network inputs, a process that can be challenging and computationally intensive. 
+This gradient computation often requires additional training effort, as it involves optimizing the network to capture these relationships accurately.
 
 Additionally, learning methods like \gls{rnns} and Transformers, which are well-suited for modeling temporal data, were discussed for their potential in trajectory prediction and dynamic system modeling. 
 However, due to the need for explicit temporal dependencies in Transformers, and because \myglsentry{rnns} inherently encode temporal correlations and initial conditions within their hidden state, \myglsentry{rnns} are more suitable for the current application.
@@ -128,7 +129,7 @@ This section presents a multi-task learning neural network based on a GRU archit
 
 The resulting predictor, denoted as $\boldsymbol{g}$, aims at bypassing the intrinsic structure of the original set of \myglsentry{odes} considered in this thesis. 
 These dependencies arise from the structure of the equations of Chapter~\ref{chap:models}: Equation~(\ref{eq:ctrl}) computes the control inputs, Equation~(\ref{eq:dyna}) updates the robot state, and Equation~(\ref{eq:dyna_sensi}) computes the sensitivity matrices before projecting them to derive the uncertainty tubes (see Equation~(\ref{eq:radius})). 
-Note that each equation depends on the outputs of the preceding one within a single time step.
+Note that each system of equations depends on the outputs of the preceding one within a single time step (i.e., to solve Equation~(\ref{eq:dyna_sensi}), one must first solve Equation~(\ref{eq:dyna})).
 
 \subsection{Problem statement}
 
@@ -208,7 +209,7 @@ In order to train the proposed neural network, a dataset of trajectories compute
 This ensures that the resulting learned model is totally independent of the environment and only depends on the system.
 As a result, it is highly efficient when used in a sampling-based motion planning context, where the same robot model can be applied across different environments.
 
-Each global trajectory starts from the same initial hovering state ($\q_{init}$) initialized at zero velocities and accelerations.
+Each global trajectory starts from the same initial hovering state ($\q_{init}$) initialized at zero velocities and accelerations, except along the $z$-axis to compensate for gravity.
 Note that this initialization does not hurt the generalizability of the model to different initial conditions as every dynamic state can be connected to the hovering state by means of a steering method.
 Based on the same principle as a sampling-based planner, the global trajectory is made up of local sub-trajectories until a total distance $D_{max}$ (according to the state space metric) is reached.
 Each local sub-trajectory is generated by uniformly sampling an arrival state ($\q_{rand}$) and connecting it to the nearest one among the previous sampled states ($\q_{prev}$) using an appropriate steering method, based on the robot being considered.
@@ -221,7 +222,7 @@ The data annotation was performed by computing and integrating the set of \mygls
 Once $\bPi$ and $\bTheta$ had been computed, a simple projection was performed to recover the tubes thanks to Equation~(\ref{eq:radius}).
 Note that the control inputs $\u$ are computed during the \myglsentry{odes} resolution.
 
-\begin{figure} [h!]
+\begin{figure} [t!]
     \centering
     \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/vnorm_val2.png}
     \includegraphics[width=0.49\linewidth]{figures/learning_quadrotor/vnorm_test.png}
@@ -229,7 +230,7 @@ Note that the control inputs $\u$ are computed during the \myglsentry{odes} reso
     \label{fig: valvstest}%
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[t!]
     \centering
     \begin{tabular}{ | c | c || c |}
     \hline
@@ -553,7 +554,7 @@ Another dynamical system might need a different set of inputs to obtain accurate
 
 \subsection{Qualitative results}
 
-\begin{figure}[h!]
+\begin{figure}[b!]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/learning_quadrotor/long_pred.png}
     \caption{Quadrotor application: Example of \textbf{GRU} predictions on a 600-state trajectory generated in the same way as the test set. $||\Rq||, ||\u||$ and $||\Ru||$ refer to the norm of their respective vector. 
@@ -561,7 +562,7 @@ Another dynamical system might need a different set of inputs to obtain accurate
     \label{fig:long_test}
 \end{figure}
 
-\begin{figure}[h!]
+\begin{figure}[b!]
     \centering
     \begin{minipage}{0.49\linewidth}
         \centering
@@ -628,7 +629,7 @@ First, this subsection explains how the proposed architecture, the dataset gener
 As mentioned in Section~\ref{sec:architecture}, a reasonable initial guess is to start the prediction using the same inputs as those used by the controller.
 The \myglsentry{dfl} controller inputs consist of the desired robot position, linear velocities, and accelerations, as shown in Equation~\ref{eq:unic_control_law}. 
 However, to ensure that the learned model is independent of the workspace boundaries used during planning (i.e., the robot's position limits) and since accelerations are not considered for this robot in this thesis, only the desired linear velocities are retained as input components for the network.
-Therefore, the input to the neural network for the differential drive robot case is a vector $\boldsymbol{\q_{in}^k} = [\boldsymbol{v_d}]^T \in \mathbb{R}^2$, where $k$ refers to the $k$-th state of the desired trajectory.
+Therefore, the input to the neural network for the differential drive robot case is a vector $\boldsymbol{\q_{in}^k} = [\boldsymbol{v_d}]^T \in \mathbb{R}^2$, where $k$ refers to the $k$-th state along the discretized desired trajectory.
 
 The predicted outputs are composed of the predicted uncertainty tubes radii along the $\{x,y\}$-axis of the state $\Rq=$[$r_{x},\,r_{y}]^T \in \mathbb{R}^2$, and the uncertainty tubes radii associated with the control inputs of the system $\Ru = [r_{u1},\,r_{u2}]^T \in \mathbb{R}^2$.
 The control input values predicted by the neural network are $\u = [u_1 ,\, u_2]^T \in \mathbb{R}^2$, which correspond to the right and left wheel speeds.
@@ -709,7 +710,7 @@ Meanwhile, the \textbf{LSTM} achieves accuracy comparable to the \textbf{GRU} bu
 
 \subsubsection{Qualitative results}
 
-\begin{figure}[h!]
+\begin{figure}[t!]
     \centering
     \includegraphics[width=0.99\linewidth]{figures/learning_unic/all_models_labeled.jpg} 
     \caption{Differential drive robot application: Comparison of predictions obtained using the different recurrent neural network architectures as well as the \textbf{MLP} on a 300-state trajectory of the test set. 
@@ -718,7 +719,7 @@ Meanwhile, the \textbf{LSTM} achieves accuracy comparable to the \textbf{GRU} bu
     \label{fig:all_models_pred_val_unic}
 \end{figure}
 
-\begin{figure}[h!]
+\begin{figure}[t!]
     \centering
     \begin{minipage}{0.49\linewidth}
         \centering

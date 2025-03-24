@@ -50,11 +50,11 @@ The role of the controller gains are further discussed in Section~\ref{sec:AccOp
 \end{algorithmic}
 \end{algorithm}
 
-The first step of the algorithm consists of generating robust trajectories between successive desired states in the list (line 3 of Algorithm~\ref{alg:RA-SAMP}) by means of a deep learning-based sensitivity-aware motion planner variant called DeepSAMP (explained in Section~\ref{sec:RSAMP}) that uses the learning approach presented in Chapter~\ref{chap:NN}.
-These trajectories are concatenated into a global one $\q_d^{tot}$, connecting all the desired states of $list_{d}$ (lines 2-5 in Algorithm~\ref{alg:RA-SAMP}). 
+The first step of the algorithm consists in generating robust trajectories between successive desired states in the list (line 3 of Algorithm~\ref{alg:RA-SAMP}) by means of a deep learning-based sensitivity-aware motion planner variant called DeepSAMP (explained in Section~\ref{sec:RSAMP}) that uses the learning approach presented in Chapter~\ref{chap:NN}.
+These trajectories are concatenated into a global one $\q_d^{tot}$, connecting all the desired states of $list_{d}$ (lines 2-3 in Algorithm~\ref{alg:RA-SAMP}). 
 It is important to note that, unlike the variants discussed in Chapter~\ref{chap:samp}, this step may not incorporate any aspect of optimality, as sensitivity is primarily leveraged to enforce robust constraints.
 
-The trajectory from DeepSAMP is then locally modified by A-Optim (line 6 in Algorithm~\ref{alg:RA-SAMP}), aiming at optimizing the accuracy at specific desired states along the trajectory. 
+The trajectory from DeepSAMP is then locally modified by A-Optim (line 4 in Algorithm~\ref{alg:RA-SAMP}), aiming at optimizing the accuracy at specific desired states along the trajectory. 
 This algorithm iteratively samples both the trajectory from DeepSAMP and the controller gains, adjusting the former to minimize uncertainty at these states. 
 Indeed, as demonstrated in~\cite{AliIROS}, optimizing both factors concurrently results in minimizing the uncertainty.
 The algorithm produces two offline outputs: $(i)$ a robust desired trajectory $\q_d^{tot}$ optimized for accuracy at the desired states, and $(ii)$ the optimized controller gains vector $k_{c}^{opt}$, considered constant throughout the trajectory.
@@ -151,7 +151,7 @@ with $\mathbb{E}[L]$ and $\mathbb{V}[L]$ the mean and the variance of $L$, where
 The variance is considered in this cost function so that the minimization of a radius at a given point does not lead to the growth of another radius at another waypoint.
 As the cost function of Chapter~\ref{chap:samp}, this function is neither additive (i.e., considering two trajectories ($\q_{d,1}(t), \q_{d,2}(t)$), the cost of their concatenation $c(\q_{d,1}(t)|\q_{d,2}(t)) \neq c(\q_{d,1}(t)) + c(\q_{d,2}(t))$), nor monotonic. 
 Therefore, it is unsuitable for global optimization using sampling-based motion planners like~\cite{cRRT,cRRTstar}, since they require additive and monotonic objective functions.
-Given that the analytical expression of the cost function derivatives is unavailable, the accuracy optimization in A-Optim must be conducted using a derivative-free method.
+Given that the analytical expression of the cost function derivatives is unavailable, the accuracy optimization in A-Optim must be conducted using a derivative-free method to optimize the cost function in Equation~(\ref{eq: cost}).
 In the following section several robust variant derivative-free algorithms are proposed to maintain the robustness of the initial trajectory computed by the \myglsentry{deepsamp} variant.
 
 \subsubsection{Algorithms}
@@ -170,9 +170,9 @@ While this algorithm is computationally efficient, it is constrained by sampling
 \paragraph{STOMP}
 
 \begin{algorithm}[h!]
-    \caption{\myglsentry{sastomp} [$\q_{d,init}^{i}, K$]}\label{alg:sastomp}
+    \caption{\myglsentry{sastomp} [$\q_{d,init}^{i}, N_{roll}$]}\label{alg:sastomp}
     \begin{algorithmic}[1]
-    \State $\q_{d,best}^{i} \gets \q_{d,init}^{i};$
+    \State $\q_{d,best}^{i} \gets \q_{d,init}^{i}, K \gets N_{roll};$
     \State $A \gets$ FiniteDifferenceMatrix$();$
     \State $R^{-1} = (A^TA)^{-1};$
     \State $M \gets$ Scale$(R^{-1});$
@@ -194,17 +194,17 @@ A robust sensitivity-aware variant of the \gls{stomp} algorithm~\cite{cSTOMP}, d
 The pseudo code is presented in Algorithm~\ref{alg:sastomp} and operates as follows:
 
 \begin{enumerate}
-    \item It takes as input an initial discretized 1-D guess $\q_{d,i}^{init}$ and the number of rollouts to perform $K$ (line 1) (i.e. the discretized trajectory along the $i$-th position axis only). 
+    \item It takes as input an initial discretized 1-D guess $\q_{d,init}^{i}$ and the number of rollouts to perform $K$ (line 1) (i.e. the discretized trajectory along the $i$-th position axis only). 
     Therefore, the algorithm must be performed independently for each dimension. 
     \item Then, the algorithm precomputes some smoothing matrices ($R$ and $M$) based on the sum-of-squared acceleration along the initial trajectory (line 2-4).
-    \item Next, until a stopping criterion is met (i.e. cost convergence, planning time, etc.), the algorithm generates K noisy trajectories around the current best trajectory using the CreateNoisyTraj procedure (line 6).
+    \item Next, until a stopping criterion is met (i.e. cost convergence, planning time, etc.), the algorithm generates $K$ noisy trajectories around the current best trajectory using the CreateNoisyTraj procedure (line 6).
     The noise for each time step is drawn from a normal distribution, with the smoothing matrices used as the covariance to ensure smooth, noisy trajectories.
-    \item For each of the K noisy trajectories, the ComputeSACost procedure computes the trajectory cost at each time step (line 8), along with the probabilities for each time step that the current noisy parameters contribute to an improved cost (ComputeProbabilities) (line 9).
+    \item For each of the $K$ noisy trajectories, the ComputeSACost procedure computes the trajectory cost at each time step (line 8), along with the probabilities for each time step that the current noisy parameters contribute to an improved cost (ComputeProbabilities) (line 9).
     Note that this cost function is also responsible for penalizing the collisions.
     In the current sensitivity-aware variant, the cost at each time step is therefore a sum of the following:
     \begin{itemize}
         \item If the time step is the last, the cost described in Section~\ref{sec:AOptimCost} is added; otherwise, a value of 0.0 is added for the other states.
-        \item Infeasible control inputs and colliding states are penalized by adding a value of 1.0.
+        \item Infeasible control inputs and collisions are penalized by adding a value of 1.0.
     \end{itemize}
     \item Such probabilities are then used to create the update vector $\delta \q^{noisy}$ (line 10), by selecting, at each time step, the noisy update that has the best contribution for improving the cost function.
     The update vector is then smoothed (line 11), and finally, the current best trajectory is updated (line 12).
@@ -214,21 +214,7 @@ While this algorithm allows for broader exploration relative to the initial gues
 
 \paragraph{ExtendedShortcut}
 
-This thesis proposes an algorithm called \gls{saextendedshct} presented in Algorithm~\ref{alg:extendedshct}, which attempts to combine the advantages of the above-mentioned algorithms while limiting their drawbacks.
-
-The proposed algorithm follows the same workflow as the \myglsentry{SAshortcut} proposed in Chapter~\ref{chap:samp}.
-It is initialized with an initial trajectory $q_d^{init}$ and its associated cost (line 1-2).
-Note that the algorithm, unlike to the \myglsentry{SAshortcut}, takes two additional arguments: $K$ which refers to a number of samples, and $\delta$, that refers to a ball radius.
-Then, until a stopping criterion is met, the algorithm samples $K$ states within a ball of radius $\delta$ centered at a first random state of the current best trajectory, and $K$ others around a second random state of the trajectory, thus generating two sets of samples $Q_d^{1}$ and $Q_d^{2}$ (line 4).
-The choice of the sampling strategy (e.g. gaussian sampling) is further discussed in Section~\ref{sec:AccOptSimu}.
-Then, all the possible shortcuts between the two sets are computed and tested for collisions without considering robust constraints (line 5-8).
-If a current shortcut is collision free, the full trajectory from the initial state to the goal state using this shortcut is recomputed and stored in a set denoted $Q_{d,new}$ (line 9-11).
-Then, for each trajectory in $Q_{d,new}$, the \myglsentry{odes} are solved before performing the cost comparison (line 13-15).
-Finally, if the new solution has a lower sensitivity cost (line 16), then a robust feasibility check is performed before updating the trajectory portion in case of success (line 17-18).
-
-Note that the idea behind the proposed algorithm is to explore the vicinity of the initial trajectory while keeping the computational cost low, based on well-chosen hyperparameters $K$ and $\delta$.
-
-\begin{algorithm}[h!]
+\begin{algorithm}[b!]
     \caption{SAExtendedShortcut [$\q_{d,init}, K, \delta$]}\label{alg:extendedshct}
     \begin{algorithmic}[1]
         \State $\{\q_{d,best}, cost_{best}\} \gets \{\q_{d,init}, $Cost$(\q_{d,init})\};$
@@ -259,6 +245,20 @@ Note that the idea behind the proposed algorithm is to explore the vicinity of t
     \State \textbf{return} $\q_{d,best}$
     \end{algorithmic}
 \end{algorithm}
+
+This thesis introduces the \gls{saextendedshct} algorithm (Algorithm~\ref{alg:extendedshct}), designed to merge the benefits of the aforementioned algorithms while minimizing their drawbacks.
+
+The proposed algorithm follows the same workflow as the \myglsentry{SAshortcut} proposed in Chapter~\ref{chap:samp}.
+It is initialized with an initial trajectory $q_d^{init}$ and its associated cost (line 1-2).
+Note that the algorithm, unlike to the \myglsentry{SAshortcut}, takes two additional arguments: $K$ which refers to a number of samples, and $\delta$, that refers to a ball radius.
+Then, until a stopping criterion is met, the algorithm samples $K$ states within a ball of radius $\delta$ centered at a first random state of the current best trajectory, and $K$ others around a second random state of the trajectory, thus generating two sets of samples $Q_d^{1}$ and $Q_d^{2}$ (line 4).
+The choice of the sampling strategy (e.g. gaussian sampling) is further discussed in Section~\ref{sec:AccOptSimu}.
+Then, all the possible shortcuts between the two sets are computed and tested for collisions without considering robust constraints (line 5-8).
+If a current shortcut is collision free, the full trajectory from the initial state to the goal state using this shortcut is recomputed and stored in a set denoted $Q_{d,new}$ (line 9-11).
+Then, for each trajectory in $Q_{d,new}$, the \myglsentry{odes} are solved before performing the cost comparison (line 13-15).
+Finally, if the new solution has a lower sensitivity cost (line 16), then a robust feasibility check is performed before updating the trajectory portion in case of success (line 17-18).
+
+Note that the idea behind the proposed algorithm is to explore the vicinity of the initial trajectory while keeping the computational cost low, based on well-chosen hyperparameters $K$ and $\delta$.
 
 \paragraph{COBYLA}
 
